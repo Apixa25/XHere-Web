@@ -30,9 +30,10 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     const endpoint = isRegistering ? '/api/register' : '/api/login';
+    const backendURL = 'http://localhost:3000';
     
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch(`${backendURL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -41,16 +42,17 @@ function App() {
       });
       
       const data = await response.json();
+      console.log('Response:', data);
       
       if (response.ok) {
         if (!isRegistering) {
           localStorage.setItem('token', data.token);
           setUser(data.user);
         } else {
-          setIsRegistering(false); // Switch to login after successful registration
+          setIsRegistering(false);
         }
       } else {
-        alert(data.error);
+        alert(data.error || 'Authentication failed');
       }
     } catch (error) {
       console.error('Auth error:', error);

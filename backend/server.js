@@ -5,25 +5,33 @@ const multer = require('multer');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const cors = require('cors');
 
 // Add this at the top of server.js
 mongoose.set('strictQuery', false);
 
-// Modify the MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/your_database_name')
-  .then(() => {
-    console.log('Connected to MongoDB successfully');
-    app.listen(process.env.PORT || 3000, () => {
-      console.log(`Server running on port ${process.env.PORT || 3000}`);
-    });
-  })
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-  });
-
 const app = express();
 app.use(express.json());
+app.use(cors());
+
+// Update MongoDB connection with better error handling and options
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/your_database_name', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => {
+  console.log('Connected to MongoDB successfully');
+})
+.catch(err => {
+  console.error('MongoDB connection error:', err);
+  process.exit(1);
+});
+
+// Separate server startup
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 // MongoDB Models
 const userSchema = new mongoose.Schema({
@@ -81,6 +89,12 @@ const upload = multer({ storage: storage });
 // Auth Routes
 app.post('/api/register', async (req, res) => {
   try {
+    console.log('Registration request received:', req.body);
+    
+    if (!req.body.email || !req.body.password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const user = new User({
       email: req.body.email,
@@ -90,6 +104,7 @@ app.post('/api/register', async (req, res) => {
     await user.save();
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({ error: error.message });
   }
 });
