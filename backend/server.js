@@ -13,6 +13,7 @@ mongoose.set('strictQuery', false);
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'));
 
 // Update MongoDB connection with better error handling and options
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/your_database_name', {
@@ -178,6 +179,16 @@ app.get('/api/locations/nearby', authenticateToken, async (req, res) => {
     }).populate('creator', 'profile.name');
     
     res.json(nearbyLocations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/locations', authenticateToken, async (req, res) => {
+  try {
+    const locations = await LocationData.find()
+      .populate('creator', 'profile.name email');
+    res.json(locations);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
