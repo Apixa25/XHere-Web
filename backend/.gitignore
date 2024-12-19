@@ -1,0 +1,18 @@
+# Dependency directories
+node_modules/
+package-lock.json
+
+# Environment configuration
+# .env
+
+# Build output
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS generated files
+.DS_Store*
+Thumbs.db
