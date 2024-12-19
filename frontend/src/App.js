@@ -1,6 +1,6 @@
 // App.js
-import React, { useState } from 'react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import React, { useState, useEffect } from 'react';
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 
 function App() {
   const [user, setUser] = useState(null); // Track logged in user
@@ -16,6 +16,7 @@ function App() {
     text: '',
     media: []
   });
+  const [selectedMarker, setSelectedMarker] = useState(null);
 
   const mapStyles = {
     height: "100vh",
@@ -90,14 +91,34 @@ function App() {
         },
         body: formPayload
       });
-      const data = await response.json();
-      setLocationData([...locationData, data]);
+      await response.json();
+      fetchLocations();
       setSelectedLocation(null);
       setContentForm({ text: '', media: [] });
     } catch (error) {
       console.error('Error submitting location data:', error);
     }
   };
+
+  const fetchLocations = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/locations', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      setLocationData(data);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchLocations();
+    }
+  }, [user]);
 
   // If user is not logged in, show auth form
   if (!user) {
@@ -167,8 +188,42 @@ function App() {
                   lat: location.location.coordinates[1],
                   lng: location.location.coordinates[0]
                 }}
+                onClick={() => setSelectedMarker(location)}
               />
             ))}
+            
+            {selectedMarker && (
+              <InfoWindow
+                position={{
+                  lat: selectedMarker.location.coordinates[1],
+                  lng: selectedMarker.location.coordinates[0]
+                }}
+                onCloseClick={() => setSelectedMarker(null)}
+              >
+                <div style={{ maxWidth: '200px' }}>
+                  <p><strong>Posted by:</strong> {selectedMarker.creator.profile.name || selectedMarker.creator.email}</p>
+                  <p>{selectedMarker.content.text}</p>
+                  {selectedMarker.content.mediaUrls.map((url, index) => (
+                    selectedMarker.content.mediaTypes[index].startsWith('image') ? (
+                      <img 
+                        key={index}
+                        src={`http://localhost:3000/${url}`}
+                        alt="Location media"
+                        style={{ maxWidth: '100%', marginTop: '8px' }}
+                      />
+                    ) : (
+                      <video 
+                        key={index}
+                        src={`http://localhost:3000/${url}`}
+                        controls
+                        style={{ maxWidth: '100%', marginTop: '8px' }}
+                      />
+                    )
+                  ))}
+                </div>
+              </InfoWindow>
+            )}
+
             {selectedLocation && (
               <Marker
                 position={selectedLocation}
