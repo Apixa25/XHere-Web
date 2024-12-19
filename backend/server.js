@@ -1,19 +1,3 @@
-// Add this at the top of server.js
-mongoose.set('strictQuery', false);
-
-// Modify the MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB successfully');
-    app.listen(process.env.PORT, () => {
-      console.log(`Server running on port ${process.env.PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-  });
-
 // server.js
 const express = require('express');
 const mongoose = require('mongoose');
@@ -21,6 +5,22 @@ const multer = require('multer');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+
+// Add this at the top of server.js
+mongoose.set('strictQuery', false);
+
+// Modify the MongoDB connection
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/your_database_name')
+  .then(() => {
+    console.log('Connected to MongoDB successfully');
+    app.listen(process.env.PORT || 3000, () => {
+      console.log(`Server running on port ${process.env.PORT || 3000}`);
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 const app = express();
 app.use(express.json());
@@ -155,12 +155,3 @@ app.get('/api/locations/nearby', authenticateToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// Start server
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    app.listen(process.env.PORT, () => {
-      console.log(`Server running on port ${process.env.PORT}`);
-    });
-  })
-  .catch(err => console.error('MongoDB connection error:', err));
