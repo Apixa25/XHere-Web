@@ -87,24 +87,23 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Auth Routes
-app.post('/api/register', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
-    console.log('Registration request received:', req.body);
-    
-    if (!req.body.email || !req.body.password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-    
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    const user = new User({
-      email: req.body.email,
-      password: hashedPassword,
-      profile: { name: req.body.name }
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) return res.status(400).json({ error: 'User not found' });
+
+    const validPassword = await bcrypt.compare(req.body.password, user.password);
+    if (!validPassword) return res.status(400).json({ error: 'Invalid password' });
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    res.json({ 
+      token,
+      user: {
+        email: user.email,
+        name: user.profile?.name
+      }
     });
-    await user.save();
-    res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
-    console.error('Registration error:', error);
     res.status(500).json({ error: error.message });
   }
 });

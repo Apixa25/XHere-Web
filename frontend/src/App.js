@@ -30,10 +30,9 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     const endpoint = isRegistering ? '/api/register' : '/api/login';
-    const backendURL = 'http://localhost:3000';
     
     try {
-      const response = await fetch(`${backendURL}${endpoint}`, {
+      const response = await fetch(`http://localhost:3000${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -42,14 +41,17 @@ function App() {
       });
       
       const data = await response.json();
-      console.log('Response:', data);
       
       if (response.ok) {
         if (!isRegistering) {
+          // For login success
           localStorage.setItem('token', data.token);
-          setUser(data.user);
+          setUser({ email: formData.email }); // Set some user data
+          console.log('Login successful!');
         } else {
+          // For registration success
           setIsRegistering(false);
+          alert('Registration successful! Please login.');
         }
       } else {
         alert(data.error || 'Authentication failed');
@@ -58,7 +60,7 @@ function App() {
       console.error('Auth error:', error);
       alert('Authentication failed');
     }
-  };
+};
 
   const handleMapClick = (event) => {
     if (!user) return; // Only allow logged in users to add locations
