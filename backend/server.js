@@ -1,3 +1,19 @@
+// Add this at the top of server.js
+mongoose.set('strictQuery', false);
+
+// Modify the MongoDB connection
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB successfully');
+    app.listen(process.env.PORT, () => {
+      console.log(`Server running on port ${process.env.PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
+
 // server.js
 const express = require('express');
 const mongoose = require('mongoose');
