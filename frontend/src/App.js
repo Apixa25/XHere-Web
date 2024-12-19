@@ -83,7 +83,7 @@ function App() {
     });
 
     try {
-      const response = await fetch('/api/locations', {
+      const response = await fetch('http://localhost:3000/api/locations', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
