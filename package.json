@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "@googlemaps/markerwithlabel": "^2.0.28"
+    "@react-google-maps/api": "^2.19.2"
   }
 }
