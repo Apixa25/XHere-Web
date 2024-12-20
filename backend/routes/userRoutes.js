@@ -34,8 +34,10 @@ const upload = multer({
 // GET /api/user/profile - Fetch user profile
 router.get('/profile', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-      .select('-password'); // Exclude password from the response
+    console.log('Fetching profile for user:', req.user.userId); // Debug log
+    
+    const user = await User.findById(req.user.userId)
+      .select('-password');
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });

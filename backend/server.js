@@ -228,3 +228,13 @@ app.delete('/api/locations/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const locationRoutes = require('./routes/locationRoutes');
+
+// Route registrations
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);        // Changed from users to user
+app.use('/api/location', locationRoutes); // Changed from locations to location
