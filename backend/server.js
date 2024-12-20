@@ -15,6 +15,11 @@ app.use(express.json());
 app.use(cors());
 app.use('/uploads', express.static('uploads'));
 
+// Add test route here
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is running!' });
+});
+
 // Update MongoDB connection with better error handling and options
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/your_database_name', {
   useNewUrlParser: true,
