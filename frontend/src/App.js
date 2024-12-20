@@ -1,8 +1,9 @@
 // App.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GoogleMap, LoadScript, InfoWindow, Marker } from '@react-google-maps/api';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
+import MapErrorBoundary from './components/MapErrorBoundary';
 
 const LIBRARIES = ['places'];
 
@@ -26,6 +27,7 @@ function App() {
     lat: 40.7128,
     lng: -74.0060
   });
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const mapStyles = {
     height: "100vh",
@@ -120,6 +122,7 @@ function App() {
       const data = await response.json();
       console.log('Location created:', data);
       await fetchLocations();
+      console.log('Updated locations:', locationData);
       setSelectedLocation(null);
       setContentForm({ text: '', media: [] });
     } catch (error) {
@@ -148,6 +151,10 @@ function App() {
   const handleMapLoad = (map) => {
     setMapInstance(map);
   };
+
+  const handleMapUnmount = useCallback(() => {
+    setMapInstance(null);
+  }, []);
 
   const handleDeleteLocation = async (locationId) => {
     try {
@@ -221,166 +228,174 @@ function App() {
       <LoadScript 
         googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
         libraries={LIBRARIES}
+        version="weekly"
+        onLoad={() => setIsLoaded(true)}
+        onError={(error) => console.error('Script loading error:', error)}
+        loadingElement={<div>Loading...</div>}
       >
-        <div className="app">
-          <div style={{ 
-            position: 'absolute', 
-            top: '10px', 
-            right: '10px', 
-            zIndex: 1,
-            display: 'flex',
-            gap: '10px',
-            background: 'white',
-            padding: '10px',
-            borderRadius: '5px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-          }}>
-            <Link to="/profile">
-              <button style={{
-                padding: '8px 16px',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}>Profile</button>
-            </Link>
-            <button 
-              onClick={() => {
-                localStorage.removeItem('token');
-                setUser(null);
-              }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >Logout</button>
-          </div>
-
-          <Routes>
-            <Route path="/profile" element={<ProfilePage user={user} />} />
-            <Route path="/" element={
-              <div className="map-container">
-                <GoogleMap
-                  mapContainerStyle={mapStyles}
-                  zoom={13}
-                  center={mapCenter}
-                  onClick={handleMapClick}
-                  mapId={process.env.REACT_APP_GOOGLE_MAPS_MAP_ID}
-                  options={{
-                    mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
-                  }}
-                  onLoad={handleMapLoad}
-                  onDragEnd={() => {
-                    if (mapInstance) {
-                      const newCenter = mapInstance.getCenter();
-                      setMapCenter({
-                        lat: newCenter.lat(),
-                        lng: newCenter.lng()
-                      });
-                    }
-                  }}
-                >
-                  {locationData.map(location => (
-                    <Marker
-                      key={location._id}
-                      position={{
-                        lat: parseFloat(location.location.coordinates[1]),
-                        lng: parseFloat(location.location.coordinates[0])
-                      }}
-                      onClick={() => setSelectedMarker(location)}
-                    />
-                  ))}
-                  {selectedLocation && (
-                    <Marker
-                      position={selectedLocation}
-                    />
-                  )}
-                  {selectedMarker && (
-                    <InfoWindow
-                      position={{
-                        lat: selectedMarker.location.coordinates[1],
-                        lng: selectedMarker.location.coordinates[0]
-                      }}
-                      onCloseClick={() => setSelectedMarker(null)}
-                    >
-                      <div style={{ maxWidth: '200px' }}>
-                        <p><strong>Posted by:</strong> {selectedMarker.creator.profile?.name || selectedMarker.creator.email}</p>
-                        <p>{selectedMarker.content.text}</p>
-                        {selectedMarker.content.mediaUrls?.map((url, index) => (
-                          selectedMarker.content.mediaTypes[index].startsWith('image') ? (
-                            <img 
-                              key={index}
-                              src={`http://localhost:3000/${url}`}
-                              alt="Location media"
-                              style={{ maxWidth: '100%', marginTop: '8px' }}
-                            />
-                          ) : (
-                            <video 
-                              key={index}
-                              src={`http://localhost:3000/${url}`}
-                              controls
-                              style={{ maxWidth: '100%', marginTop: '8px' }}
-                            />
-                          )
-                        ))}
-                        {user && selectedMarker.creator._id.toString() === user.userId && (
-                          <button 
-                            onClick={() => handleDeleteLocation(selectedMarker._id)}
-                            style={{ 
-                              marginTop: '10px',
-                              backgroundColor: '#ff4444',
-                              color: 'white',
-                              border: 'none',
-                              padding: '5px 10px',
-                              borderRadius: '4px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Delete Location
-                          </button>
-                        )}
-                      </div>
-                    </InfoWindow>
-                  )}
-                </GoogleMap>
-              </div>
-            } />
-          </Routes>
-
-          {selectedLocation && (
+        {isLoaded && (
+          <div className="app">
             <div style={{ 
               position: 'absolute', 
-              bottom: '20px', 
-              left: '50%', 
-              transform: 'translateX(-50%)',
-              backgroundColor: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+              top: '10px', 
+              right: '10px', 
+              zIndex: 1,
+              display: 'flex',
+              gap: '10px',
+              background: 'white',
+              padding: '10px',
+              borderRadius: '5px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
             }}>
-              <form onSubmit={handleLocationSubmit}>
-                <textarea
-                  value={contentForm.text}
-                  onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
-                  placeholder="Enter location description"
-                  style={{ width: '100%', marginBottom: '10px' }}
-                />
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
-                />
-                <button type="submit">Save Location Data</button>
-              </form>
+              <Link to="/profile">
+                <button style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}>Profile</button>
+              </Link>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('token');
+                  setUser(null);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >Logout</button>
             </div>
-          )}
-        </div>
+
+            <Routes>
+              <Route path="/profile" element={<ProfilePage user={user} />} />
+              <Route path="/" element={
+                <MapErrorBoundary>
+                  <div className="map-container">
+                    <GoogleMap
+                      mapContainerStyle={mapStyles}
+                      zoom={13}
+                      center={mapCenter}
+                      onClick={handleMapClick}
+                      onLoad={handleMapLoad}
+                      onUnmount={handleMapUnmount}
+                      onDragEnd={() => {
+                        if (mapInstance) {
+                          const newCenter = mapInstance.getCenter();
+                          setMapCenter({
+                            lat: newCenter.lat(),
+                            lng: newCenter.lng()
+                          });
+                        }
+                      }}
+                    >
+                      {locationData.map(location => {
+                        console.log('Rendering marker:', location);
+                        return (
+                          <Marker
+                            key={location._id}
+                            position={{
+                              lat: parseFloat(location.location.coordinates[1]),
+                              lng: parseFloat(location.location.coordinates[0])
+                            }}
+                            onClick={() => setSelectedMarker(location)}
+                          />
+                        );
+                      })}
+                      {selectedLocation && (
+                        <Marker
+                          position={selectedLocation}
+                        />
+                      )}
+                      {selectedMarker && (
+                        <InfoWindow
+                          position={{
+                            lat: selectedMarker.location.coordinates[1],
+                            lng: selectedMarker.location.coordinates[0]
+                          }}
+                          onCloseClick={() => setSelectedMarker(null)}
+                        >
+                          <div style={{ maxWidth: '200px' }}>
+                            <p><strong>Posted by:</strong> {selectedMarker.creator.profile?.name || selectedMarker.creator.email}</p>
+                            <p>{selectedMarker.content.text}</p>
+                            {selectedMarker.content.mediaUrls?.map((url, index) => (
+                              selectedMarker.content.mediaTypes[index].startsWith('image') ? (
+                                <img 
+                                  key={index}
+                                  src={`http://localhost:3000/${url}`}
+                                  alt="Location media"
+                                  style={{ maxWidth: '100%', marginTop: '8px' }}
+                                />
+                              ) : (
+                                <video 
+                                  key={index}
+                                  src={`http://localhost:3000/${url}`}
+                                  controls
+                                  style={{ maxWidth: '100%', marginTop: '8px' }}
+                                />
+                              )
+                            ))}
+                            {user && selectedMarker.creator._id.toString() === user.userId && (
+                              <button 
+                                onClick={() => handleDeleteLocation(selectedMarker._id)}
+                                style={{ 
+                                  marginTop: '10px',
+                                  backgroundColor: '#ff4444',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '5px 10px',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Delete Location
+                              </button>
+                            )}
+                          </div>
+                        </InfoWindow>
+                      )}
+                    </GoogleMap>
+                  </div>
+                </MapErrorBoundary>
+              } />
+            </Routes>
+
+            {selectedLocation && (
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '20px', 
+                left: '50%', 
+                transform: 'translateX(-50%)',
+                backgroundColor: 'white',
+                padding: '20px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+              }}>
+                <form onSubmit={handleLocationSubmit}>
+                  <textarea
+                    value={contentForm.text}
+                    onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
+                    placeholder="Enter location description"
+                    style={{ width: '100%', marginBottom: '10px' }}
+                  />
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
+                  />
+                  <button type="submit">Save Location Data</button>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
       </LoadScript>
     </Router>
   );
