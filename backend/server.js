@@ -24,6 +24,23 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Server is running!' });
 });
 
+// Debug routes
+app.get('/test/auth', (req, res) => {
+  const authHeader = req.headers.authorization;
+  res.json({ 
+    message: 'Auth header received',
+    authHeader: authHeader
+  });
+});
+
+app.get('/test/token', (req, res) => {
+  const token = req.headers.authorization;
+  res.json({ 
+    message: 'Token received',
+    token: token 
+  });
+});
+
 // Update MongoDB connection with better error handling and options
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/your_database_name', {
   useNewUrlParser: true,
