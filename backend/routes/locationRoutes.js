@@ -20,9 +20,13 @@ const upload = multer({ storage: storage });
 router.get('/', auth, async (req, res) => {
   try {
     const locations = await Location.find()
-      .populate('creator', 'email profile.name');
+      .populate({
+        path: 'creator',
+        select: 'email profile.name _id'
+      });
     res.json(locations);
   } catch (error) {
+    console.error('Error fetching locations:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -30,10 +34,12 @@ router.get('/', auth, async (req, res) => {
 // Create location
 router.post('/', auth, upload.array('media'), async (req, res) => {
   try {
+    if (!req.body.latitude || !req.body.longitude) {
+      return res.status(400).json({ error: 'Latitude and longitude are required' });
+    }
+
     const mediaUrls = req.files ? req.files.map(file => file.path) : [];
-    const mediaTypes = req.files ? req.files.map(file => 
-      file.mimetype.startsWith('image/') ? 'image' : 'video'
-    ) : [];
+    const mediaTypes = req.files ? req.files.map(file => file.mimetype) : [];
 
     const location = new Location({
       location: {
@@ -41,7 +47,7 @@ router.post('/', auth, upload.array('media'), async (req, res) => {
         coordinates: [req.body.longitude, req.body.latitude]
       },
       content: {
-        text: req.body.text,
+        text: req.body.text || '',
         mediaUrls,
         mediaTypes
       },
@@ -49,8 +55,15 @@ router.post('/', auth, upload.array('media'), async (req, res) => {
     });
 
     await location.save();
+    
+    await location.populate({
+      path: 'creator',
+      select: 'email profile.name _id'
+    });
+    
     res.status(201).json(location);
   } catch (error) {
+    console.error('Error creating location:', error);
     res.status(500).json({ error: error.message });
   }
 });
