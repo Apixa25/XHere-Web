@@ -26,8 +26,8 @@ function ProfilePage({ user }) {
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching profile from:', 'http://localhost:3000/api/users/profile');
-      const response = await fetch('http://localhost:3000/api/users/profile', {
+      console.log('Fetching profile from:', 'http://localhost:3000/api/user/profile');
+      const response = await fetch('http://localhost:3000/api/user/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -61,8 +61,8 @@ function ProfilePage({ user }) {
   const fetchUserLocations = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching locations from:', 'http://localhost:3000/api/users/locations');
-      const response = await fetch('http://localhost:3000/api/users/locations', {
+      console.log('Fetching locations from:', 'http://localhost:3000/api/user/locations');
+      const response = await fetch('http://localhost:3000/api/user/locations', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -100,7 +100,7 @@ function ProfilePage({ user }) {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/users/profile', {
+      const response = await fetch('http://localhost:3000/api/user/profile', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
