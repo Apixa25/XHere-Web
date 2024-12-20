@@ -50,15 +50,14 @@ function App() {
   });
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
+  const [mapCenter, setMapCenter] = useState({
+    lat: 40.7128,
+    lng: -74.0060
+  });
 
   const mapStyles = {
     height: "100vh",
     width: "100%"
-  };
-
-  const defaultCenter = {
-    lat: 40.7128,
-    lng: -74.0060
   };
 
   const handleAuth = async (e) => {
@@ -221,13 +220,22 @@ function App() {
           <GoogleMap
             mapContainerStyle={mapStyles}
             zoom={13}
-            center={defaultCenter}
+            center={mapCenter}
             onClick={handleMapClick}
             mapId={process.env.REACT_APP_GOOGLE_MAPS_MAP_ID}
             options={{
               mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
             }}
             onLoad={handleMapLoad}
+            onDragEnd={() => {
+              if (mapInstance) {
+                const newCenter = mapInstance.getCenter();
+                setMapCenter({
+                  lat: newCenter.lat(),
+                  lng: newCenter.lng()
+                });
+              }
+            }}
           >
             {mapInstance && locationData.map(location => (
               <Marker
