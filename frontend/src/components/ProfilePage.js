@@ -25,15 +25,12 @@ function ProfilePage({ user }) {
 
   const fetchUserProfile = async () => {
     try {
-      // Log the request URL and token for debugging
       const token = localStorage.getItem('token');
       console.log('Fetching profile from:', 'http://localhost:3000/api/users/profile');
-      console.log('Token:', token ? 'Present' : 'Missing');
-
       const response = await fetch('http://localhost:3000/api/users/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'  // Explicitly request JSON
+          'Accept': 'application/json'
         }
       });
 
@@ -63,11 +60,8 @@ function ProfilePage({ user }) {
 
   const fetchUserLocations = async () => {
     try {
-      // Log request details for debugging
       const token = localStorage.getItem('token');
       console.log('Fetching locations from:', 'http://localhost:3000/api/users/locations');
-      console.log('Token:', token ? 'Present' : 'Missing');
-
       const response = await fetch('http://localhost:3000/api/users/locations', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -106,7 +100,7 @@ function ProfilePage({ user }) {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/user/profile', {
+      const response = await fetch('http://localhost:3000/api/users/profile', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
