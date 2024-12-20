@@ -1,6 +1,6 @@
 // App.js
 import React, { useState, useEffect } from 'react';
-import { GoogleMap, LoadScript, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, InfoWindow, Marker } from '@react-google-maps/api';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 
@@ -31,44 +31,6 @@ function App() {
     height: "100vh",
     width: "100%"
   };
-
-  // Marker management useEffect
-  useEffect(() => {
-    if (!mapInstance) return;
-
-    // Clear existing markers
-    const markers = [];
-
-    // Create markers for all locations
-    locationData.forEach(location => {
-      const position = {
-        lat: parseFloat(location.location.coordinates[1]),
-        lng: parseFloat(location.location.coordinates[0])
-      };
-      
-      const marker = new window.google.maps.Marker({
-        position,
-        map: mapInstance
-      });
-
-      marker.addListener('click', () => setSelectedMarker(location));
-      markers.push(marker);
-    });
-
-    // Create marker for selected location if it exists
-    if (selectedLocation) {
-      const marker = new window.google.maps.Marker({
-        position: selectedLocation,
-        map: mapInstance
-      });
-      markers.push(marker);
-    }
-
-    // Cleanup function to remove all markers
-    return () => {
-      markers.forEach(marker => marker.setMap(null));
-    };
-  }, [mapInstance, locationData, selectedLocation]);
 
   // Fetch locations when user changes
   useEffect(() => {
@@ -323,6 +285,21 @@ function App() {
                     }
                   }}
                 >
+                  {locationData.map(location => (
+                    <Marker
+                      key={location._id}
+                      position={{
+                        lat: parseFloat(location.location.coordinates[1]),
+                        lng: parseFloat(location.location.coordinates[0])
+                      }}
+                      onClick={() => setSelectedMarker(location)}
+                    />
+                  ))}
+                  {selectedLocation && (
+                    <Marker
+                      position={selectedLocation}
+                    />
+                  )}
                   {selectedMarker && (
                     <InfoWindow
                       position={{
