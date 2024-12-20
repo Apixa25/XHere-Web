@@ -14,7 +14,11 @@ const auth = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Add user from payload
-    req.user = decoded;
+    req.user = {
+      userId: decoded.userId
+    };
+    
+    console.log('Auth middleware - User:', req.user);
     
     next();
   } catch (error) {
