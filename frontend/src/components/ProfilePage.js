@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 function ProfilePage({ user }) {
   const navigate = useNavigate();
@@ -168,7 +168,19 @@ function ProfilePage({ user }) {
 
   return (
     <div className="profile-page" style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Profile</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Profile</h1>
+        <Link to="/">
+          <button style={{
+            padding: '8px 16px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}>Back to Map</button>
+        </Link>
+      </div>
       
       {/* Profile Section */}
       <section className="profile-section" style={{ marginBottom: '40px' }}>
