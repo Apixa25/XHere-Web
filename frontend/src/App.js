@@ -2,59 +2,37 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleMap, LoadScript, InfoWindow, useGoogleMap } from '@react-google-maps/api';
 
-// Create a custom marker component
-const AdvancedMarker = ({ position, onClick, content }) => {
+// Replace the AdvancedMarker component with a simpler Marker component
+const Marker = ({ position, onClick }) => {
   const [marker, setMarker] = useState(null);
   const map = useGoogleMap();
 
   useEffect(() => {
-    let currentMarker = marker;
+    if (map && window.google) {
+      const newMarker = new window.google.maps.Marker({
+        position,
+        map
+      });
 
-    if (map && window.google && window.google.maps.marker) {
-      if (currentMarker) {
-        // Update existing marker position
-        currentMarker.position = position;
-      } else {
-        // Create new marker only if it doesn't exist
-        try {
-          const newMarker = new window.google.maps.marker.AdvancedMarkerElement({
-            position,
-            map,
-            content: content || undefined
-          });
-          if (onClick) {
-            newMarker.addListener('click', onClick);
-          }
-          currentMarker = newMarker;
-          setMarker(newMarker);
-        } catch (error) {
-          console.error('Error creating marker:', error);
-          // Fallback to regular marker if advanced marker fails
-          const regularMarker = new window.google.maps.Marker({
-            position,
-            map
-          });
-          if (onClick) {
-            regularMarker.addListener('click', onClick);
-          }
-          currentMarker = regularMarker;
-          setMarker(regularMarker);
+      if (onClick) {
+        newMarker.addListener('click', onClick);
+      }
+
+      setMarker(newMarker);
+
+      return () => {
+        if (newMarker) {
+          newMarker.setMap(null);
         }
-      }
+      };
     }
-
-    return () => {
-      if (currentMarker) {
-        currentMarker.setMap(null);
-      }
-    };
-  }, [map, position, onClick, content, marker]);
+  }, [map, position, onClick]);
 
   return null;
 };
 
 // Add this constant outside of the App component
-const LIBRARIES = ['places', 'marker', 'geometry'];
+const LIBRARIES = ['places'];
 
 function App() {
   const [user, setUser] = useState(null); // Track logged in user
@@ -71,7 +49,6 @@ function App() {
     media: []
   });
   const [selectedMarker, setSelectedMarker] = useState(null);
-  const [advancedMarkers, setAdvancedMarkers] = useState({ ready: false, elements: null });
   const [mapInstance, setMapInstance] = useState(null);
 
   const mapStyles = {
@@ -176,25 +153,9 @@ function App() {
     }
   }, [user]);
 
-  // Add function to load marker library
-  const loadMarkerLibrary = async () => {
-    try {
-      if (typeof window.google !== 'undefined') {
-        const { AdvancedMarkerElement, PinElement } = await window.google.maps.importLibrary("marker");
-        setAdvancedMarkers({
-          ready: true,
-          elements: { AdvancedMarkerElement, PinElement }
-        });
-      }
-    } catch (error) {
-      console.error('Error loading marker library:', error);
-    }
-  };
-
   // Load marker library when map is ready
   const handleMapLoad = (map) => {
     setMapInstance(map);
-    loadMarkerLibrary();
   };
 
   // If user is not logged in, show auth form
@@ -269,7 +230,7 @@ function App() {
             onLoad={handleMapLoad}
           >
             {mapInstance && locationData.map(location => (
-              <AdvancedMarker
+              <Marker
                 key={location._id}
                 position={{
                   lat: parseFloat(location.location.coordinates[1]),
@@ -280,16 +241,8 @@ function App() {
             ))}
 
             {mapInstance && selectedLocation && (
-              <AdvancedMarker
+              <Marker
                 position={selectedLocation}
-                content={
-                  advancedMarkers.ready ? 
-                  new advancedMarkers.elements.PinElement({
-                    background: "#4285F4",
-                    glyphColor: "#FFF"
-                  }).element : 
-                  undefined
-                }
               />
             )}
             
