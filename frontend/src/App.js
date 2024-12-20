@@ -62,7 +62,7 @@ function App() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    const endpoint = isRegistering ? '/api/register' : '/api/login';
+    const endpoint = isRegistering ? '/api/auth/register' : '/api/auth/login';
     
     try {
       const response = await fetch(`http://localhost:3000${endpoint}`, {
