@@ -38,15 +38,20 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt:', { email, password }); // Debug log
 
     // Check if user exists
     const user = await User.findOne({ email });
+    console.log('User found:', user ? 'Yes' : 'No'); // Debug log
+
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     // Validate password
     const validPassword = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', validPassword ? 'Yes' : 'No'); // Debug log
+
     if (!validPassword) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
@@ -54,9 +59,11 @@ router.post('/login', async (req, res) => {
     // Create and send token
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'fallback_secret', // Add fallback for testing
       { expiresIn: '24h' }
     );
+
+    console.log('Login successful, token created'); // Debug log
 
     res.json({
       token,
