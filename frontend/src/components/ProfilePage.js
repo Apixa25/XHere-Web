@@ -126,7 +126,7 @@ function ProfilePage({ user }) {
     });
 
     try {
-      const response = await fetch(`http://localhost:3000/api/locations/${editingLocation._id}`, {
+      const response = await fetch(`http://localhost:3000/api/location/${editingLocation._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -145,7 +145,7 @@ function ProfilePage({ user }) {
 
   const handleDeleteLocation = async (locationId) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+      const response = await fetch(`http://localhost:3000/api/location/${locationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
