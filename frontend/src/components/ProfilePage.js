@@ -21,33 +21,80 @@ function ProfilePage({ user }) {
     }
     fetchUserProfile();
     fetchUserLocations();
-  }, [user]);
+  }, [user, navigate]);
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/user/profile', {
+      // Log the request URL and token for debugging
+      const token = localStorage.getItem('token');
+      console.log('Fetching profile from:', 'http://localhost:3000/api/users/profile');
+      console.log('Token:', token ? 'Present' : 'Missing');
+
+      const response = await fetch('http://localhost:3000/api/users/profile', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'  // Explicitly request JSON
         }
       });
+
+      // Log the response details
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Check content type before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text(); // Get the actual response text
+        console.error('Received non-JSON response:', text);
+        throw new Error('API response was not JSON');
+      }
+
       const data = await response.json();
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setProfile(null);
     }
   };
 
   const fetchUserLocations = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/user/locations', {
+      // Log request details for debugging
+      const token = localStorage.getItem('token');
+      console.log('Fetching locations from:', 'http://localhost:3000/api/users/locations');
+      console.log('Token:', token ? 'Present' : 'Missing');
+
+      const response = await fetch('http://localhost:3000/api/users/locations', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         }
       });
+      
+      // Log response details
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Received non-JSON response:', text);
+        throw new Error('API response was not JSON');
+      }
+
       const data = await response.json();
       setUserLocations(data);
     } catch (error) {
       console.error('Error fetching user locations:', error);
+      setUserLocations([]);
     }
   };
 
