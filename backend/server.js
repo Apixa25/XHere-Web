@@ -129,7 +129,8 @@ app.post('/api/login', async (req, res) => {
       token,
       user: {
         email: user.email,
-        name: user.profile?.name
+        name: user.profile?.name,
+        _id: user._id
       }
     });
   } catch (error) {
@@ -189,6 +190,35 @@ app.get('/api/locations', authenticateToken, async (req, res) => {
     const locations = await LocationData.find()
       .populate('creator', 'profile.name email');
     res.json(locations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/locations/:id', authenticateToken, async (req, res) => {
+  try {
+    const location = await LocationData.findById(req.params.id);
+    
+    if (!location) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    // Check if the user owns this location
+    if (location.creator.toString() !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this location' });
+    }
+
+    // Delete associated media files
+    location.content.mediaUrls.forEach(url => {
+      try {
+        require('fs').unlinkSync(url);
+      } catch (err) {
+        console.error('Error deleting file:', err);
+      }
+    });
+
+    await LocationData.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Location deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

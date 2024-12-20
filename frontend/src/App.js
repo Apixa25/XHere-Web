@@ -79,7 +79,10 @@ function App() {
         if (!isRegistering) {
           // For login success
           localStorage.setItem('token', data.token);
-          setUser({ email: formData.email }); // Set some user data
+          setUser({ 
+            email: data.user.email,
+            userId: data.user._id.toString()
+          });
           console.log('Login successful!');
         } else {
           // For registration success
@@ -155,6 +158,29 @@ function App() {
   // Load marker library when map is ready
   const handleMapLoad = (map) => {
     setMapInstance(map);
+  };
+
+  // Add this new function inside the App component
+  const handleDeleteLocation = async (locationId) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        setSelectedMarker(null);
+        fetchLocations(); // Refresh the locations
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete location');
+      }
+    } catch (error) {
+      console.error('Error deleting location:', error);
+      alert('Failed to delete location');
+    }
   };
 
   // If user is not logged in, show auth form
@@ -263,9 +289,9 @@ function App() {
                 onCloseClick={() => setSelectedMarker(null)}
               >
                 <div style={{ maxWidth: '200px' }}>
-                  <p><strong>Posted by:</strong> {selectedMarker.creator.profile.name || selectedMarker.creator.email}</p>
+                  <p><strong>Posted by:</strong> {selectedMarker.creator.profile?.name || selectedMarker.creator.email}</p>
                   <p>{selectedMarker.content.text}</p>
-                  {selectedMarker.content.mediaUrls.map((url, index) => (
+                  {selectedMarker.content.mediaUrls?.map((url, index) => (
                     selectedMarker.content.mediaTypes[index].startsWith('image') ? (
                       <img 
                         key={index}
@@ -282,6 +308,27 @@ function App() {
                       />
                     )
                   ))}
+                  {user && selectedMarker.creator._id.toString() === user.userId && (
+                    <button 
+                      onClick={() => handleDeleteLocation(selectedMarker._id)}
+                      style={{ 
+                        marginTop: '10px',
+                        backgroundColor: '#ff4444',
+                        color: 'white',
+                        border: 'none',
+                        padding: '5px 10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete Location
+                    </button>
+                  )}
+                  {console.log('Debug Info:', {
+                    currentUser: user,
+                    selectedMarker: selectedMarker,
+                    isOwner: user && selectedMarker.creator._id === user.userId
+                  })}
                 </div>
               </InfoWindow>
             )}
