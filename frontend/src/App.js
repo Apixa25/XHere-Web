@@ -149,7 +149,13 @@ function App() {
   };
 
   const handleMapLoad = (map) => {
+    console.log('Map instance loaded:', map);
     setMapInstance(map);
+    // Trigger a re-render of markers
+    if (locationData.length > 0) {
+      console.log('Re-rendering markers after map load');
+      setLocationData([...locationData]);
+    }
   };
 
   const handleMapUnmount = useCallback(() => {
@@ -219,6 +225,10 @@ function App() {
     </div>
   );
 
+  const isGoogleMapsLoaded = () => {
+    return window.google && window.google.maps && window.google.maps.marker;
+  };
+
   if (!user) {
     return renderAuthForm();
   }
@@ -229,9 +239,13 @@ function App() {
         googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
         libraries={LIBRARIES}
         version="weekly"
-        onLoad={() => setIsLoaded(true)}
-        onError={(error) => console.error('Script loading error:', error)}
-        loadingElement={<div>Loading...</div>}
+        onLoad={() => {
+          console.log('Google Maps Script loaded');
+          setIsLoaded(true);
+        }}
+        onError={(error) => {
+          console.error('Script loading error:', error);
+        }}
       >
         {isLoaded && (
           <div className="app">
@@ -295,19 +309,16 @@ function App() {
                         }
                       }}
                     >
-                      {locationData.map(location => {
-                        console.log('Rendering marker:', location);
-                        return (
-                          <Marker
-                            key={location._id}
-                            position={{
-                              lat: parseFloat(location.location.coordinates[1]),
-                              lng: parseFloat(location.location.coordinates[0])
-                            }}
-                            onClick={() => setSelectedMarker(location)}
-                          />
-                        );
-                      })}
+                      {locationData.map(location => (
+                        <Marker
+                          key={location._id}
+                          position={{
+                            lat: parseFloat(location.location.coordinates[1]),
+                            lng: parseFloat(location.location.coordinates[0])
+                          }}
+                          onClick={() => setSelectedMarker(location)}
+                        />
+                      ))}
                       {selectedLocation && (
                         <Marker
                           position={selectedLocation}
