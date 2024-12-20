@@ -1,6 +1,60 @@
 // App.js
 import React, { useState, useEffect } from 'react';
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, InfoWindow, useGoogleMap } from '@react-google-maps/api';
+
+// Create a custom marker component
+const AdvancedMarker = ({ position, onClick, content }) => {
+  const [marker, setMarker] = useState(null);
+  const map = useGoogleMap();
+
+  useEffect(() => {
+    let currentMarker = marker;
+
+    if (map && window.google && window.google.maps.marker) {
+      if (currentMarker) {
+        // Update existing marker position
+        currentMarker.position = position;
+      } else {
+        // Create new marker only if it doesn't exist
+        try {
+          const newMarker = new window.google.maps.marker.AdvancedMarkerElement({
+            position,
+            map,
+            content: content || undefined
+          });
+          if (onClick) {
+            newMarker.addListener('click', onClick);
+          }
+          currentMarker = newMarker;
+          setMarker(newMarker);
+        } catch (error) {
+          console.error('Error creating marker:', error);
+          // Fallback to regular marker if advanced marker fails
+          const regularMarker = new window.google.maps.Marker({
+            position,
+            map
+          });
+          if (onClick) {
+            regularMarker.addListener('click', onClick);
+          }
+          currentMarker = regularMarker;
+          setMarker(regularMarker);
+        }
+      }
+    }
+
+    return () => {
+      if (currentMarker) {
+        currentMarker.setMap(null);
+      }
+    };
+  }, [map, position, onClick, content, marker]);
+
+  return null;
+};
+
+// Add this constant outside of the App component
+const LIBRARIES = ['places', 'marker', 'geometry'];
 
 function App() {
   const [user, setUser] = useState(null); // Track logged in user
@@ -17,6 +71,8 @@ function App() {
     media: []
   });
   const [selectedMarker, setSelectedMarker] = useState(null);
+  const [advancedMarkers, setAdvancedMarkers] = useState({ ready: false, elements: null });
+  const [mapInstance, setMapInstance] = useState(null);
 
   const mapStyles = {
     height: "100vh",
@@ -120,6 +176,27 @@ function App() {
     }
   }, [user]);
 
+  // Add function to load marker library
+  const loadMarkerLibrary = async () => {
+    try {
+      if (typeof window.google !== 'undefined') {
+        const { AdvancedMarkerElement, PinElement } = await window.google.maps.importLibrary("marker");
+        setAdvancedMarkers({
+          ready: true,
+          elements: { AdvancedMarkerElement, PinElement }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading marker library:', error);
+    }
+  };
+
+  // Load marker library when map is ready
+  const handleMapLoad = (map) => {
+    setMapInstance(map);
+    loadMarkerLibrary();
+  };
+
   // If user is not logged in, show auth form
   if (!user) {
     return (
@@ -164,8 +241,13 @@ function App() {
     );
   }
 
+  console.log('Map ID:', process.env.REACT_APP_GOOGLE_MAPS_MAP_ID);
+
   return (
-    <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}>
+    <LoadScript 
+      googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
+      libraries={LIBRARIES}
+    >
       <div className="app">
         <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1 }}>
           <button onClick={() => {
@@ -180,17 +262,36 @@ function App() {
             zoom={13}
             center={defaultCenter}
             onClick={handleMapClick}
+            mapId={process.env.REACT_APP_GOOGLE_MAPS_MAP_ID}
+            options={{
+              mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
+            }}
+            onLoad={handleMapLoad}
           >
-            {locationData.map(location => (
-              <Marker
+            {mapInstance && locationData.map(location => (
+              <AdvancedMarker
                 key={location._id}
                 position={{
-                  lat: location.location.coordinates[1],
-                  lng: location.location.coordinates[0]
+                  lat: parseFloat(location.location.coordinates[1]),
+                  lng: parseFloat(location.location.coordinates[0])
                 }}
                 onClick={() => setSelectedMarker(location)}
               />
             ))}
+
+            {mapInstance && selectedLocation && (
+              <AdvancedMarker
+                position={selectedLocation}
+                content={
+                  advancedMarkers.ready ? 
+                  new advancedMarkers.elements.PinElement({
+                    background: "#4285F4",
+                    glyphColor: "#FFF"
+                  }).element : 
+                  undefined
+                }
+              />
+            )}
             
             {selectedMarker && (
               <InfoWindow
@@ -222,15 +323,6 @@ function App() {
                   ))}
                 </div>
               </InfoWindow>
-            )}
-
-            {selectedLocation && (
-              <Marker
-                position={selectedLocation}
-                icon={{
-                  url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                }}
-              />
             )}
           </GoogleMap>
         </div>
