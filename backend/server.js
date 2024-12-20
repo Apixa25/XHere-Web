@@ -62,7 +62,7 @@ const locationRoutes = require('./routes/locationRoutes');
 // Route registrations
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);        // Changed from users to user
-app.use('/api/location', locationRoutes); // Changed from locations to location
+app.use('/api/user/locations', locationRoutes); // Changed from location to locations and added user
 
 // Separate server startup
 const PORT = process.env.PORT || 3000;

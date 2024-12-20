@@ -1,42 +1,14 @@
 // App.js
 import React, { useState, useEffect } from 'react';
-import { GoogleMap, LoadScript, InfoWindow, useGoogleMap } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, InfoWindow } from '@react-google-maps/api';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 
-// Replace the AdvancedMarker component with a simpler Marker component
-const Marker = ({ position, onClick }) => {
-  const map = useGoogleMap();
-
-  useEffect(() => {
-    if (map && window.google) {
-      const newMarker = new window.google.maps.Marker({
-        position,
-        map
-      });
-
-      if (onClick) {
-        newMarker.addListener('click', onClick);
-      }
-
-      // Return cleanup function
-      return () => {
-        if (newMarker) {
-          newMarker.setMap(null);
-        }
-      };
-    }
-  }, [map, position, onClick]);
-
-  return null;
-};
-
-// Add this constant outside of the App component
 const LIBRARIES = ['places'];
 
 function App() {
-  const [user, setUser] = useState(null); // Track logged in user
-  const [isRegistering, setIsRegistering] = useState(false); // Toggle between login/register
+  const [user, setUser] = useState(null);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -60,6 +32,51 @@ function App() {
     width: "100%"
   };
 
+  // Marker management useEffect
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    // Clear existing markers
+    const markers = [];
+
+    // Create markers for all locations
+    locationData.forEach(location => {
+      const position = {
+        lat: parseFloat(location.location.coordinates[1]),
+        lng: parseFloat(location.location.coordinates[0])
+      };
+      
+      const marker = new window.google.maps.Marker({
+        position,
+        map: mapInstance
+      });
+
+      marker.addListener('click', () => setSelectedMarker(location));
+      markers.push(marker);
+    });
+
+    // Create marker for selected location if it exists
+    if (selectedLocation) {
+      const marker = new window.google.maps.Marker({
+        position: selectedLocation,
+        map: mapInstance
+      });
+      markers.push(marker);
+    }
+
+    // Cleanup function to remove all markers
+    return () => {
+      markers.forEach(marker => marker.setMap(null));
+    };
+  }, [mapInstance, locationData, selectedLocation]);
+
+  // Fetch locations when user changes
+  useEffect(() => {
+    if (user) {
+      fetchLocations();
+    }
+  }, [user]);
+
   const handleAuth = async (e) => {
     e.preventDefault();
     const endpoint = isRegistering ? '/api/auth/register' : '/api/auth/login';
@@ -77,7 +94,6 @@ function App() {
       
       if (response.ok) {
         if (!isRegistering) {
-          // For login success
           localStorage.setItem('token', data.token);
           setUser({ 
             email: data.user.email,
@@ -85,7 +101,6 @@ function App() {
           });
           console.log('Login successful!');
         } else {
-          // For registration success
           setIsRegistering(false);
           alert('Registration successful! Please login.');
         }
@@ -96,10 +111,10 @@ function App() {
       console.error('Auth error:', error);
       alert('Authentication failed');
     }
-};
+  };
 
   const handleMapClick = (event) => {
-    if (!user) return; // Only allow logged in users to add locations
+    if (!user) return;
     setSelectedLocation({
       lat: event.latLng.lat(),
       lng: event.latLng.lng()
@@ -118,16 +133,31 @@ function App() {
       formPayload.append('media', file);
     });
 
+    console.log('Submitting location:', {
+      lat: selectedLocation.lat,
+      lng: selectedLocation.lng,
+      text: contentForm.text,
+      mediaCount: contentForm.media.length
+    });
+
     try {
-      const response = await fetch('http://localhost:3000/api/locations', {
+      const response = await fetch('http://localhost:3000/api/user/locations', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: formPayload
       });
-      await response.json();
-      fetchLocations();
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Location created:', data);
+      await fetchLocations();
       setSelectedLocation(null);
       setContentForm({ text: '', media: [] });
     } catch (error) {
@@ -137,11 +167,15 @@ function App() {
 
   const fetchLocations = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/locations', {
+      const response = await fetch('http://localhost:3000/api/user/locations', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setLocationData(data);
     } catch (error) {
@@ -149,18 +183,10 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchLocations();
-    }
-  }, [user]);
-
-  // Load marker library when map is ready
   const handleMapLoad = (map) => {
     setMapInstance(map);
   };
 
-  // Add this new function inside the App component
   const handleDeleteLocation = async (locationId) => {
     try {
       const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
@@ -172,7 +198,7 @@ function App() {
 
       if (response.ok) {
         setSelectedMarker(null);
-        fetchLocations(); // Refresh the locations
+        fetchLocations();
       } else {
         const data = await response.json();
         alert(data.error || 'Failed to delete location');
@@ -183,51 +209,50 @@ function App() {
     }
   };
 
-  // If user is not logged in, show auth form
-  if (!user) {
-    return (
-      <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px' }}>
-        <h2>{isRegistering ? 'Register' : 'Login'}</h2>
-        <form onSubmit={handleAuth}>
-          {isRegistering && (
-            <div>
-              <label>Name:</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                required
-              />
-            </div>
-          )}
+  const renderAuthForm = () => (
+    <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px' }}>
+      <h2>{isRegistering ? 'Register' : 'Login'}</h2>
+      <form onSubmit={handleAuth}>
+        {isRegistering && (
           <div>
-            <label>Email:</label>
+            <label>Name:</label>
             <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
               required
             />
           </div>
-          <div>
-            <label>Password:</label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              required
-            />
-          </div>
-          <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
-          <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
-            {isRegistering ? 'Switch to Login' : 'Switch to Register'}
-          </button>
-        </form>
-      </div>
-    );
-  }
+        )}
+        <div>
+          <label>Email:</label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            required
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input
+            type="password"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            required
+          />
+        </div>
+        <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
+        <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
+          {isRegistering ? 'Switch to Login' : 'Switch to Register'}
+        </button>
+      </form>
+    </div>
+  );
 
-  console.log('Map ID:', process.env.REACT_APP_GOOGLE_MAPS_MAP_ID);
+  if (!user) {
+    return renderAuthForm();
+  }
 
   return (
     <Router>
@@ -298,23 +323,6 @@ function App() {
                     }
                   }}
                 >
-                  {mapInstance && locationData.map(location => (
-                    <Marker
-                      key={location._id}
-                      position={{
-                        lat: parseFloat(location.location.coordinates[1]),
-                        lng: parseFloat(location.location.coordinates[0])
-                      }}
-                      onClick={() => setSelectedMarker(location)}
-                    />
-                  ))}
-
-                  {mapInstance && selectedLocation && (
-                    <Marker
-                      position={selectedLocation}
-                    />
-                  )}
-                  
                   {selectedMarker && (
                     <InfoWindow
                       position={{
@@ -359,11 +367,6 @@ function App() {
                             Delete Location
                           </button>
                         )}
-                        {console.log('Debug Info:', {
-                          currentUser: user,
-                          selectedMarker: selectedMarker,
-                          isOwner: user && selectedMarker.creator._id === user.userId
-                        })}
                       </div>
                     </InfoWindow>
                   )}
