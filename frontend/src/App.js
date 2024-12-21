@@ -43,8 +43,8 @@ function App() {
     media: []
   });
   const [selectedMarker, setSelectedMarker] = useState(null);
-  const [mapInstance, setMapInstance] = useState(null);
-  const [mapCenter, setMapCenter] = useState({
+  const [map, setMap] = useState(null);
+  const [mapCenter] = useState({
     lat: 40.7128,
     lng: -74.0060
   });
@@ -203,19 +203,15 @@ function App() {
     console.log('LocationData updated:', locationData);
   }, [locationData]);
 
-  const handleMapLoad = (map) => {
-    try {
-      console.log('Map loaded successfully');
-      setMapInstance(map);
-    } catch (error) {
-      console.error('Error loading map:', error);
-    }
+  const handleMapLoad = (mapInstance) => {
+    console.log('Map loaded successfully');
+    setMap(mapInstance);
   };
 
   const handleMapUnmount = () => {
     try {
       console.log('Map unmounting');
-      setMapInstance(null);
+      setMap(null);
     } catch (error) {
       console.error('Error unmounting map:', error);
     }
@@ -342,19 +338,29 @@ function App() {
                 onLoad={handleMapLoad}
                 onUnmount={handleMapUnmount}
               >
-                {locationData && locationData.map(location => {
-                  console.log('Processing location for marker:', location);
-                  return (
-                    <Marker
-                      key={location._id}
-                      position={{
-                        lat: parseFloat(location.location.coordinates[1]),
-                        lng: parseFloat(location.location.coordinates[0])
-                      }}
-                      onClick={() => setSelectedMarker(location)}
-                    />
-                  );
-                })}
+                {locationData && locationData.map(location => (
+                  <Marker
+                    key={location._id}
+                    position={{
+                      lat: parseFloat(location.location.coordinates[1]),
+                      lng: parseFloat(location.location.coordinates[0])
+                    }}
+                    onClick={(e) => {
+                      // Prevent default behavior
+                      e.stop();
+                      setSelectedMarker(location);
+                    }}
+                    clickable={true}
+                    options={{
+                      // Disable default UI elements
+                      clickable: true,
+                      optimized: true,
+                      disableDefaultUI: true,
+                      label: null,
+                      // Remove animation
+                    }}
+                  />
+                ))}
                 {selectedLocation && (
                   <Marker
                     position={selectedLocation}
@@ -363,47 +369,29 @@ function App() {
                 {selectedMarker && (
                   <InfoWindow
                     position={{
-                      lat: selectedMarker.location.coordinates[1],
-                      lng: selectedMarker.location.coordinates[0]
+                      lat: parseFloat(selectedMarker.location.coordinates[1]),
+                      lng: parseFloat(selectedMarker.location.coordinates[0])
                     }}
                     onCloseClick={() => setSelectedMarker(null)}
+                    options={{
+                      // Disable default UI elements
+                      disableDefaultUI: true,
+                      pixelOffset: new window.google.maps.Size(0, -30)
+                    }}
                   >
-                    <div style={{ maxWidth: '200px' }}>
-                      <p><strong>Posted by:</strong> {selectedMarker.creator.profile?.name || selectedMarker.creator.email}</p>
+                    <div>
+                      <h3>Location Details</h3>
                       <p>{selectedMarker.content.text}</p>
-                      {selectedMarker.content.mediaUrls?.map((url, index) => (
-                        selectedMarker.content.mediaTypes[index].startsWith('image') ? (
+                      {selectedMarker.content.mediaUrls && 
+                        selectedMarker.content.mediaUrls.map((url, index) => (
                           <img 
                             key={index}
                             src={`http://localhost:3000/${url}`}
                             alt="Location media"
-                            style={{ maxWidth: '100%', marginTop: '8px' }}
+                            style={{ maxWidth: '200px', maxHeight: '200px' }}
                           />
-                        ) : (
-                          <video 
-                            key={index}
-                            src={`http://localhost:3000/${url}`}
-                            controls
-                            style={{ maxWidth: '100%', marginTop: '8px' }}
-                          />
-                        )
-                      ))}
-                      {user && selectedMarker.creator._id.toString() === user.userId && (
-                        <button 
-                          onClick={() => handleDeleteLocation(selectedMarker._id)}
-                          style={{ 
-                            marginTop: '10px',
-                            backgroundColor: '#ff4444',
-                            color: 'white',
-                            border: 'none',
-                            padding: '5px 10px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Delete Location
-                        </button>
-                      )}
+                        ))
+                      }
                     </div>
                   </InfoWindow>
                 )}
