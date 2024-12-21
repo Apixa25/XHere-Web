@@ -29,7 +29,11 @@ function GoogleMapsProvider({ children }) {
 }
 
 function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Check localStorage for user data when app initializes
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -50,6 +54,7 @@ function App() {
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapsError, setMapsError] = useState(null);
+  const [error, setError] = useState(null);
 
   const mapStyles = {
     height: "100vh",
@@ -80,11 +85,13 @@ function App() {
       
       if (response.ok) {
         if (!isRegistering) {
-          localStorage.setItem('token', data.token);
-          setUser({ 
+          const userData = { 
             email: data.user.email,
             userId: data.user._id.toString()
-          });
+          };
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(userData)); // Save user data
+          setUser(userData);
           console.log('Login successful!');
         } else {
           setIsRegistering(false);
@@ -99,19 +106,31 @@ function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user'); // Remove user data
+    setUser(null);
+  };
+
   const handleMapClick = (event) => {
     if (!user) return;
     const clickedLat = event.latLng.lat();
     const clickedLng = event.latLng.lng();
-    console.log('Map clicked at:', { lat: clickedLat, lng: clickedLng });
     
     setSelectedLocation({
       lat: clickedLat,
       lng: clickedLng
     });
     
-    // Close any open InfoWindows when clicking on the map
-    setSelectedMarker(null);
+    // Only close the InfoWindow if we're not clicking on a marker
+    if (!event.placeId) {
+      setSelectedMarker(null);
+    }
+  };
+
+  const handleMarkerClick = (location) => {
+    setSelectedMarker(location);
+    setSelectedLocation(null); // Close any new location form
   };
 
   const handleLocationSubmit = async (e) => {
@@ -234,23 +253,25 @@ function App() {
 
   const handleDeleteLocation = async (locationId) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
       if (response.ok) {
+        // Remove the deleted location from state
+        setLocationData(prevLocations => 
+          prevLocations.filter(loc => loc._id !== locationId)
+        );
         setSelectedMarker(null);
-        fetchLocations();
       } else {
-        const data = await response.json();
-        alert(data.error || 'Failed to delete location');
+        console.error('Failed to delete location');
       }
     } catch (error) {
       console.error('Error deleting location:', error);
-      alert('Failed to delete location');
     }
   };
 
@@ -328,10 +349,7 @@ function App() {
               }}>Profile</button>
             </Link>
             <button 
-              onClick={() => {
-                localStorage.removeItem('token');
-                setUser(null);
-              }}
+              onClick={handleLogout}
               style={{
                 padding: '8px 16px',
                 backgroundColor: '#f44336',
@@ -360,99 +378,78 @@ function App() {
                   streetViewControl: false
                 }}
               >
-                {locationData && locationData.map(location => (
+                {locationData.map(location => (
                   <Marker
                     key={location._id}
                     position={{
-                      lat: parseFloat(location.location.coordinates[1]),
-                      lng: parseFloat(location.location.coordinates[0])
+                      lat: location.location.coordinates[1],
+                      lng: location.location.coordinates[0]
                     }}
-                    onClick={(e) => {
-                      if (e) {
-                        e.domEvent.stopPropagation();
-                        e.stop();
-                      }
-                      setSelectedLocation(null);
-                      setSelectedMarker(location);
-                    }}
+                    onClick={() => handleMarkerClick(location)}
                   />
                 ))}
 
                 {selectedLocation && (
                   <Marker
                     position={selectedLocation}
-                    onClick={(e) => {
-                      if (e) {
-                        e.domEvent.stopPropagation();
-                        e.stop();
-                      }
-                    }}
                   />
                 )}
 
                 {selectedMarker && (
                   <InfoWindow
                     position={{
-                      lat: parseFloat(selectedMarker.location.coordinates[1]),
-                      lng: parseFloat(selectedMarker.location.coordinates[0])
+                      lat: selectedMarker.location.coordinates[1],
+                      lng: selectedMarker.location.coordinates[0]
                     }}
-                    onCloseClick={() => {
-                      setSelectedMarker(null);
-                    }}
+                    onCloseClick={() => setSelectedMarker(null)}
                   >
-                    <div style={{ padding: '10px' }}>
-                      <h3 style={{ margin: '0 0 10px 0' }}>Location Details</h3>
-                      <p style={{ margin: '0 0 10px 0' }}>{selectedMarker.content.text}</p>
-                      {selectedMarker.content.mediaUrls && 
-                        selectedMarker.content.mediaUrls.map((url, index) => (
-                          <img 
-                            key={index}
-                            src={`http://localhost:3000/${url}`}
-                            alt="Location media"
-                            style={{ 
-                              maxWidth: '200px', 
-                              maxHeight: '200px',
-                              display: 'block',
-                              margin: '10px 0'
-                            }}
-                          />
-                        ))
-                      }
+                    <div>
+                      <p>{selectedMarker.content.text}</p>
+                      {selectedMarker.content.mediaUrls?.map((url, index) => (
+                        <img
+                          key={index}
+                          src={`http://localhost:3000/${url}`}
+                          alt="Location media"
+                          style={{ maxWidth: '200px', marginTop: '10px' }}
+                        />
+                      ))}
+                      {user && selectedMarker.creator._id === user.userId && (
+                        <button 
+                          onClick={() => handleDeleteLocation(selectedMarker._id)}
+                          style={{ marginTop: '10px' }}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
+                  </InfoWindow>
+                )}
+
+                {selectedLocation && (
+                  <InfoWindow
+                    position={selectedLocation}
+                    onCloseClick={() => setSelectedLocation(null)}
+                  >
+                    <form onSubmit={handleLocationSubmit}>
+                      <textarea
+                        value={contentForm.text}
+                        onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
+                        placeholder="Enter location description"
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,video/*"
+                        onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
+                      />
+                      <button type="submit">Save Location Data</button>
+                    </form>
                   </InfoWindow>
                 )}
               </GoogleMap>
             </div>
           </MapErrorBoundary>
-
-          {selectedLocation && (
-            <div style={{ 
-              position: 'absolute', 
-              bottom: '20px', 
-              left: '50%', 
-              transform: 'translateX(-50%)',
-              backgroundColor: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
-            }}>
-              <form onSubmit={handleLocationSubmit}>
-                <textarea
-                  value={contentForm.text}
-                  onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
-                  placeholder="Enter location description"
-                  style={{ width: '100%', marginBottom: '10px' }}
-                />
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
-                />
-                <button type="submit">Save Location Data</button>
-              </form>
-            </div>
-          )}
         </div>
       )
     },
