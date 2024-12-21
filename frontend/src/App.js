@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, createContext, useContext } fr
 import { GoogleMap, useLoadScript, InfoWindow, Marker } from '@react-google-maps/api';
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
-import MapErrorBoundary from './components/MapErrorBoundary';
 
 const LIBRARIES = ['places'];
 
@@ -26,6 +25,68 @@ function GoogleMapsProvider({ children }) {
   }
 
   return children;
+}
+
+// Add this new component at the top of your file, outside the App component
+function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmit, contentForm, setContentForm, user, handleDeleteLocation }) {
+  if (selectedMarker) {
+    return (
+      <InfoWindow
+        position={{
+          lat: selectedMarker.location.coordinates[1],
+          lng: selectedMarker.location.coordinates[0]
+        }}
+        onCloseClick={() => onClose('marker')}
+      >
+        <div>
+          <p>{selectedMarker.content.text}</p>
+          {selectedMarker.content.mediaUrls?.map((url, index) => (
+            <img
+              key={index}
+              src={`http://localhost:3000/${url}`}
+              alt="Location media"
+              style={{ maxWidth: '200px', marginTop: '10px' }}
+            />
+          ))}
+          {user && selectedMarker.creator._id === user.userId && (
+            <button 
+              onClick={() => handleDeleteLocation(selectedMarker._id)}
+              style={{ marginTop: '10px' }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </InfoWindow>
+    );
+  }
+
+  if (selectedLocation) {
+    return (
+      <InfoWindow
+        position={selectedLocation}
+        onCloseClick={() => onClose('location')}
+      >
+        <form onSubmit={onSubmit}>
+          <textarea
+            value={contentForm.text}
+            onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
+            placeholder="Enter location description"
+            style={{ width: '100%', marginBottom: '10px' }}
+          />
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
+          />
+          <button type="submit">Save Location Data</button>
+        </form>
+      </InfoWindow>
+    );
+  }
+
+  return null;
 }
 
 function App() {
@@ -362,92 +423,53 @@ function App() {
             >Logout</button>
           </div>
 
-          <MapErrorBoundary>
-            <div className="map-container">
-              <GoogleMap
-                mapContainerStyle={mapStyles}
-                zoom={13}
-                center={mapCenter}
-                onClick={handleMapClick}
-                onLoad={handleMapLoad}
-                onUnmount={handleMapUnmount}
-                options={{
-                  disableDefaultUI: true,
-                  clickableIcons: false,
-                  mapTypeControl: false,
-                  fullscreenControl: false,
-                  streetViewControl: false
+          <div className="map-container">
+            <GoogleMap
+              mapContainerStyle={mapStyles}
+              zoom={13}
+              center={mapCenter}
+              onClick={handleMapClick}
+              onLoad={handleMapLoad}
+              onUnmount={handleMapUnmount}
+              options={{
+                disableDefaultUI: true,
+                clickableIcons: false,
+                mapTypeControl: false,
+                fullscreenControl: false,
+                streetViewControl: false
+              }}
+            >
+              {/* Existing markers */}
+              {locationData.map(location => (
+                <Marker
+                  key={location._id}
+                  position={{
+                    lat: location.location.coordinates[1],
+                    lng: location.location.coordinates[0]
+                  }}
+                  onClick={() => handleMarkerClick(location)}
+                />
+              ))}
+
+              {/* Single InfoWindow component */}
+              <LocationInfoWindow
+                selectedLocation={selectedLocation}
+                selectedMarker={selectedMarker}
+                onClose={(type) => {
+                  if (type === 'marker') {
+                    setSelectedMarker(null);
+                  } else {
+                    setSelectedLocation(null);
+                  }
                 }}
-              >
-                {locationData.map(location => (
-                  <Marker
-                    key={location._id}
-                    position={{
-                      lat: location.location.coordinates[1],
-                      lng: location.location.coordinates[0]
-                    }}
-                    onClick={() => handleMarkerClick(location)}
-                  />
-                ))}
-
-                {selectedLocation && !selectedMarker && (
-                  <>
-                    <Marker position={selectedLocation} />
-                    <InfoWindow
-                      position={selectedLocation}
-                      onCloseClick={() => setSelectedLocation(null)}
-                    >
-                      <form onSubmit={handleLocationSubmit}>
-                        <textarea
-                          value={contentForm.text}
-                          onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
-                          placeholder="Enter location description"
-                          style={{ width: '100%', marginBottom: '10px' }}
-                        />
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*,video/*"
-                          onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
-                        />
-                        <button type="submit">Save Location Data</button>
-                      </form>
-                    </InfoWindow>
-                  </>
-                )}
-
-                {selectedMarker && !selectedLocation && (
-                  <InfoWindow
-                    position={{
-                      lat: selectedMarker.location.coordinates[1],
-                      lng: selectedMarker.location.coordinates[0]
-                    }}
-                    onCloseClick={() => setSelectedMarker(null)}
-                  >
-                    <div>
-                      <p>{selectedMarker.content.text}</p>
-                      {selectedMarker.content.mediaUrls?.map((url, index) => (
-                        <img
-                          key={index}
-                          src={`http://localhost:3000/${url}`}
-                          alt="Location media"
-                          style={{ maxWidth: '200px', marginTop: '10px' }}
-                        />
-                      ))}
-                      {user && selectedMarker.creator._id === user.userId && (
-                        <button 
-                          onClick={() => handleDeleteLocation(selectedMarker._id)}
-                          style={{ marginTop: '10px' }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </InfoWindow>
-                )}
-              </GoogleMap>
-            </div>
-          </MapErrorBoundary>
+                onSubmit={handleLocationSubmit}
+                contentForm={contentForm}
+                setContentForm={setContentForm}
+                user={user}
+                handleDeleteLocation={handleDeleteLocation}
+              />
+            </GoogleMap>
+          </div>
         </div>
       )
     },
@@ -458,6 +480,12 @@ function App() {
   ]);
 
   console.log('States:', { selectedMarker, selectedLocation });
+
+  console.log('Render App:', { 
+    selectedMarker: selectedMarker ? selectedMarker._id : null,
+    selectedLocation: selectedLocation,
+    routerPath: window.location.pathname 
+  });
 
   return (
     <ErrorBoundary>
