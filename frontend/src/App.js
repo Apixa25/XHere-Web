@@ -101,54 +101,69 @@ function App() {
 
   const handleMapClick = (event) => {
     if (!user) return;
+    const clickedLat = event.latLng.lat();
+    const clickedLng = event.latLng.lng();
+    console.log('Map clicked at:', { lat: clickedLat, lng: clickedLng });
+    
     setSelectedLocation({
-      lat: event.latLng.lat(),
-      lng: event.latLng.lng()
+      lat: clickedLat,
+      lng: clickedLng
     });
+    
+    // Close any open InfoWindows when clicking on the map
+    setSelectedMarker(null);
   };
 
   const handleLocationSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedLocation || !user) return;
-
-    const formPayload = new FormData();
-    formPayload.append('latitude', selectedLocation.lat);
-    formPayload.append('longitude', selectedLocation.lng);
-    formPayload.append('text', contentForm.text);
-    contentForm.media.forEach(file => {
-      formPayload.append('media', file);
-    });
-
-    console.log('Submitting location:', {
-      lat: selectedLocation.lat,
-      lng: selectedLocation.lng,
-      text: contentForm.text,
-      mediaCount: contentForm.media.length
-    });
-
+    
     try {
+      const formData = new FormData();
+      formData.append('latitude', selectedLocation.lat);
+      formData.append('longitude', selectedLocation.lng);
+      formData.append('text', contentForm.text);
+      
+      // Append each media file
+      if (contentForm.media) {
+        contentForm.media.forEach(file => {
+          formData.append('media', file);
+        });
+      }
+
+      console.log('Submitting location with data:', {
+        lat: selectedLocation.lat,
+        lng: selectedLocation.lng,
+        text: contentForm.text,
+        mediaCount: contentForm.media.length
+      });
+
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/user/locations', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
-        body: formPayload
+        body: formData
       });
-      
+
+      const responseData = await response.json();
+      console.log('Server response:', responseData);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(responseData.error || 'Failed to save location');
       }
-      
-      const data = await response.json();
-      console.log('Location created:', data);
-      await fetchLocations();
-      console.log('Updated locations:', locationData);
-      setSelectedLocation(null);
+
+      // Clear form and selected location
       setContentForm({ text: '', media: [] });
+      setSelectedLocation(null);
+      setSelectedMarker(null);
+      
+      // Refresh locations
+      fetchLocations();
+      
     } catch (error) {
       console.error('Error submitting location data:', error);
+      setError(error.message);
     }
   };
 
@@ -337,6 +352,13 @@ function App() {
                 onClick={handleMapClick}
                 onLoad={handleMapLoad}
                 onUnmount={handleMapUnmount}
+                options={{
+                  disableDefaultUI: true,
+                  clickableIcons: false,
+                  mapTypeControl: false,
+                  fullscreenControl: false,
+                  streetViewControl: false
+                }}
               >
                 {locationData && locationData.map(location => (
                   <Marker
@@ -346,49 +368,53 @@ function App() {
                       lng: parseFloat(location.location.coordinates[0])
                     }}
                     onClick={(e) => {
-                      // Prevent default behavior
-                      e.stop();
+                      if (e) {
+                        e.domEvent.stopPropagation();
+                        e.stop();
+                      }
+                      setSelectedLocation(null);
                       setSelectedMarker(location);
-                    }}
-                    clickable={true}
-                    options={{
-                      // Disable default UI elements
-                      clickable: true,
-                      optimized: true,
-                      disableDefaultUI: true,
-                      label: null,
-                      // Remove animation
                     }}
                   />
                 ))}
+
                 {selectedLocation && (
                   <Marker
                     position={selectedLocation}
+                    onClick={(e) => {
+                      if (e) {
+                        e.domEvent.stopPropagation();
+                        e.stop();
+                      }
+                    }}
                   />
                 )}
+
                 {selectedMarker && (
                   <InfoWindow
                     position={{
                       lat: parseFloat(selectedMarker.location.coordinates[1]),
                       lng: parseFloat(selectedMarker.location.coordinates[0])
                     }}
-                    onCloseClick={() => setSelectedMarker(null)}
-                    options={{
-                      // Disable default UI elements
-                      disableDefaultUI: true,
-                      pixelOffset: new window.google.maps.Size(0, -30)
+                    onCloseClick={() => {
+                      setSelectedMarker(null);
                     }}
                   >
-                    <div>
-                      <h3>Location Details</h3>
-                      <p>{selectedMarker.content.text}</p>
+                    <div style={{ padding: '10px' }}>
+                      <h3 style={{ margin: '0 0 10px 0' }}>Location Details</h3>
+                      <p style={{ margin: '0 0 10px 0' }}>{selectedMarker.content.text}</p>
                       {selectedMarker.content.mediaUrls && 
                         selectedMarker.content.mediaUrls.map((url, index) => (
                           <img 
                             key={index}
                             src={`http://localhost:3000/${url}`}
                             alt="Location media"
-                            style={{ maxWidth: '200px', maxHeight: '200px' }}
+                            style={{ 
+                              maxWidth: '200px', 
+                              maxHeight: '200px',
+                              display: 'block',
+                              margin: '10px 0'
+                            }}
                           />
                         ))
                       }
