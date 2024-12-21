@@ -42,7 +42,7 @@ app.get('/test/token', (req, res) => {
 });
 
 // Update MongoDB connection with better error handling and options
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/your_database_name', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/location-app', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -61,8 +61,15 @@ const locationRoutes = require('./routes/locationRoutes');
 
 // Route registrations
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);        // Changed from users to user
-app.use('/api/user/locations', locationRoutes); // Changed from location to locations and added user
+app.use('/api/user', userRoutes);        // This will handle /api/user/locations
+app.use('/api/locations', locationRoutes); // This will handle general location routes
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 // Separate server startup
 const PORT = process.env.PORT || 3000;

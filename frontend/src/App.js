@@ -1,6 +1,6 @@
 // App.js
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { GoogleMap, LoadScript, InfoWindow, Marker } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, InfoWindow, Marker } from '@react-google-maps/api';
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 import MapErrorBoundary from './components/MapErrorBoundary';
@@ -10,20 +10,32 @@ const LIBRARIES = ['places'];
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
 
-// Create a provider component
 function GoogleMapsProvider({ children }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Check if Google Maps is already loaded
+  useEffect(() => {
+    if (window.google && window.google.maps) {
+      setIsLoaded(true);
+      return;
+    }
+  }, []);
+
+  // If already loaded, render children directly
+  if (window.google && window.google.maps) {
+    return children;
+  }
+
   return (
     <LoadScript 
       googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
       libraries={LIBRARIES}
-      version="weekly"
-      loadingElement={<div>Loading Google Maps...</div>}
-      onLoad={() => console.log('Google Maps Script loaded')}
-      onError={(error) => console.error('Script loading error:', error)}
-      preventGoogleFontsLoading={true}
-      channelId="your-channel-id"
+      onLoad={() => {
+        console.log('Google Maps Script loaded');
+        setIsLoaded(true);
+      }}
     >
-      {children}
+      {isLoaded ? children : <div>Loading maps...</div>}
     </LoadScript>
   );
 }
@@ -154,36 +166,72 @@ function App() {
 
   const fetchLocations = async () => {
     try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching locations with token:', token?.substring(0, 20) + '...');
+
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+
       const response = await fetch('http://localhost:3000/api/user/locations', {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Fetch error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
       const data = await response.json();
-      console.log('Fetched locations:', data);
-      setLocationData(data);
+      console.log('Raw response data:', data);
+      
+      if (Array.isArray(data)) {
+        console.log('Number of locations received:', data.length);
+        if (data.length > 0) {
+          console.log('First location:', JSON.stringify(data[0], null, 2));
+        } else {
+          console.log('No locations returned from API');
+        }
+        setLocationData(data);
+      } else {
+        console.error('Unexpected data format:', data);
+      }
     } catch (error) {
-      console.error('Error fetching locations:', error);
+      console.error('Error in fetchLocations:', error);
+      // Don't rethrow the error, just log it
     }
   };
+
+  useEffect(() => {
+    console.log('LocationData updated:', locationData);
+  }, [locationData]);
 
   const handleMapLoad = (map) => {
-    console.log('Map instance loaded:', map);
-    setMapInstance(map);
-    // Trigger a re-render of markers
-    if (locationData.length > 0) {
-      console.log('Re-rendering markers after map load');
-      setLocationData([...locationData]);
+    try {
+      console.log('Map loaded successfully');
+      setMapInstance(map);
+    } catch (error) {
+      console.error('Error loading map:', error);
     }
   };
 
-  const handleMapUnmount = useCallback(() => {
-    setMapInstance(null);
-  }, []);
+  const handleMapUnmount = () => {
+    try {
+      console.log('Map unmounting');
+      setMapInstance(null);
+    } catch (error) {
+      console.error('Error unmounting map:', error);
+    }
+  };
 
   const handleDeleteLocation = async (locationId) => {
     try {
@@ -248,6 +296,7 @@ function App() {
     </div>
   );
 
+  // Only render the map when user is logged in
   if (!user) {
     return renderAuthForm();
   }
@@ -304,26 +353,20 @@ function App() {
                 onClick={handleMapClick}
                 onLoad={handleMapLoad}
                 onUnmount={handleMapUnmount}
-                onDragEnd={() => {
-                  if (mapInstance) {
-                    const newCenter = mapInstance.getCenter();
-                    setMapCenter({
-                      lat: newCenter.lat(),
-                      lng: newCenter.lng()
-                    });
-                  }
-                }}
               >
-                {locationData && locationData.map(location => (
-                  <Marker
-                    key={location._id}
-                    position={{
-                      lat: parseFloat(location.location.coordinates[1]),
-                      lng: parseFloat(location.location.coordinates[0])
-                    }}
-                    onClick={() => setSelectedMarker(location)}
-                  />
-                ))}
+                {locationData && locationData.map(location => {
+                  console.log('Processing location for marker:', location);
+                  return (
+                    <Marker
+                      key={location._id}
+                      position={{
+                        lat: parseFloat(location.location.coordinates[1]),
+                        lng: parseFloat(location.location.coordinates[0])
+                      }}
+                      onClick={() => setSelectedMarker(location)}
+                    />
+                  );
+                })}
                 {selectedLocation && (
                   <Marker
                     position={selectedLocation}
@@ -415,16 +458,14 @@ function App() {
       path: "/profile",
       element: <ProfilePage user={user} />
     }
-  ], {
-    future: {
-      v7_startTransition: true
-    }
-  });
+  ]);
 
   return (
-    <GoogleMapsProvider>
-      <RouterProvider router={router} />
-    </GoogleMapsProvider>
+    <ErrorBoundary>
+      <GoogleMapsProvider>
+        <RouterProvider router={router} />
+      </GoogleMapsProvider>
+    </ErrorBoundary>
   );
 }
 

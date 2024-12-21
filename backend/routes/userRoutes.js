@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Location = require('../models/Location');
 const multer = require('multer');
 const path = require('path');
+const mongoose = require('mongoose');
 
 // Configure multer for profile image uploads
 const storage = multer.diskStorage({
@@ -78,13 +79,45 @@ router.put('/profile', auth, upload.single('profileImage'), async (req, res) => 
 
 // GET /api/user/locations - Fetch user's locations
 router.get('/locations', auth, async (req, res) => {
+  console.log('GET /locations route hit');
   try {
-    const locations = await Location.find({ 'creator': req.user.id })
-      .populate('creator', 'email name profileImage');
+    console.log('Auth middleware user:', req.user);
+    console.log('User ID type:', typeof req.user.userId);
     
-    res.json(locations);
+    // Convert string ID to ObjectId if needed
+    const userId = mongoose.Types.ObjectId.isValid(req.user.userId) 
+      ? new mongoose.Types.ObjectId(req.user.userId)
+      : req.user.userId;
+    
+    console.log('Looking for locations with creator:', userId);
+    
+    // Debug: Find all locations first
+    const allLocations = await Location.find({});
+    console.log('Total locations in database:', allLocations.length);
+    console.log('Sample location creator:', allLocations[0]?.creator);
+    
+    // Find locations for specific user
+    const userLocations = await Location.find({ 
+      creator: userId 
+    }).populate({
+      path: 'creator',
+      select: 'email profile.name _id'
+    });
+    
+    console.log('Found locations for user:', userLocations.length);
+    
+    if (userLocations.length === 0) {
+      // Debug: Check if direct ID match works
+      const directMatch = allLocations.filter(loc => 
+        loc.creator.toString() === req.user.userId.toString()
+      );
+      console.log('Direct match found:', directMatch.length);
+    }
+    
+    res.json(userLocations);
   } catch (error) {
     console.error('Error fetching user locations:', error);
+    console.error('Full error:', error.stack);
     res.status(500).json({ error: 'Server error' });
   }
 });
