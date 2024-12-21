@@ -114,21 +114,22 @@ function App() {
 
   const handleMapClick = (event) => {
     if (!user) return;
-    const clickedLat = event.latLng.lat();
-    const clickedLng = event.latLng.lng();
     
-    setSelectedLocation({
-      lat: clickedLat,
-      lng: clickedLng
-    });
-    
-    // Only close the InfoWindow if we're not clicking on a marker
+    // Only set selectedLocation if we're clicking on the map (not a marker)
     if (!event.placeId) {
-      setSelectedMarker(null);
+      const clickedLat = event.latLng.lat();
+      const clickedLng = event.latLng.lng();
+      
+      setSelectedLocation({
+        lat: clickedLat,
+        lng: clickedLng
+      });
+      setSelectedMarker(null); // Close any open marker info windows
     }
   };
 
   const handleMarkerClick = (location) => {
+    console.log("Marker clicked:", location); // Debug log
     setSelectedMarker(location);
     setSelectedLocation(null); // Close any new location form
   };
@@ -389,13 +390,33 @@ function App() {
                   />
                 ))}
 
-                {selectedLocation && (
-                  <Marker
-                    position={selectedLocation}
-                  />
+                {selectedLocation && !selectedMarker && (
+                  <>
+                    <Marker position={selectedLocation} />
+                    <InfoWindow
+                      position={selectedLocation}
+                      onCloseClick={() => setSelectedLocation(null)}
+                    >
+                      <form onSubmit={handleLocationSubmit}>
+                        <textarea
+                          value={contentForm.text}
+                          onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
+                          placeholder="Enter location description"
+                          style={{ width: '100%', marginBottom: '10px' }}
+                        />
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,video/*"
+                          onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
+                        />
+                        <button type="submit">Save Location Data</button>
+                      </form>
+                    </InfoWindow>
+                  </>
                 )}
 
-                {selectedMarker && (
+                {selectedMarker && !selectedLocation && (
                   <InfoWindow
                     position={{
                       lat: selectedMarker.location.coordinates[1],
@@ -424,29 +445,6 @@ function App() {
                     </div>
                   </InfoWindow>
                 )}
-
-                {selectedLocation && (
-                  <InfoWindow
-                    position={selectedLocation}
-                    onCloseClick={() => setSelectedLocation(null)}
-                  >
-                    <form onSubmit={handleLocationSubmit}>
-                      <textarea
-                        value={contentForm.text}
-                        onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
-                        placeholder="Enter location description"
-                        style={{ width: '100%', marginBottom: '10px' }}
-                      />
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*,video/*"
-                        onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
-                      />
-                      <button type="submit">Save Location Data</button>
-                    </form>
-                  </InfoWindow>
-                )}
               </GoogleMap>
             </div>
           </MapErrorBoundary>
@@ -458,6 +456,8 @@ function App() {
       element: <ProfilePage user={user} />
     }
   ]);
+
+  console.log('States:', { selectedMarker, selectedLocation });
 
   return (
     <ErrorBoundary>
