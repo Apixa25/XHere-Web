@@ -11,33 +11,21 @@ const LIBRARIES = ['places'];
 const GoogleMapsContext = createContext(null);
 
 function GoogleMapsProvider({ children }) {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+    libraries: LIBRARIES,
+  });
 
-  // Check if Google Maps is already loaded
-  useEffect(() => {
-    if (window.google && window.google.maps) {
-      setIsLoaded(true);
-      return;
-    }
-  }, []);
-
-  // If already loaded, render children directly
-  if (window.google && window.google.maps) {
-    return children;
+  if (loadError) {
+    console.error('Error loading maps:', loadError);
+    return <div>Error loading maps</div>;
   }
 
-  return (
-    <LoadScript 
-      googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY}
-      libraries={LIBRARIES}
-      onLoad={() => {
-        console.log('Google Maps Script loaded');
-        setIsLoaded(true);
-      }}
-    >
-      {isLoaded ? children : <div>Loading maps...</div>}
-    </LoadScript>
-  );
+  if (!isLoaded) {
+    return <div>Loading maps...</div>;
+  }
+
+  return children;
 }
 
 function App() {
