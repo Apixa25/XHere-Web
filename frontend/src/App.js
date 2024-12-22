@@ -38,22 +38,50 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
         }}
         onCloseClick={() => onClose('marker')}
       >
-        <div>
-          <p>{selectedMarker.content.text}</p>
-          {selectedMarker.content.mediaUrls?.map((url, index) => (
-            <img
-              key={index}
-              src={`http://localhost:3000/${url}`}
-              alt="Location media"
-              style={{ maxWidth: '200px', marginTop: '10px' }}
-            />
-          ))}
+        <div style={{ minWidth: '200px' }}>
+          {/* Location text with larger font */}
+          <p style={{ 
+            fontSize: '16px',
+            fontWeight: '500',
+            marginBottom: '12px',
+            lineHeight: '1.4'
+          }}>
+            {selectedMarker.content.text}
+          </p>
+
+          {/* Images */}
+          <div style={{ marginBottom: '12px' }}>
+            {selectedMarker.content.mediaUrls?.map((url, index) => (
+              <img
+                key={index}
+                src={`http://localhost:3000/${url}`}
+                alt="Location media"
+                style={{ 
+                  maxWidth: '200px',
+                  marginTop: '10px',
+                  borderRadius: '4px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Delete button moved below images */}
           {user && selectedMarker.creator._id === user.userId && (
             <button 
               onClick={() => handleDeleteLocation(selectedMarker._id)}
-              style={{ marginTop: '10px' }}
+              style={{
+                width: '100%',
+                padding: '8px 16px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginTop: '10px'
+              }}
             >
-              Delete
+              Delete Location
             </button>
           )}
         </div>
