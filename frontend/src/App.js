@@ -29,73 +29,6 @@ function GoogleMapsProvider({ children }) {
 
 // Add this new component at the top of your file, outside the App component
 function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmit, contentForm, setContentForm, user, handleDeleteLocation }) {
-  if (selectedMarker) {
-    return (
-      <InfoWindow
-        position={{
-          lat: selectedMarker.location.coordinates[1],
-          lng: selectedMarker.location.coordinates[0]
-        }}
-        onCloseClick={() => onClose('marker')}
-      >
-        <div style={{ maxWidth: '300px', width: '100%' }}>
-          <p>{selectedMarker.content.text}</p>
-          {selectedMarker.content.mediaUrls?.map((url, index) => {
-            const mediaType = selectedMarker.content.mediaTypes[index];
-            
-            if (mediaType.startsWith('video/')) {
-              return (
-                <video 
-                  key={index}
-                  controls
-                  style={{
-                    width: '100%',
-                    maxHeight: '200px',
-                    marginBottom: '10px'
-                  }}
-                >
-                  <source src={`http://localhost:3000/${url}`} type={mediaType} />
-                  Your browser does not support the video tag.
-                </video>
-              );
-            } else {
-              return (
-                <img
-                  key={index}
-                  src={`http://localhost:3000/${url}`}
-                  alt="Location media"
-                  style={{
-                    width: '100%',
-                    height: '150px',
-                    objectFit: 'cover',
-                    borderRadius: '4px',
-                    marginBottom: '10px'
-                  }}
-                />
-              );
-            }
-          })}
-          {user && selectedMarker.creator._id === user.userId && (
-            <button
-              onClick={() => handleDeleteLocation(selectedMarker._id)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                width: '100%'
-              }}
-            >
-              Delete Location
-            </button>
-          )}
-        </div>
-      </InfoWindow>
-    );
-  }
-
   if (selectedLocation) {
     return (
       <InfoWindow
@@ -108,7 +41,8 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
             lat: selectedLocation.lat,
             lng: selectedLocation.lng,
             text: contentForm.text,
-            media: contentForm.media
+            media: contentForm.media,
+            isAnonymous: contentForm.isAnonymous
           });
         }}>
           <textarea
@@ -123,35 +57,123 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
             accept="image/*,video/*"
             onChange={(e) => {
               const files = Array.from(e.target.files);
-              const validFiles = files.filter(file => {
-                if (file.size > 50 * 1024 * 1024) {  // 50MB limit
-                  alert(`${file.name} is too large. Maximum size is 50MB`);
-                  return false;
-                }
-                return true;
-              });
-              setContentForm({ ...contentForm, media: validFiles });
+              setContentForm({ ...contentForm, media: files });
             }}
             style={{ marginBottom: '10px' }}
           />
-          <small style={{ display: 'block', color: '#666', marginBottom: '10px' }}>
-            Max 5 files, 50MB each. Supported formats: Images (JPEG, PNG, GIF, WebP) and Videos (MP4, MOV, WebM)
-          </small>
-          <button 
-            type="submit"
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              width: '100%'
-            }}
-          >
-            Save Location Data
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            marginBottom: '10px' 
+          }}>
+            <input
+              type="checkbox"
+              id="anonymous"
+              checked={contentForm.isAnonymous}
+              onChange={e => setContentForm({ 
+                ...contentForm, 
+                isAnonymous: e.target.checked 
+              })}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="anonymous" style={{ fontSize: '14px', color: '#666' }}>
+              Post anonymously
+            </label>
+          </div>
+          <button type="submit" style={{
+            padding: '8px 16px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            width: '100%'
+          }}>
+            Save Location
           </button>
         </form>
+      </InfoWindow>
+    );
+  }
+
+  if (selectedMarker) {
+    return (
+      <InfoWindow
+        position={{
+          lat: selectedMarker.location.coordinates[1],
+          lng: selectedMarker.location.coordinates[0]
+        }}
+        onCloseClick={() => onClose('marker')}
+      >
+        <div>
+          {/* Show creator name for non-anonymous posts */}
+          {!selectedMarker.content.isAnonymous && selectedMarker.creator && (
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#666', 
+              marginBottom: '8px',
+              fontStyle: 'italic'
+            }}>
+              Posted by: {selectedMarker.creator.profile?.name || 'Unknown User'}
+            </p>
+          )}
+          <p style={{ marginBottom: '10px' }}>{selectedMarker.content.text}</p>
+          {selectedMarker.content.mediaUrls && selectedMarker.content.mediaUrls.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              {selectedMarker.content.mediaUrls.map((url, index) => {
+                const mediaType = selectedMarker.content.mediaTypes[index];
+                if (mediaType.startsWith('video/')) {
+                  return (
+                    <video
+                      key={index}
+                      controls
+                      style={{
+                        width: '100%',
+                        maxHeight: '200px',
+                        marginBottom: '10px'
+                      }}
+                    >
+                      <source src={`http://localhost:3000/${url}`} type={mediaType} />
+                      Your browser does not support the video tag.
+                    </video>
+                  );
+                } else {
+                  return (
+                    <img
+                      key={index}
+                      src={`http://localhost:3000/${url}`}
+                      alt="Location media"
+                      style={{
+                        width: '100%',
+                        maxHeight: '200px',
+                        objectFit: 'cover',
+                        marginBottom: '10px',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  );
+                }
+              })}
+            </div>
+          )}
+          {user && selectedMarker.creator && user.userId === selectedMarker.creator._id && (
+            <button
+              onClick={() => handleDeleteLocation(selectedMarker._id)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                width: '100%',
+                marginTop: '10px'
+              }}
+            >
+              Delete Location
+            </button>
+          )}
+        </div>
       </InfoWindow>
     );
   }
@@ -175,7 +197,8 @@ function App() {
   const [locationData, setLocationData] = useState([]);
   const [contentForm, setContentForm] = useState({
     text: '',
-    media: []
+    media: [],
+    isAnonymous: false
   });
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [map, setMap] = useState(null);
@@ -300,7 +323,7 @@ function App() {
       
       // Update your locations state or handle success
       setLocationData([...locationData, newLocation]);
-      setContentForm({ text: '', media: [] });
+      setContentForm({ text: '', media: [], isAnonymous: false });
       setSelectedLocation(null);
       setSelectedMarker(null);
     } catch (err) {
