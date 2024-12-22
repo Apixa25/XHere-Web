@@ -104,17 +104,32 @@ function ProfilePage({ user, onLocationUpdate }) {
   const handleUpdate = async (locationId) => {
     try {
       console.log('Attempting to update location:', locationId);
+      console.log('Form data:', editForm); // Debug log
       const token = localStorage.getItem('token');
       
+      // Create FormData to handle both text and files
+      const formData = new FormData();
+      formData.append('text', editForm.text);
+      
+      // Add any new media files
+      if (editForm.newMedia && editForm.newMedia.length > 0) {
+        editForm.newMedia.forEach(file => {
+          formData.append('media', file);
+        });
+      }
+      
+      // Add media deletion indexes if any
+      if (mediaToDelete.length > 0) {
+        formData.append('deleteMediaIndexes', JSON.stringify(mediaToDelete));
+      }
+
       const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
+          // Note: Don't set Content-Type here, let browser set it for FormData
         },
-        body: JSON.stringify({
-          text: editForm.text
-        })
+        body: formData
       });
 
       console.log('Update response status:', response.status);
@@ -135,6 +150,7 @@ function ProfilePage({ user, onLocationUpdate }) {
       
       setEditingLocation(null);
       setMediaToDelete([]);
+      setEditForm({ text: '', newMedia: [] });
       onLocationUpdate();
     } catch (err) {
       console.error('Update error:', err);
@@ -154,7 +170,7 @@ function ProfilePage({ user, onLocationUpdate }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          deleteMediaIndexes: [mediaIndex]
+          deleteMediaIndexes: JSON.stringify([mediaIndex])
         })
       });
 

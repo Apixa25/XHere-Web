@@ -100,10 +100,11 @@ router.get('/locations', auth, async (req, res) => {
 });
 
 // PUT /api/locations/:id - Update location
-router.put('/locations/:id', auth, async (req, res) => {
+router.put('/locations/:id', auth, upload.array('media'), async (req, res) => {
   try {
     console.log('Update request for location:', req.params.id);
     console.log('Request body:', req.body);
+    console.log('Files:', req.files);
     
     const location = await Location.findById(req.params.id);
     
@@ -112,34 +113,44 @@ router.put('/locations/:id', auth, async (req, res) => {
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    console.log('Location creator:', location.creator);
-    console.log('User ID:', req.user.userId);
-    console.log('Is admin:', req.user.isAdmin);
-
-    // Check if user is authorized to modify this location
+    // Check authorization
     if (!req.user.isAdmin && location.creator.toString() !== req.user.userId) {
       console.log('Authorization failed');
       return res.status(403).json({ error: 'Not authorized to modify this location' });
     }
 
-    // Update text content if provided
+    // Update text if provided
     if (req.body.text !== undefined) {
       location.content.text = req.body.text;
-      console.log('Updating text to:', req.body.text);
     }
 
-    // Handle media deletions if any
+    // Handle media deletions
     if (req.body.deleteMediaIndexes) {
-      const deleteIndexes = Array.isArray(req.body.deleteMediaIndexes) 
-        ? req.body.deleteMediaIndexes 
-        : JSON.parse(req.body.deleteMediaIndexes);
+      try {
+        const deleteIndexes = JSON.parse(JSON.parse(req.body.deleteMediaIndexes));
+        console.log('Deleting media at indexes:', deleteIndexes);
+        
+        if (Array.isArray(deleteIndexes)) {
+          location.content.mediaUrls = location.content.mediaUrls.filter((_, index) => 
+            !deleteIndexes.includes(index)
+          );
+          location.content.mediaTypes = location.content.mediaTypes.filter((_, index) => 
+            !deleteIndexes.includes(index)
+          );
+        }
+      } catch (error) {
+        console.error('Error parsing deleteMediaIndexes:', error);
+        return res.status(400).json({ error: 'Invalid deleteMediaIndexes format' });
+      }
+    }
+
+    // Add new media files
+    if (req.files && req.files.length > 0) {
+      const newMediaUrls = req.files.map(file => file.path.replace('\\', '/'));
+      const newMediaTypes = req.files.map(file => file.mimetype);
       
-      location.content.mediaUrls = location.content.mediaUrls.filter((_, index) => 
-        !deleteIndexes.includes(index)
-      );
-      location.content.mediaTypes = location.content.mediaTypes.filter((_, index) => 
-        !deleteIndexes.includes(index)
-      );
+      location.content.mediaUrls = [...location.content.mediaUrls, ...newMediaUrls];
+      location.content.mediaTypes = [...location.content.mediaTypes, ...newMediaTypes];
     }
 
     await location.save();
