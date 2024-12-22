@@ -1,271 +1,281 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 function ProfilePage({ user }) {
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
   const [userLocations, setUserLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [editingLocation, setEditingLocation] = useState(null);
-  const [profileImage, setProfileImage] = useState(null);
-
-  // Form state for editing locations
-  const [editForm, setEditForm] = useState({
-    text: '',
-    media: []
-  });
+  const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
-    fetchUserProfile();
     fetchUserLocations();
   }, [user, navigate]);
-
-  const fetchUserProfile = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Fetching profile from:', 'http://localhost:3000/api/user/profile');
-      const response = await fetch('http://localhost:3000/api/user/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      // Log the response details
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Check content type before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text(); // Get the actual response text
-        console.error('Received non-JSON response:', text);
-        throw new Error('API response was not JSON');
-      }
-
-      const data = await response.json();
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      setProfile(null);
-    }
-  };
 
   const fetchUserLocations = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching locations from:', 'http://localhost:3000/api/user/locations');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
       const response = await fetch('http://localhost:3000/api/user/locations', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+          'Authorization': `Bearer ${token}`
         }
       });
-      
-      // Log response details
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Received non-JSON response:', text);
-        throw new Error('API response was not JSON');
+        throw new Error('Failed to fetch locations');
       }
 
       const data = await response.json();
-      setUserLocations(data);
-    } catch (error) {
-      console.error('Error fetching user locations:', error);
-      setUserLocations([]);
+      setUserLocations(data.filter(location => location.creator._id === user?.userId));
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
     }
   };
 
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    if (profileImage) {
-      formData.append('profileImage', profileImage);
-    }
+  const handleDelete = async (locationId) => {
+    if (window.confirm('Are you sure you want to delete this location?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-    try {
-      const response = await fetch('http://localhost:3000/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      });
-      if (response.ok) {
-        fetchUserProfile();
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error);
-    }
-  };
-
-  const handleUpdateLocation = async (e) => {
-    e.preventDefault();
-    if (!editingLocation) return;
-
-    const formData = new FormData();
-    formData.append('text', editForm.text);
-    editForm.media.forEach(file => {
-      formData.append('media', file);
-    });
-
-    try {
-      const response = await fetch(`http://localhost:3000/api/location/${editingLocation._id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      });
-      
-      if (response.ok) {
-        setEditingLocation(null);
-        fetchUserLocations();
-      }
-    } catch (error) {
-      console.error('Error updating location:', error);
-    }
-  };
-
-  const handleDeleteLocation = async (locationId) => {
-    try {
-      const response = await fetch(`http://localhost:3000/api/location/${locationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        if (response.ok) {
+          setUserLocations(userLocations.filter(loc => loc._id !== locationId));
+        } else {
+          throw new Error('Failed to delete location');
         }
-      });
-
-      if (response.ok) {
-        fetchUserLocations();
+      } catch (err) {
+        setError(err.message);
       }
-    } catch (error) {
-      console.error('Error deleting location:', error);
     }
   };
+
+  const handleEdit = (location) => {
+    setEditingLocation(location);
+    setEditForm({ text: location.content.text, newMedia: [] });
+  };
+
+  const handleUpdate = async (locationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('text', editForm.text);
+      editForm.newMedia.forEach(file => {
+        formData.append('media', file);
+      });
+
+      console.log('==== UPDATE REQUEST DEBUG ====');
+      console.log('URL:', `http://localhost:3000/api/locations/${locationId}`);
+      console.log('Method:', 'PUT');
+      console.log('Token:', token);
+      console.log('FormData:', {
+        text: editForm.text,
+        mediaCount: editForm.newMedia.length
+      });
+
+      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers));
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Error response:', text);
+        throw new Error(`Failed to update location: ${text}`);
+      }
+
+      const updatedLocation = await response.json();
+      console.log('Updated location:', updatedLocation);
+      console.log('====================');
+      
+      setUserLocations(userLocations.map(loc => 
+        loc._id === locationId ? updatedLocation : loc
+      ));
+      setEditingLocation(null);
+    } catch (err) {
+      console.error('Update error:', err);
+      setError(err.message);
+    }
+  };
+
+  if (!user) {
+    return <div>Please log in to view your profile.</div>;
+  }
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
-    <div className="profile-page" style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Profile</h1>
-        <Link to="/">
-          <button style={{
+    <div style={{
+      padding: '20px',
+      maxWidth: '800px',
+      margin: '0 auto'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+      }}>
+        <h1>{user.email.split('@')[0]}'s Profile</h1>
+        <button 
+          onClick={() => navigate('/')}
+          style={{
             padding: '8px 16px',
             backgroundColor: '#4CAF50',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer'
-          }}>Back to Map</button>
-        </Link>
+          }}
+        >
+          Back to Map
+        </button>
       </div>
       
-      {/* Profile Section */}
-      <section className="profile-section" style={{ marginBottom: '40px' }}>
-        <div className="profile-header" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div className="profile-image">
-            <img 
-              src={profile?.profileImage ? `http://localhost:3000/${profile.profileImage}` : 'default-avatar.png'} 
-              alt="Profile"
-              style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover' }}
-            />
-          </div>
-          <div className="profile-info">
-            <h2>{profile?.name || user.email}</h2>
-            <p>Email: {user.email}</p>
-          </div>
-        </div>
-        
-        {/* Profile Image Upload Form */}
-        <form onSubmit={handleUpdateProfile} style={{ marginTop: '20px' }}>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setProfileImage(e.target.files[0])}
-          />
-          <button type="submit">Update Profile Picture</button>
-        </form>
-      </section>
-
-      {/* User Locations Section */}
-      <section className="locations-section">
-        <h2>My Locations</h2>
-        <div className="locations-grid" style={{ display: 'grid', gap: '20px' }}>
+      <p>Email: {user.email}</p>
+      
+      <h2>Your Locations</h2>
+      {userLocations.length === 0 ? (
+        <p>You haven't added any locations yet.</p>
+      ) : (
+        <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
           {userLocations.map(location => (
-            <div key={location._id} className="location-card" style={{ 
-              border: '1px solid #ddd', 
-              padding: '15px',
-              borderRadius: '8px'
-            }}>
+            <div 
+              key={location._id}
+              style={{
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '15px',
+                backgroundColor: 'white',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
               {editingLocation?._id === location._id ? (
-                <form onSubmit={handleUpdateLocation}>
+                // Edit form
+                <div>
                   <textarea
                     value={editForm.text}
                     onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
-                    style={{ width: '100%', marginBottom: '10px' }}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      marginBottom: '10px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }}
                   />
                   <input
                     type="file"
                     multiple
-                    accept="image/*,video/*"
-                    onChange={(e) => setEditForm({ ...editForm, media: Array.from(e.target.files) })}
+                    accept="image/*"
+                    onChange={(e) => setEditForm({ ...editForm, newMedia: Array.from(e.target.files) })}
+                    style={{ marginBottom: '10px' }}
                   />
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    <button type="submit">Save Changes</button>
-                    <button type="button" onClick={() => setEditingLocation(null)}>Cancel</button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleUpdate(location._id)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#4CAF50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingLocation(null)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#666',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
                   </div>
-                </form>
+                </div>
               ) : (
+                // Display mode
                 <>
-                  <p>{location.content.text}</p>
-                  <div className="media-grid" style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
-                    {location.content.mediaUrls?.map((url, index) => (
-                      location.content.mediaTypes[index].startsWith('image') ? (
-                        <img 
-                          key={index}
-                          src={`http://localhost:3000/${url}`}
-                          alt="Location media"
-                          style={{ maxWidth: '100%' }}
-                        />
-                      ) : (
-                        <video 
-                          key={index}
-                          src={`http://localhost:3000/${url}`}
-                          controls
-                          style={{ maxWidth: '100%' }}
-                        />
-                      )
-                    ))}
-                  </div>
+                  <p style={{ fontSize: '16px', marginBottom: '10px' }}>{location.content.text}</p>
+                  {location.content.mediaUrls?.map((url, index) => (
+                    <img
+                      key={index}
+                      src={`http://localhost:3000/${url}`}
+                      alt="Location media"
+                      style={{
+                        width: '100%',
+                        height: '150px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        marginBottom: '10px'
+                      }}
+                    />
+                  ))}
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                    <button onClick={() => {
-                      setEditingLocation(location);
-                      setEditForm({ text: location.content.text, media: [] });
-                    }}>Edit</button>
-                    <button onClick={() => handleDeleteLocation(location._id)}>Delete</button>
+                    <button
+                      onClick={() => handleEdit(location)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#2196F3',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(location._id)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </>
               )}
             </div>
           ))}
         </div>
-      </section>
+      )}
     </div>
   );
 }

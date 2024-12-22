@@ -107,52 +107,27 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Add the location POST route directly in server.js for testing
-app.post('/api/user/locations', authenticateToken, upload.array('media'), async (req, res) => {
-  try {
-    console.log('Auth user:', req.user);
-    console.log('Received location data:', req.body);
-    console.log('Received files:', req.files);
+// Add this before your route registrations
+app.use((req, res, next) => {
+  console.log('==== REQUEST DEBUG ====');
+  console.log('Method:', req.method);
+  console.log('Path:', req.path);
+  console.log('Full URL:', req.originalUrl);
+  console.log('Headers:', req.headers);
+  console.log('====================');
+  next();
+});
 
-    // Validate required fields
-    if (!req.body.latitude || !req.body.longitude) {
-      return res.status(400).json({ error: 'Latitude and longitude are required' });
-    }
-
-    const location = new Location({
-      creator: req.user.userId,  // Changed from user to userId to match auth middleware
-      location: {
-        type: 'Point',
-        coordinates: [parseFloat(req.body.longitude), parseFloat(req.body.latitude)]
-      },
-      content: {
-        text: req.body.text || '',
-        mediaUrls: req.files ? req.files.map(file => file.path) : []
-      }
-    });
-
-    console.log('Created location object:', location);
-
-    const savedLocation = await location.save();
-    console.log('Saved location:', savedLocation);
-
-    // Populate creator details before sending response
-    await savedLocation.populate({
-      path: 'creator',
-      select: 'email profile.name _id'
-    });
-
-    res.status(201).json(savedLocation);
-  } catch (error) {
-    console.error('Error saving location:', error);
-    res.status(500).json({ error: error.message });
-  }
+// Add this before your route registrations
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: err.message });
 });
 
 // Route registrations
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);        // This will handle /api/user/locations
-app.use('/api/locations', locationRoutes); // This will handle general location routes
+app.use('/api/locations', locationRoutes);  // This handles all location CRUD operations
+app.use('/api/user', userRoutes);          // This handles user-specific routes
 
 // Separate server startup
 const PORT = process.env.PORT || 3000;
