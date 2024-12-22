@@ -194,9 +194,26 @@ function ProfilePage({ user, onLocationUpdate }) {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        backgroundColor: '#f5f5f5',
+        padding: '20px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
-        <h2>Welcome, {user?.email}</h2>
+        <div>
+          <h2 style={{ 
+            marginBottom: '8px',
+            color: '#333'
+          }}>
+            Welcome, {user?.profile?.name || 'User'}
+          </h2>
+          <p style={{ 
+            color: '#666',
+            fontSize: '14px'
+          }}>
+            {user?.email}
+          </p>
+        </div>
         <Link to="/">
           <button style={{
             padding: '8px 16px',
@@ -204,7 +221,8 @@ function ProfilePage({ user, onLocationUpdate }) {
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'background-color 0.3s'
           }}>
             Back to Map
           </button>

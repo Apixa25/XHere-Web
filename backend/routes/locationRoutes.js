@@ -3,42 +3,40 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Location = require('../models/Location');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
-// Configure multer for media uploads
+// Add these constants at the top of the file
+const MAX_FILES = 5;  // Maximum number of files allowed
+const MAX_FILE_SIZE = 50 * 1024 * 1024;  // 50MB in bytes
+
+// Configure multer for file upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    const uploadDir = 'uploads/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + '-' + file.originalname);
   }
 });
 
-// Update allowed MIME types to include video
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg', 
-  'image/png', 
-  'image/gif', 
-  'image/webp',
-  'video/mp4',
-  'video/quicktime',
-  'video/webm'
-];
-
-// Increase max file size for videos
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB for videos
-
-const upload = multer({
+const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: MAX_FILE_SIZE,
-    files: MAX_FILES
+    fileSize: MAX_FILE_SIZE,  // 50MB file size limit
+    files: MAX_FILES  // Maximum number of files
   },
   fileFilter: (req, file, cb) => {
-    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF, WebP) and videos (MP4, MOV, WebM) are allowed.'));
+    // Check file types
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images and videos are allowed.'));
     }
-    cb(null, true);
   }
 });
 
