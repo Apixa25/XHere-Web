@@ -157,7 +157,7 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
               })}
             </div>
           )}
-          {user && selectedMarker.creator && user.userId === selectedMarker.creator._id && (
+          {user && (user.isAdmin || (selectedMarker.creator && user.userId === selectedMarker.creator._id)) && (
             <button
               onClick={() => handleDeleteLocation(selectedMarker._id)}
               style={{
@@ -225,39 +225,36 @@ function App() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    const endpoint = isRegistering ? '/api/auth/register' : '/api/auth/login';
-    
     try {
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      console.log('Attempting auth with:', formData);
+      const response = await fetch(`http://localhost:3000/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       });
-      
+
       const data = await response.json();
-      
-      if (response.ok) {
-        if (!isRegistering) {
-          const userData = { 
-            email: data.user.email,
-            userId: data.user._id.toString()
-          };
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(userData)); // Save user data
-          setUser(userData);
-          console.log('Login successful!');
-        } else {
-          setIsRegistering(false);
-          alert('Registration successful! Please login.');
-        }
-      } else {
-        alert(data.error || 'Authentication failed');
+      console.log('Server response:', data); // Debug log
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed');
       }
+
+      if (!data.token || !data.user) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid server response');
+      }
+
+      // Store the token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      
     } catch (error) {
       console.error('Auth error:', error);
-      alert('Authentication failed');
+      alert(error.message || 'Authentication failed');
     }
   };
 

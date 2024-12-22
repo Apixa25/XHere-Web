@@ -11,8 +11,11 @@ const userSchema = new mongoose.Schema({
     required: true
   },
   profile: {
-    name: String,
-    profileImage: String
+    name: String
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true  // Adds createdAt and updatedAt fields
