@@ -38,47 +38,54 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
         }}
         onCloseClick={() => onClose('marker')}
       >
-        <div style={{ minWidth: '200px' }}>
-          {/* Location text with larger font */}
-          <p style={{ 
-            fontSize: '16px',
-            fontWeight: '500',
-            marginBottom: '12px',
-            lineHeight: '1.4'
-          }}>
-            {selectedMarker.content.text}
-          </p>
-
-          {/* Images */}
-          <div style={{ marginBottom: '12px' }}>
-            {selectedMarker.content.mediaUrls?.map((url, index) => (
-              <img
-                key={index}
-                src={`http://localhost:3000/${url}`}
-                alt="Location media"
-                style={{ 
-                  maxWidth: '200px',
-                  marginTop: '10px',
-                  borderRadius: '4px',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Delete button moved below images */}
+        <div style={{ maxWidth: '300px', width: '100%' }}>
+          <p>{selectedMarker.content.text}</p>
+          {selectedMarker.content.mediaUrls?.map((url, index) => {
+            const mediaType = selectedMarker.content.mediaTypes[index];
+            
+            if (mediaType.startsWith('video/')) {
+              return (
+                <video 
+                  key={index}
+                  controls
+                  style={{
+                    width: '100%',
+                    maxHeight: '200px',
+                    marginBottom: '10px'
+                  }}
+                >
+                  <source src={`http://localhost:3000/${url}`} type={mediaType} />
+                  Your browser does not support the video tag.
+                </video>
+              );
+            } else {
+              return (
+                <img
+                  key={index}
+                  src={`http://localhost:3000/${url}`}
+                  alt="Location media"
+                  style={{
+                    width: '100%',
+                    height: '150px',
+                    objectFit: 'cover',
+                    borderRadius: '4px',
+                    marginBottom: '10px'
+                  }}
+                />
+              );
+            }
+          })}
           {user && selectedMarker.creator._id === user.userId && (
-            <button 
+            <button
               onClick={() => handleDeleteLocation(selectedMarker._id)}
               style={{
-                width: '100%',
                 padding: '8px 16px',
                 backgroundColor: '#f44336',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                marginTop: '10px'
+                width: '100%'
               }}
             >
               Delete Location
@@ -95,7 +102,15 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
         position={selectedLocation}
         onCloseClick={() => onClose('location')}
       >
-        <form onSubmit={onSubmit}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit({
+            lat: selectedLocation.lat,
+            lng: selectedLocation.lng,
+            text: contentForm.text,
+            media: contentForm.media
+          });
+        }}>
           <textarea
             value={contentForm.text}
             onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
@@ -106,9 +121,36 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
             type="file"
             multiple
             accept="image/*,video/*"
-            onChange={e => setContentForm({ ...contentForm, media: Array.from(e.target.files) })}
+            onChange={(e) => {
+              const files = Array.from(e.target.files);
+              const validFiles = files.filter(file => {
+                if (file.size > 50 * 1024 * 1024) {  // 50MB limit
+                  alert(`${file.name} is too large. Maximum size is 50MB`);
+                  return false;
+                }
+                return true;
+              });
+              setContentForm({ ...contentForm, media: validFiles });
+            }}
+            style={{ marginBottom: '10px' }}
           />
-          <button type="submit">Save Location Data</button>
+          <small style={{ display: 'block', color: '#666', marginBottom: '10px' }}>
+            Max 5 files, 50MB each. Supported formats: Images (JPEG, PNG, GIF, WebP) and Videos (MP4, MOV, WebM)
+          </small>
+          <button 
+            type="submit"
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              width: '100%'
+            }}
+          >
+            Save Location Data
+          </button>
         </form>
       </InfoWindow>
     );
@@ -223,31 +265,24 @@ function App() {
     setSelectedLocation(null); // Close any new location form
   };
 
-  const handleLocationSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleLocationSubmit = async (data) => {
     try {
-      const formData = new FormData();
-      formData.append('latitude', selectedLocation.lat);
-      formData.append('longitude', selectedLocation.lng);
-      formData.append('text', contentForm.text);
+      console.log('Submitting location with data:', data);
+      const token = localStorage.getItem('token');
       
-      // Append each media file
-      if (contentForm.media) {
-        contentForm.media.forEach(file => {
+      const formData = new FormData();
+      formData.append('latitude', data.lat);
+      formData.append('longitude', data.lng);
+      formData.append('text', data.text);
+      
+      // Append media files if any
+      if (data.media) {
+        data.media.forEach(file => {
           formData.append('media', file);
         });
       }
 
-      console.log('Submitting location with data:', {
-        lat: selectedLocation.lat,
-        lng: selectedLocation.lng,
-        text: contentForm.text,
-        mediaCount: contentForm.media.length
-      });
-
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/user/locations', {
+      const response = await fetch('http://localhost:3000/api/locations', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -255,24 +290,22 @@ function App() {
         body: formData
       });
 
-      const responseData = await response.json();
-      console.log('Server response:', responseData);
-
       if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to save location');
+        const errorText = await response.text();
+        throw new Error(errorText);
       }
 
-      // Clear form and selected location
+      const newLocation = await response.json();
+      console.log('Location created successfully:', newLocation);
+      
+      // Update your locations state or handle success
+      setLocationData([...locationData, newLocation]);
       setContentForm({ text: '', media: [] });
       setSelectedLocation(null);
       setSelectedMarker(null);
-      
-      // Refresh locations
-      fetchLocations();
-      
-    } catch (error) {
-      console.error('Error submitting location data:', error);
-      setError(error.message);
+    } catch (err) {
+      console.error('Error submitting location data:', err);
+      setError(err.message);
     }
   };
 
