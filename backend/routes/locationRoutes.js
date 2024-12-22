@@ -54,11 +54,18 @@ router.get('/test', (req, res) => {
 // Get all locations
 router.get('/', auth, async (req, res) => {
   try {
-    const locations = await Location.find()
-      .populate({
-        path: 'creator',
-        select: 'email profile.name _id'
-      });
+    const locations = await Location.find();
+    
+    // Populate creator details only for non-anonymous posts
+    for (let location of locations) {
+      if (!location.content.isAnonymous) {
+        await location.populate({
+          path: 'creator',
+          select: 'email profile.name _id'
+        });
+      }
+    }
+    
     res.json(locations);
   } catch (error) {
     console.error('Error fetching locations:', error);
@@ -84,17 +91,21 @@ router.post('/', auth, upload.array('media'), async (req, res) => {
       content: {
         text: req.body.text || '',
         mediaUrls,
-        mediaTypes
+        mediaTypes,
+        isAnonymous: req.body.isAnonymous === 'true'
       },
       creator: req.user.userId
     });
 
     await location.save();
     
-    await location.populate({
-      path: 'creator',
-      select: 'email profile.name _id'
-    });
+    // Only populate creator details if not anonymous
+    if (!req.body.isAnonymous) {
+      await location.populate({
+        path: 'creator',
+        select: 'email profile.name _id'
+      });
+    }
     
     res.status(201).json(location);
   } catch (error) {

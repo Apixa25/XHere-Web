@@ -15,7 +15,8 @@ const locationSchema = new mongoose.Schema({
   content: {
     text: String,
     mediaUrls: [String],
-    mediaTypes: [String]  // ['image', 'video']
+    mediaTypes: [String],
+    isAnonymous: { type: Boolean, default: false }
   },
   creator: {
     type: mongoose.Schema.Types.ObjectId,
