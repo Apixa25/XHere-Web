@@ -14,7 +14,33 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+// Update allowed MIME types to include video
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg', 
+  'image/png', 
+  'image/gif', 
+  'image/webp',
+  'video/mp4',
+  'video/quicktime',
+  'video/webm'
+];
+
+// Increase max file size for videos
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB for videos
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: MAX_FILE_SIZE,
+    files: MAX_FILES
+  },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF, WebP) and videos (MP4, MOV, WebM) are allowed.'));
+    }
+    cb(null, true);
+  }
+});
 
 // Add at the top of the file, after imports
 router.use((req, res, next) => {

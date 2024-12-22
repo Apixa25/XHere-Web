@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 function ProfilePage({ user }) {
   const [userLocations, setUserLocations] = useState([]);
@@ -133,6 +133,45 @@ function ProfilePage({ user }) {
     }
   };
 
+  const handleImmediateMediaDelete = async (locationId, mediaIndex) => {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('deleteMediaIndexes', JSON.stringify([mediaIndex]));
+
+      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete media');
+      }
+
+      const updatedLocation = await response.json();
+      
+      // Update the locations list with the new data
+      setUserLocations(userLocations.map(loc => 
+        loc._id === locationId ? updatedLocation : loc
+      ));
+      
+      // Update the editing location if it's currently being edited
+      if (editingLocation?._id === locationId) {
+        setEditingLocation(updatedLocation);
+        setEditForm({
+          ...editForm,
+          text: updatedLocation.content.text
+        });
+      }
+    } catch (err) {
+      console.error('Error deleting media:', err);
+      setError(err.message);
+    }
+  };
+
   if (!user) {
     return <div>Please log in to view your profile.</div>;
   }
@@ -146,113 +185,142 @@ function ProfilePage({ user }) {
   }
 
   return (
-    <div style={{
-      padding: '20px',
-      maxWidth: '800px',
-      margin: '0 auto'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
         alignItems: 'center',
         marginBottom: '20px'
       }}>
-        <h1>{user.email.split('@')[0]}'s Profile</h1>
-        <button 
-          onClick={() => navigate('/')}
-          style={{
+        <h2>Welcome, {user?.email}</h2>
+        <Link to="/">
+          <button style={{
             padding: '8px 16px',
-            backgroundColor: '#4CAF50',
+            backgroundColor: '#2196F3',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer'
-          }}
-        >
-          Back to Map
-        </button>
+          }}>
+            Back to Map
+          </button>
+        </Link>
       </div>
-      
-      <p>Email: {user.email}</p>
-      
-      <h2>Your Locations</h2>
-      {userLocations.length === 0 ? (
-        <p>You haven't added any locations yet.</p>
+
+      <h3>Your Locations</h3>
+      {loading ? (
+        <p>Loading...</p>
+      ) : error ? (
+        <p>Error: {error}</p>
       ) : (
-        <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(315px, 1fr))',
+          gap: '20px',
+          justifyContent: 'center',
+          padding: '20px',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
           {userLocations.map(location => (
-            <div 
+            <div
               key={location._id}
               style={{
+                width: '275px',
+                height: '275px',
+                padding: '15px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
-                padding: '15px',
                 backgroundColor: 'white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                margin: '0 auto'
               }}
             >
               {editingLocation?._id === location._id ? (
-                // Edit form
-                <div>
+                // Edit mode
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <textarea
                     value={editForm.text}
                     onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
                     style={{
-                      width: '100%',
-                      padding: '8px',
+                      flex: '1',
                       marginBottom: '10px',
+                      padding: '8px',
                       borderRadius: '4px',
-                      border: '1px solid #ddd'
+                      border: '1px solid #ddd',
+                      resize: 'none'
                     }}
                   />
-                  {location.content.mediaUrls?.map((url, index) => (
-                    !mediaToDelete.includes(index) && (
-                      <div key={index} style={{ position: 'relative', marginBottom: '10px' }}>
-                        <img
-                          src={`http://localhost:3000/${url}`}
-                          alt="Location media"
-                          style={{
-                            width: '100%',
-                            height: '150px',
-                            objectFit: 'cover',
-                            borderRadius: '4px'
-                          }}
-                        />
-                        <button
-                          onClick={() => handleMediaDelete(index)}
-                          style={{
-                            position: 'absolute',
-                            top: '5px',
-                            right: '5px',
-                            backgroundColor: '#ff4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '24px',
-                            height: '24px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )
-                  ))}
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => setEditForm({ ...editForm, newMedia: Array.from(e.target.files) })}
-                    style={{ marginBottom: '10px' }}
-                  />
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ marginBottom: '10px', maxHeight: '100px', overflow: 'auto' }}>
+                      {location.content.mediaUrls?.map((url, index) => (
+                        <div key={index} style={{ 
+                          marginBottom: '5px', 
+                          position: 'relative',
+                          height: '60px',
+                          width: '100%'
+                        }}>
+                          {location.content.mediaTypes[index].startsWith('video/') ? (
+                            <video
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: '4px'
+                              }}
+                            >
+                              <source src={`http://localhost:3000/${url}`} type={location.content.mediaTypes[index]} />
+                              Your browser does not support the video tag.
+                            </video>
+                          ) : (
+                            <img
+                              src={`http://localhost:3000/${url}`}
+                              alt={`Media ${index + 1}`}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: '4px'
+                              }}
+                            />
+                          )}
+                          <button
+                            onClick={() => handleImmediateMediaDelete(location._id, index)}
+                            style={{
+                              position: 'absolute',
+                              top: '5px',
+                              right: '5px',
+                              padding: '2px 5px',
+                              backgroundColor: 'rgba(244, 67, 54, 0.9)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '2px',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      onChange={(e) => setEditForm({ ...editForm, newMedia: Array.from(e.target.files) })}
+                      style={{ marginBottom: '5px' }}
+                    />
+                  </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button
                       onClick={() => handleUpdate(location._id)}
                       style={{
-                        padding: '8px 16px',
+                        flex: 1,
+                        padding: '8px',
                         backgroundColor: '#4CAF50',
                         color: 'white',
                         border: 'none',
@@ -268,7 +336,8 @@ function ProfilePage({ user }) {
                         setMediaToDelete([]);
                       }}
                       style={{
-                        padding: '8px 16px',
+                        flex: 1,
+                        padding: '8px',
                         backgroundColor: '#666',
                         color: 'white',
                         border: 'none',
@@ -282,27 +351,67 @@ function ProfilePage({ user }) {
                 </div>
               ) : (
                 // Display mode
-                <>
-                  <p style={{ fontSize: '16px', marginBottom: '10px' }}>{location.content.text}</p>
-                  {location.content.mediaUrls?.map((url, index) => (
-                    <img
-                      key={index}
-                      src={`http://localhost:3000/${url}`}
-                      alt="Location media"
-                      style={{
-                        width: '100%',
-                        height: '150px',
-                        objectFit: 'cover',
-                        borderRadius: '4px',
-                        marginBottom: '10px'
-                      }}
-                    />
-                  ))}
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ 
+                    flex: '1',
+                    overflow: 'auto',
+                    marginBottom: '10px'
+                  }}>
+                    <p style={{ 
+                      fontSize: '14px',
+                      marginBottom: '10px',
+                      maxHeight: '60px',
+                      overflow: 'auto'
+                    }}>
+                      {location.content.text}
+                    </p>
+                    <div style={{ 
+                      height: '150px',
+                      marginBottom: '10px',
+                      overflow: 'hidden'
+                    }}>
+                      {location.content.mediaUrls?.map((url, index) => {
+                        const mediaType = location.content.mediaTypes[index];
+                        
+                        if (mediaType.startsWith('video/')) {
+                          return (
+                            <video
+                              key={index}
+                              controls
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            >
+                              <source src={`http://localhost:3000/${url}`} type={mediaType} />
+                              Your browser does not support the video tag.
+                            </video>
+                          );
+                        } else {
+                          return (
+                            <img
+                              key={index}
+                              src={`http://localhost:3000/${url}`}
+                              alt="Location media"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: '4px'
+                              }}
+                            />
+                          );
+                        }
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
                     <button
                       onClick={() => handleEdit(location)}
                       style={{
-                        padding: '8px 16px',
+                        flex: 1,
+                        padding: '8px',
                         backgroundColor: '#2196F3',
                         color: 'white',
                         border: 'none',
@@ -315,7 +424,8 @@ function ProfilePage({ user }) {
                     <button
                       onClick={() => handleDelete(location._id)}
                       style={{
-                        padding: '8px 16px',
+                        flex: 1,
+                        padding: '8px',
                         backgroundColor: '#f44336',
                         color: 'white',
                         border: 'none',
@@ -326,7 +436,7 @@ function ProfilePage({ user }) {
                       Delete
                     </button>
                   </div>
-                </>
+                </div>
               )}
             </div>
           ))}
