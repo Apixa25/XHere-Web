@@ -309,52 +309,25 @@ function App() {
     }
   };
 
-  const fetchLocations = async () => {
+  const fetchLocations = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching locations with token:', token?.substring(0, 20) + '...');
-
-      if (!token) {
-        console.error('No token found');
-        return;
-      }
-
-      const response = await fetch('http://localhost:3000/api/user/locations', {
-        method: 'GET',
+      const response = await fetch('http://localhost:3000/api/locations', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         }
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Fetch error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error('Failed to fetch locations');
       }
 
       const data = await response.json();
-      console.log('Raw response data:', data);
-      
-      if (Array.isArray(data)) {
-        console.log('Number of locations received:', data.length);
-        if (data.length > 0) {
-          console.log('First location:', JSON.stringify(data[0], null, 2));
-        } else {
-          console.log('No locations returned from API');
-        }
-        setLocationData(data);
-      } else {
-        console.error('Unexpected data format:', data);
-      }
-    } catch (error) {
-      console.error('Error in fetchLocations:', error);
-      // Don't rethrow the error, just log it
+      setLocationData(data);
+    } catch (err) {
+      console.error('Error fetching locations:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     console.log('LocationData updated:', locationData);
@@ -536,7 +509,10 @@ function App() {
     },
     {
       path: "/profile",
-      element: <ProfilePage user={user} />
+      element: <ProfilePage 
+        user={user} 
+        onLocationUpdate={fetchLocations}
+      />
     }
   ]);
 
