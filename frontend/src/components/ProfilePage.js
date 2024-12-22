@@ -7,6 +7,7 @@ function ProfilePage({ user }) {
   const [error, setError] = useState(null);
   const [editingLocation, setEditingLocation] = useState(null);
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
+  const [mediaToDelete, setMediaToDelete] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,11 +68,25 @@ function ProfilePage({ user }) {
     setEditForm({ text: location.content.text, newMedia: [] });
   };
 
+  const handleMediaDelete = (index) => {
+    setMediaToDelete([...mediaToDelete, index]);
+  };
+
   const handleUpdate = async (locationId) => {
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
+      
+      // Add text content
       formData.append('text', editForm.text);
+      
+      // Add media deletion indexes
+      if (mediaToDelete.length > 0) {
+        console.log('Media indexes to delete:', mediaToDelete);
+        formData.append('deleteMediaIndexes', JSON.stringify(mediaToDelete));
+      }
+      
+      // Add new media files
       editForm.newMedia.forEach(file => {
         formData.append('media', file);
       });
@@ -80,9 +95,10 @@ function ProfilePage({ user }) {
       console.log('URL:', `http://localhost:3000/api/locations/${locationId}`);
       console.log('Method:', 'PUT');
       console.log('Token:', token);
-      console.log('FormData:', {
+      console.log('FormData contents:', {
         text: editForm.text,
-        mediaCount: editForm.newMedia.length
+        mediaCount: editForm.newMedia.length,
+        deleteMediaIndexes: mediaToDelete
       });
 
       const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
@@ -110,6 +126,7 @@ function ProfilePage({ user }) {
         loc._id === locationId ? updatedLocation : loc
       ));
       setEditingLocation(null);
+      setMediaToDelete([]); // Reset media to delete array
     } catch (err) {
       console.error('Update error:', err);
       setError(err.message);
@@ -188,6 +205,42 @@ function ProfilePage({ user }) {
                       border: '1px solid #ddd'
                     }}
                   />
+                  {location.content.mediaUrls?.map((url, index) => (
+                    !mediaToDelete.includes(index) && (
+                      <div key={index} style={{ position: 'relative', marginBottom: '10px' }}>
+                        <img
+                          src={`http://localhost:3000/${url}`}
+                          alt="Location media"
+                          style={{
+                            width: '100%',
+                            height: '150px',
+                            objectFit: 'cover',
+                            borderRadius: '4px'
+                          }}
+                        />
+                        <button
+                          onClick={() => handleMediaDelete(index)}
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            backgroundColor: '#ff4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '24px',
+                            height: '24px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )
+                  ))}
                   <input
                     type="file"
                     multiple
@@ -210,7 +263,10 @@ function ProfilePage({ user }) {
                       Save
                     </button>
                     <button
-                      onClick={() => setEditingLocation(null)}
+                      onClick={() => {
+                        setEditingLocation(null);
+                        setMediaToDelete([]);
+                      }}
                       style={{
                         padding: '8px 16px',
                         backgroundColor: '#666',
