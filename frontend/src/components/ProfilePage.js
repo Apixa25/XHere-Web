@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
-function ProfilePage({ user }) {
+function ProfilePage({ user, onLocationUpdate }) {
   const [userLocations, setUserLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,6 +54,7 @@ function ProfilePage({ user }) {
 
         if (response.ok) {
           setUserLocations(userLocations.filter(loc => loc._id !== locationId));
+          onLocationUpdate();
         } else {
           throw new Error('Failed to delete location');
         }
@@ -127,6 +128,7 @@ function ProfilePage({ user }) {
       ));
       setEditingLocation(null);
       setMediaToDelete([]); // Reset media to delete array
+      onLocationUpdate();
     } catch (err) {
       console.error('Update error:', err);
       setError(err.message);
@@ -166,6 +168,8 @@ function ProfilePage({ user }) {
           text: updatedLocation.content.text
         });
       }
+
+      onLocationUpdate();
     } catch (err) {
       console.error('Error deleting media:', err);
       setError(err.message);
