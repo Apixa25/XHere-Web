@@ -78,7 +78,7 @@ mongoose.connection.on('error', err => {
 });
 
 // Import routes
-const authRoutes = require('./routes/authRoutes');
+// const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 
@@ -125,9 +125,9 @@ app.use((err, req, res, next) => {
 });
 
 // Route registrations
-app.use('/api/auth', authRoutes);
-app.use('/api/locations', locationRoutes);  // This handles all location CRUD operations
-app.use('/api/user', userRoutes);          // This handles user-specific routes
+// app.use('/api/auth', authRoutes);
+app.use('/api', userRoutes);  // This will handle /api/login
+app.use('/api/locations', locationRoutes);
 
 // Separate server startup
 const PORT = process.env.PORT || 3000;

@@ -10,61 +10,89 @@ function ProfilePage({ user, onLocationUpdate }) {
   const [mediaToDelete, setMediaToDelete] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchUserLocations();
-  }, [user, navigate]);
-
   const fetchUserLocations = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/');
-        return;
-      }
-
-      const response = await fetch('http://localhost:3000/api/user/locations', {
+      console.log('Fetching with token:', token);
+      
+      const endpoint = user.isAdmin ? 
+        'http://localhost:3000/api/locations' : 
+        'http://localhost:3000/api/user/locations';
+      
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to fetch locations');
       }
 
       const data = await response.json();
-      setUserLocations(data.filter(location => location.creator._id === user?.userId));
+      console.log('Fetched locations:', data);
+      
+      setUserLocations(data);
       setLoading(false);
-    } catch (err) {
-      setError(err.message);
+    } catch (error) {
+      console.error('Error fetching user locations:', error);
+      setError('Failed to fetch locations');
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (user) {
+      fetchUserLocations();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    console.log('Current user object:', user);
+  }, [user]);
+
   const handleDelete = async (locationId) => {
     if (window.confirm('Are you sure you want to delete this location?')) {
       try {
+        console.log('Attempting to delete location:', locationId);
+        console.log('User ID:', user._id);
         const token = localStorage.getItem('token');
+        
         const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
 
-        if (response.ok) {
-          setUserLocations(userLocations.filter(loc => loc._id !== locationId));
-          onLocationUpdate();
-        } else {
-          throw new Error('Failed to delete location');
+        console.log('Delete response status:', response.status);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to delete location');
         }
+
+        setUserLocations(userLocations.filter(loc => loc._id !== locationId));
+        onLocationUpdate();
       } catch (err) {
+        console.error('Delete error:', err);
         setError(err.message);
       }
     }
   };
 
   const handleEdit = (location) => {
+    console.log('Edit clicked for location:', location._id);
+    console.log('Current user:', user);
+    console.log('Location creator:', location.creator);
     setEditingLocation(location);
     setEditForm({ text: location.content.text, newMedia: [] });
   };
@@ -75,31 +103,18 @@ function ProfilePage({ user, onLocationUpdate }) {
 
   const handleUpdate = async (locationId) => {
     try {
+      console.log('Attempting to update location:', locationId);
       const token = localStorage.getItem('token');
       const formData = new FormData();
       
-      // Add text content
       formData.append('text', editForm.text);
       
-      // Add media deletion indexes
       if (mediaToDelete.length > 0) {
-        console.log('Media indexes to delete:', mediaToDelete);
         formData.append('deleteMediaIndexes', JSON.stringify(mediaToDelete));
       }
       
-      // Add new media files
       editForm.newMedia.forEach(file => {
         formData.append('media', file);
-      });
-
-      console.log('==== UPDATE REQUEST DEBUG ====');
-      console.log('URL:', `http://localhost:3000/api/locations/${locationId}`);
-      console.log('Method:', 'PUT');
-      console.log('Token:', token);
-      console.log('FormData contents:', {
-        text: editForm.text,
-        mediaCount: editForm.newMedia.length,
-        deleteMediaIndexes: mediaToDelete
       });
 
       const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
@@ -110,24 +125,19 @@ function ProfilePage({ user, onLocationUpdate }) {
         body: formData
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers));
+      console.log('Update response status:', response.status);
 
       if (!response.ok) {
-        const text = await response.text();
-        console.error('Error response:', text);
-        throw new Error(`Failed to update location: ${text}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update location');
       }
 
       const updatedLocation = await response.json();
-      console.log('Updated location:', updatedLocation);
-      console.log('====================');
-      
       setUserLocations(userLocations.map(loc => 
         loc._id === locationId ? updatedLocation : loc
       ));
       setEditingLocation(null);
-      setMediaToDelete([]); // Reset media to delete array
+      setMediaToDelete([]);
       onLocationUpdate();
     } catch (err) {
       console.error('Update error:', err);
@@ -180,12 +190,44 @@ function ProfilePage({ user, onLocationUpdate }) {
     return <div>Please log in to view your profile.</div>;
   }
 
-  if (loading) {
-    return <div>Loading...</div>;
+  if (error) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <p>Error: {error}</p>
+        <button 
+          onClick={fetchUserLocations}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginTop: '10px'
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  if (loading) {
+    return (
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <div>Loading...</div>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Fetching your locations...
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -212,6 +254,7 @@ function ProfilePage({ user, onLocationUpdate }) {
             fontSize: '14px'
           }}>
             {user?.email}
+            {user.isAdmin && <span style={{ marginLeft: '8px', color: '#2196F3' }}>(Admin)</span>}
           </p>
         </div>
         <Link to="/">
@@ -229,7 +272,7 @@ function ProfilePage({ user, onLocationUpdate }) {
         </Link>
       </div>
 
-      <h3>Your Locations</h3>
+      <h3>{user.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
       {loading ? (
         <p>Loading...</p>
       ) : error ? (
@@ -261,6 +304,16 @@ function ProfilePage({ user, onLocationUpdate }) {
                 margin: '0 auto'
               }}
             >
+              {location.creator._id !== user._id && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666', 
+                  marginBottom: '8px' 
+                }}>
+                  Created by: {location.creator.profile?.name || location.creator.email}
+                </div>
+              )}
+              
               {editingLocation?._id === location._id ? (
                 // Edit mode
                 <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -429,34 +482,45 @@ function ProfilePage({ user, onLocationUpdate }) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                      onClick={() => handleEdit(location)}
-                      style={{
-                        flex: 1,
-                        padding: '8px',
-                        backgroundColor: '#2196F3',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(location._id)}
-                      style={{
-                        flex: 1,
-                        padding: '8px',
-                        backgroundColor: '#f44336',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {console.log('Checking edit/delete permissions:', {
+                      isAdmin: user.isAdmin,
+                      userId: user.userId || user._id,
+                      creatorId: location.creator._id,
+                      canEdit: user.isAdmin || location.creator._id === (user.userId || user._id)
+                    })}
+                    
+                    {(user.isAdmin || location.creator._id === (user.userId || user._id)) && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(location)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            backgroundColor: '#2196F3',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(location._id)}
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            backgroundColor: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

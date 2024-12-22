@@ -121,9 +121,12 @@ router.delete('/:id', auth, async (req, res) => {
     if (!location) {
       return res.status(404).json({ error: 'Location not found' });
     }
-    if (location.creator.toString() !== req.user.userId) {
+    
+    // Allow deletion if user is admin or creator
+    if (!req.user.isAdmin && location.creator.toString() !== req.user.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
+    
     await location.deleteOne();
     res.json({ message: 'Location deleted' });
   } catch (error) {
@@ -146,7 +149,8 @@ router.put('/:id', auth, upload.array('media'), async (req, res) => {
       return res.status(404).json({ error: 'Location not found' });
     }
     
-    if (location.creator.toString() !== req.user.userId) {
+    // Allow updates if user is admin or creator
+    if (!req.user.isAdmin && location.creator.toString() !== req.user.userId) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 

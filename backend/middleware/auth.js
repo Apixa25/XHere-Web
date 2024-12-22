@@ -1,26 +1,16 @@
 const jwt = require('jsonwebtoken');
 
-const auth = (req, res, next) => {
-  console.log('Auth middleware triggered');
-  console.log('Headers:', req.headers);
-
+module.exports = (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    console.log('Token received:', token ? `${token.substring(0, 20)}...` : 'No token');
-
-    if (!token) {
-      throw new Error('No token provided');
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-    console.log('Decoded token:', decoded);
-
-    req.user = decoded;
+    const token = req.headers.authorization.split(' ')[1];
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = {
+      userId: decodedToken.userId,
+      isAdmin: decodedToken.isAdmin
+    };
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error.message);
+    console.error('Auth middleware error:', error);
     res.status(401).json({ error: 'Authentication failed' });
   }
 };
-
-module.exports = auth;
