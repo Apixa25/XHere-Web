@@ -106,17 +106,18 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
         onCloseClick={() => onClose('marker')}
       >
         <div>
-          {/* Show creator name for non-anonymous posts */}
-          {!selectedMarker.content.isAnonymous && selectedMarker.creator && (
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#666', 
-              marginBottom: '8px',
-              fontStyle: 'italic'
-            }}>
-              Posted by: {selectedMarker.creator.profile?.name || 'Unknown User'}
-            </p>
-          )}
+          {console.log('Marker data:', selectedMarker)}
+          <p style={{ 
+            fontSize: '14px', 
+            color: '#666', 
+            marginBottom: '8px',
+            fontStyle: 'italic'
+          }}>
+            {selectedMarker.content.isAnonymous === true ? 
+              'Posted anonymously' : 
+              `Posted by: ${selectedMarker.creator?.profile?.name || 'Unknown User'}`
+            }
+          </p>
           <p style={{ marginBottom: '10px' }}>{selectedMarker.content.text}</p>
           {selectedMarker.content.mediaUrls && selectedMarker.content.mediaUrls.length > 0 && (
             <div style={{ marginTop: '10px' }}>
@@ -297,6 +298,7 @@ function App() {
       formData.append('latitude', data.lat);
       formData.append('longitude', data.lng);
       formData.append('text', data.text);
+      formData.append('isAnonymous', data.isAnonymous.toString());
       
       // Append media files if any
       if (data.media) {
