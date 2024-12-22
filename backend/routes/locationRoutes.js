@@ -101,27 +101,43 @@ router.put('/:id', auth, upload.array('media'), async (req, res) => {
   console.log('==== PUT REQUEST DEBUG ====');
   console.log('Route hit:', req.method, req.path);
   console.log('Location ID:', req.params.id);
-  console.log('Auth token:', req.headers.authorization);
   console.log('Request body:', req.body);
-  console.log('========================');
+  console.log('Delete Media Indexes:', req.body.deleteMediaIndexes);
   
   try {
     const location = await Location.findById(req.params.id);
-    console.log('Found location:', location);
     
     if (!location) {
-      console.log('Location not found');
       return res.status(404).json({ error: 'Location not found' });
     }
     
     if (location.creator.toString() !== req.user.userId) {
-      console.log('Not authorized. Creator:', location.creator, 'User:', req.user.userId);
       return res.status(403).json({ error: 'Not authorized' });
     }
 
     // Update text content if provided
     if (req.body.text !== undefined) {
       location.content.text = req.body.text;
+    }
+
+    // Handle media deletions if any
+    if (req.body.deleteMediaIndexes) {
+      console.log('Processing media deletions');
+      const indexesToDelete = JSON.parse(req.body.deleteMediaIndexes);
+      console.log('Indexes to delete:', indexesToDelete);
+      console.log('Current media URLs:', location.content.mediaUrls);
+      
+      const newMediaUrls = location.content.mediaUrls.filter((_, index) => 
+        !indexesToDelete.includes(index)
+      );
+      const newMediaTypes = location.content.mediaTypes.filter((_, index) => 
+        !indexesToDelete.includes(index)
+      );
+      
+      console.log('New media URLs after deletion:', newMediaUrls);
+      
+      location.content.mediaUrls = newMediaUrls;
+      location.content.mediaTypes = newMediaTypes;
     }
 
     // Add new media files if any
@@ -136,7 +152,6 @@ router.put('/:id', auth, upload.array('media'), async (req, res) => {
     await location.save();
     console.log('Location updated successfully');
     
-    // Populate creator information before sending response
     await location.populate({
       path: 'creator',
       select: 'email profile.name _id'
