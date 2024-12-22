@@ -105,24 +105,16 @@ function ProfilePage({ user, onLocationUpdate }) {
     try {
       console.log('Attempting to update location:', locationId);
       const token = localStorage.getItem('token');
-      const formData = new FormData();
       
-      formData.append('text', editForm.text);
-      
-      if (mediaToDelete.length > 0) {
-        formData.append('deleteMediaIndexes', JSON.stringify(mediaToDelete));
-      }
-      
-      editForm.newMedia.forEach(file => {
-        formData.append('media', file);
-      });
-
       const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          text: editForm.text
+        })
       });
 
       console.log('Update response status:', response.status);
@@ -133,9 +125,14 @@ function ProfilePage({ user, onLocationUpdate }) {
       }
 
       const updatedLocation = await response.json();
-      setUserLocations(userLocations.map(loc => 
-        loc._id === locationId ? updatedLocation : loc
-      ));
+      console.log('Updated location:', updatedLocation);
+      
+      setUserLocations(prevLocations => 
+        prevLocations.map(loc => 
+          loc._id === locationId ? updatedLocation : loc
+        )
+      );
+      
       setEditingLocation(null);
       setMediaToDelete([]);
       onLocationUpdate();
@@ -147,42 +144,33 @@ function ProfilePage({ user, onLocationUpdate }) {
 
   const handleImmediateMediaDelete = async (locationId, mediaIndex) => {
     try {
+      console.log('Attempting to delete media at index:', mediaIndex);
       const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('deleteMediaIndexes', JSON.stringify([mediaIndex]));
-
+      
       const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          deleteMediaIndexes: [mediaIndex]
+        })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete media');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete media');
       }
 
       const updatedLocation = await response.json();
-      
-      // Update the locations list with the new data
       setUserLocations(userLocations.map(loc => 
         loc._id === locationId ? updatedLocation : loc
       ));
-      
-      // Update the editing location if it's currently being edited
-      if (editingLocation?._id === locationId) {
-        setEditingLocation(updatedLocation);
-        setEditForm({
-          ...editForm,
-          text: updatedLocation.content.text
-        });
-      }
-
       onLocationUpdate();
-    } catch (err) {
-      console.error('Error deleting media:', err);
-      setError(err.message);
+    } catch (error) {
+      console.error('Error deleting media:', error);
+      setError(error.message);
     }
   };
 

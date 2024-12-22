@@ -103,7 +103,7 @@ router.get('/locations', auth, async (req, res) => {
 router.put('/locations/:id', auth, async (req, res) => {
   try {
     console.log('Update request for location:', req.params.id);
-    console.log('User:', req.user);
+    console.log('Request body:', req.body);
     
     const location = await Location.findById(req.params.id);
     
@@ -122,15 +122,35 @@ router.put('/locations/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to modify this location' });
     }
 
-    // Update the location
-    if (req.body.text) {
+    // Update text content if provided
+    if (req.body.text !== undefined) {
       location.content.text = req.body.text;
+      console.log('Updating text to:', req.body.text);
     }
 
-    // Handle media updates...
+    // Handle media deletions if any
+    if (req.body.deleteMediaIndexes) {
+      const deleteIndexes = Array.isArray(req.body.deleteMediaIndexes) 
+        ? req.body.deleteMediaIndexes 
+        : JSON.parse(req.body.deleteMediaIndexes);
+      
+      location.content.mediaUrls = location.content.mediaUrls.filter((_, index) => 
+        !deleteIndexes.includes(index)
+      );
+      location.content.mediaTypes = location.content.mediaTypes.filter((_, index) => 
+        !deleteIndexes.includes(index)
+      );
+    }
 
     await location.save();
     console.log('Location updated successfully');
+    
+    // Populate creator info before sending response
+    await location.populate({
+      path: 'creator',
+      select: 'email profile.name _id'
+    });
+    
     res.json(location);
   } catch (error) {
     console.error('Error updating location:', error);
