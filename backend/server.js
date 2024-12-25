@@ -107,8 +107,8 @@ mongoose.connection.on('error', err => {
   console.error('MongoDB error:', err);
 });
 
-// Import routes
-// const authRoutes = require('./routes/authRoutes');
+// Import routes - uncomment authRoutes
+const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 
@@ -170,9 +170,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Route registrations
-// app.use('/api/auth', authRoutes);
-app.use('/api', userRoutes);  // This will handle /api/login
+// Route registrations - update these lines
+app.use('/api/auth', authRoutes);  // This will handle /api/auth/register and /api/auth/login
+app.use('/api/user', userRoutes);  // This will handle user-related routes like /api/user/profile
 app.use('/api/locations', locationRoutes);
 
 // Separate server startup

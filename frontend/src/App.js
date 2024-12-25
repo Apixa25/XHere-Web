@@ -230,22 +230,33 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
-      const endpoint = isRegistering ? 'register' : 'login';
+      const endpoint = isRegistering ? 'auth/register' : 'auth/login';
+      
+      // Create the appropriate request body based on the endpoint
+      const requestBody = isRegistering 
+        ? { 
+            email: formData.email,
+            password: formData.password,
+            name: formData.name 
+          }
+        : { 
+            email: formData.email,
+            password: formData.password 
+          };
+
       console.log(`Attempting ${isRegistering ? 'registration' : 'login'} with:`, {
-        ...formData,
+        ...requestBody,
         password: '[REDACTED]'
       });
 
-      // Add debug logging
       console.log('Making request to:', `${API_URL}/api/${endpoint}`);
-      console.log('With data:', { ...formData, password: '[REDACTED]' });
 
       const response = await fetch(`${API_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
