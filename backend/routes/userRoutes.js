@@ -6,8 +6,6 @@ const Location = require('../models/Location');
 const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 // Configure multer for profile image uploads
 const storage = multer.diskStorage({
@@ -37,7 +35,7 @@ const upload = multer({
 // GET /api/user/profile - Fetch user profile
 router.get('/profile', auth, async (req, res) => {
   try {
-    console.log('Fetching profile for user:', req.user.userId); // Debug log
+    console.log('Fetching profile for user:', req.user.userId);
     
     const user = await User.findById(req.user.userId)
       .select('-password');
@@ -64,7 +62,7 @@ router.put('/profile', auth, upload.single('profileImage'), async (req, res) => 
 
     // Update profile image if provided
     if (req.file) {
-      user.profileImage = req.file.path.replace('\\', '/'); // Normalize path for Windows
+      user.profileImage = req.file.path.replace('\\', '/');
     }
 
     // Update other fields if provided
@@ -79,7 +77,7 @@ router.put('/profile', auth, upload.single('profileImage'), async (req, res) => 
   }
 });
 
-// GET /api/locations - Fetch all locations (accessible to all authenticated users)
+// GET /api/locations - Fetch all locations
 router.get('/locations', auth, async (req, res) => {
   try {
     console.log('Fetching all locations. User:', req.user.userId);
@@ -201,56 +199,7 @@ router.delete('/locations/:id', auth, async (req, res) => {
   }
 });
 
-// Login route
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    console.log('Login attempt for:', email);
-    
-    const user = await User.findOne({ email });
-    if (!user) {
-      console.log('User not found:', email);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    console.log('User found, comparing passwords');
-    const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match result:', isMatch);
-
-    if (!isMatch) {
-      console.log('Password mismatch for user:', email);
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { 
-        userId: user._id,
-        isAdmin: user.isAdmin
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // Include _id in the response
-    const responseData = {
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        userId: user._id,
-        isAdmin: user.isAdmin,
-        profile: user.profile
-      }
-    };
-
-    res.json(responseData);
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET /api/user/locations - Fetch user's own locations (for profile page)
+// GET /api/user/locations - Fetch user's own locations
 router.get('/user/locations', auth, async (req, res) => {
   try {
     console.log('Fetching locations for user:', req.user.userId);
@@ -266,20 +215,6 @@ router.get('/user/locations', auth, async (req, res) => {
     res.json(locations);
   } catch (error) {
     console.error('Error fetching user locations:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Add this route to fetch user profile
-router.get('/user/profile', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    res.json(user);
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
     res.status(500).json({ error: error.message });
   }
 });

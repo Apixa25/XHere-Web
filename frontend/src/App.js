@@ -230,31 +230,53 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
-      console.log('Attempting auth with:', formData);
-      const response = await fetch(`${API_URL}/api/login`, {
+      const endpoint = isRegistering ? 'auth/register' : 'auth/login';
+      
+      // Create the appropriate request body based on the endpoint
+      const requestBody = isRegistering 
+        ? { 
+            email: formData.email,
+            password: formData.password,
+            name: formData.name 
+          }
+        : { 
+            email: formData.email,
+            password: formData.password 
+          };
+
+      console.log(`Attempting ${isRegistering ? 'registration' : 'login'} with:`, {
+        ...requestBody,
+        password: '[REDACTED]'
+      });
+
+      console.log('Making request to:', `${API_URL}/api/${endpoint}`);
+
+      const response = await fetch(`${API_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
-      console.log('Server response:', data); // Debug log
+      console.log('Server response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Authentication failed');
-      }
-
-      if (!data.token || !data.user) {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid server response');
       }
 
       // Store the token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
+      
+      // Clear form after successful auth
+      setFormData({
+        email: '',
+        password: '',
+        name: ''
+      });
       
     } catch (error) {
       console.error('Auth error:', error);
@@ -408,7 +430,7 @@ function App() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              required
+              required={isRegistering}
             />
           </div>
         )}
@@ -431,7 +453,10 @@ function App() {
           />
         </div>
         <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
-        <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
+        <button type="button" onClick={() => {
+          setIsRegistering(!isRegistering);
+          setFormData({ email: '', password: '', name: '' }); // Clear form when switching
+        }}>
           {isRegistering ? 'Switch to Login' : 'Switch to Register'}
         </button>
       </form>
