@@ -6,7 +6,7 @@ const Location = require('../models/Location');
 const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Configure multer for profile image uploads
