@@ -9,6 +9,10 @@ const LIBRARIES = ['places'];
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://xhere-api-d83e35dea954.herokuapp.com'
+  : 'http://localhost:3000';
+
 function GoogleMapsProvider({ children }) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
@@ -134,7 +138,7 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
                         marginBottom: '10px'
                       }}
                     >
-                      <source src={`http://localhost:3000/${url}`} type={mediaType} />
+                      <source src={`${API_URL}/${url}`} type={mediaType} />
                       Your browser does not support the video tag.
                     </video>
                   );
@@ -142,7 +146,7 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
                   return (
                     <img
                       key={index}
-                      src={`http://localhost:3000/${url}`}
+                      src={`${API_URL}/${url}`}
                       alt="Location media"
                       style={{
                         width: '100%',
@@ -227,7 +231,7 @@ function App() {
     e.preventDefault();
     try {
       console.log('Attempting auth with:', formData);
-      const response = await fetch(`http://localhost:3000/api/login`, {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -304,7 +308,7 @@ function App() {
         });
       }
 
-      const response = await fetch('http://localhost:3000/api/locations', {
+      const response = await fetch(`${API_URL}/api/locations`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -334,7 +338,7 @@ function App() {
   const fetchLocations = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/locations', {
+      const response = await fetch(`${API_URL}/api/locations`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -372,7 +376,7 @@ function App() {
   const handleDeleteLocation = async (locationId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+      const response = await fetch(`${API_URL}/api/locations/${locationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
