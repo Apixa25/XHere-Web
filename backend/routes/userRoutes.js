@@ -284,4 +284,60 @@ router.get('/user/profile', auth, async (req, res) => {
   }
 });
 
+// Add this after your login route
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    console.log('Registration attempt for:', email);
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      console.log('User already exists:', email);
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user
+    const user = new User({
+      email,
+      password: hashedPassword,
+      profile: { name },
+      isAdmin: false  // default to non-admin
+    });
+
+    await user.save();
+    console.log('User registered successfully:', email);
+
+    // Create token
+    const token = jwt.sign(
+      { 
+        userId: user._id,
+        isAdmin: user.isAdmin
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Return same format as login
+    res.status(201).json({
+      token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        userId: user._id,
+        isAdmin: user.isAdmin,
+        profile: user.profile
+      }
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router; 
