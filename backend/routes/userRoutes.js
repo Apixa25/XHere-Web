@@ -8,6 +8,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const debug = require('debug')('app:auth');
 
 // Configure multer for profile image uploads
 const storage = multer.diskStorage({
@@ -288,12 +289,12 @@ router.get('/user/profile', auth, async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
-    console.log('Registration attempt for:', email);
+    debug('Registration attempt:', { email, name });
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log('User already exists:', email);
+      debug('User already exists:', email);
       return res.status(400).json({ error: 'User already exists' });
     }
 
@@ -306,36 +307,31 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       profile: { name },
-      isAdmin: false  // default to non-admin
+      isAdmin: false
     });
 
     await user.save();
-    console.log('User registered successfully:', email);
+    debug('User registered successfully:', email);
 
     // Create token
     const token = jwt.sign(
-      { 
-        userId: user._id,
-        isAdmin: user.isAdmin
-      },
+      { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    // Return same format as login
     res.status(201).json({
       token,
       user: {
         _id: user._id,
         email: user.email,
         userId: user._id,
-        isAdmin: user.isAdmin,
         profile: user.profile
       }
     });
 
   } catch (error) {
-    console.error('Registration error:', error);
+    debug('Registration error:', error);
     res.status(500).json({ error: error.message });
   }
 });

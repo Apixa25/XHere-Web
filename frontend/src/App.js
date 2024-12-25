@@ -236,6 +236,10 @@ function App() {
         password: '[REDACTED]'
       });
 
+      // Add debug logging
+      console.log('Making request to:', `${API_URL}/api/${endpoint}`);
+      console.log('With data:', { ...formData, password: '[REDACTED]' });
+
       const response = await fetch(`${API_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
@@ -249,11 +253,6 @@ function App() {
 
       if (!response.ok) {
         throw new Error(data.error || 'Authentication failed');
-      }
-
-      if (!data.token || !data.user) {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid server response');
       }
 
       // Store the token and user data
@@ -420,7 +419,7 @@ function App() {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              required
+              required={isRegistering}
             />
           </div>
         )}
@@ -443,7 +442,10 @@ function App() {
           />
         </div>
         <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
-        <button type="button" onClick={() => setIsRegistering(!isRegistering)}>
+        <button type="button" onClick={() => {
+          setIsRegistering(!isRegistering);
+          setFormData({ email: '', password: '', name: '' }); // Clear form when switching
+        }}>
           {isRegistering ? 'Switch to Login' : 'Switch to Register'}
         </button>
       </form>
