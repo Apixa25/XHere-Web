@@ -230,8 +230,13 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
-      console.log('Attempting auth with:', formData);
-      const response = await fetch(`${API_URL}/api/login`, {
+      const endpoint = isRegistering ? 'register' : 'login';
+      console.log(`Attempting ${isRegistering ? 'registration' : 'login'} with:`, {
+        ...formData,
+        password: '[REDACTED]'
+      });
+
+      const response = await fetch(`${API_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -240,7 +245,7 @@ function App() {
       });
 
       const data = await response.json();
-      console.log('Server response:', data); // Debug log
+      console.log('Server response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Authentication failed');
@@ -255,6 +260,13 @@ function App() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
+      
+      // Clear form after successful auth
+      setFormData({
+        email: '',
+        password: '',
+        name: ''
+      });
       
     } catch (error) {
       console.error('Auth error:', error);
