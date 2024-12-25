@@ -6,7 +6,7 @@ const Location = require('../models/Location');
 const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Configure multer for profile image uploads
@@ -205,14 +205,20 @@ router.delete('/locations/:id', auth, async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    console.log('Login attempt for:', email);
     
+    const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    console.log('User found, comparing passwords');
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match result:', isMatch);
+
     if (!isMatch) {
+      console.log('Password mismatch for user:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

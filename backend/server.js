@@ -2,7 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const cors = require('cors');
@@ -20,8 +20,9 @@ const app = express();
 app.use(express.json());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? 'https://your-frontend-url.herokuapp.com' 
-    : 'http://localhost:3001'
+    ? 'https://xhere-api-d83e35dea954.herokuapp.com'
+    : 'http://localhost:3001',
+  credentials: true
 }));
 app.use('/uploads', express.static('uploads'));
 
