@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const cors = require('cors');
 const path = require('path');
+const config = require('./config/config');  // We'll create this
 
 // Import models
 const User = require('./models/User');
@@ -17,7 +18,11 @@ mongoose.set('strictQuery', false);
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://your-frontend-url.herokuapp.com' 
+    : 'http://localhost:3001'
+}));
 app.use('/uploads', express.static('uploads'));
 
 // Configure multer for file uploads
@@ -61,7 +66,7 @@ app.get('/test/token', (req, res) => {
 });
 
 // Update MongoDB connection with better error handling and options
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/location-app', {
+mongoose.connect(config.mongodb, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -134,3 +139,11 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+}

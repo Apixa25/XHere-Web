@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Steven Sills II",
@@ -16,5 +18,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongeese": "^0.0.1",
     "multer": "^1.4.5-lts.1"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
