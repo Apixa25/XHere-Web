@@ -66,13 +66,37 @@ app.get('/test/token', (req, res) => {
   });
 });
 
-// Update MongoDB connection with better error handling and options
+// Near the top, after mongoose is required
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB Connected!');
+  // Log the list of collections to verify database content
+  mongoose.connection.db.listCollections().toArray((err, collections) => {
+    if (err) {
+      console.error('Error listing collections:', err);
+    } else {
+      console.log('Available collections:', collections.map(c => c.name));
+    }
+  });
+});
+
+// Update your MongoDB connection
 mongoose.connect(config.mongodb, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => {
+.then(async () => {
   console.log('Connected to MongoDB successfully');
+  // Log connection details
+  console.log('Database name:', mongoose.connection.name);
+  console.log('Connection state:', mongoose.connection.readyState);
+  
+  // Check if users collection exists and has data
+  try {
+    const usersCount = await User.countDocuments();
+    console.log('Number of users in database:', usersCount);
+  } catch (err) {
+    console.error('Error counting users:', err);
+  }
 })
 .catch(err => {
   console.error('MongoDB connection error:', err);
@@ -120,6 +144,12 @@ app.use((req, res, next) => {
   console.log('Path:', req.path);
   console.log('Full URL:', req.originalUrl);
   console.log('Headers:', req.headers);
+  if (req.path === '/api/login') {
+    console.log('Login attempt body:', {
+      ...req.body,
+      password: req.body.password ? '[REDACTED]' : undefined
+    });
+  }
   console.log('====================');
   next();
 });
@@ -128,6 +158,16 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({ error: err.message });
+});
+
+// Add this before route registrations
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  console.error('Stack:', err.stack);
+  res.status(500).json({ 
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
 // Route registrations
