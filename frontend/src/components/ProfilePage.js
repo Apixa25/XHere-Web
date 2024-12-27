@@ -158,35 +158,64 @@ function ProfilePage({ user, onLocationUpdate }) {
     }
   };
 
-  const handleImmediateMediaDelete = async (locationId, mediaIndex) => {
+  const handleDeleteMedia = async (locationId, mediaIndex) => {
+    console.log('Attempting to delete media at index:', mediaIndex);
+    
     try {
-      console.log('Attempting to delete media at index:', mediaIndex);
       const token = localStorage.getItem('token');
-      
-      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
-        method: 'PUT',
+      const response = await fetch(`http://localhost:3000/api/locations/${locationId}/media/${mediaIndex}`, {
+        method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          deleteMediaIndexes: JSON.stringify([mediaIndex])
-        })
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete media');
+        throw new Error('Failed to delete media');
       }
 
-      const updatedLocation = await response.json();
-      setUserLocations(userLocations.map(loc => 
-        loc._id === locationId ? updatedLocation : loc
-      ));
-      onLocationUpdate();
+      // Update the locations state to reflect the deleted media
+      setUserLocations(prevLocations => {
+        return prevLocations.map(location => {
+          if (location._id === locationId) {
+            // Create new arrays without the deleted media
+            const updatedMediaUrls = location.content.mediaUrls.filter((_, index) => index !== mediaIndex);
+            const updatedMediaTypes = location.content.mediaTypes.filter((_, index) => index !== mediaIndex);
+            
+            return {
+              ...location,
+              content: {
+                ...location.content,
+                mediaUrls: updatedMediaUrls,
+                mediaTypes: updatedMediaTypes
+              }
+            };
+          }
+          return location;
+        });
+      });
+
+      // If we're currently editing this location, update the editingLocation state as well
+      setEditingLocation(prev => {
+        if (prev && prev._id === locationId) {
+          const updatedMediaUrls = prev.content.mediaUrls.filter((_, index) => index !== mediaIndex);
+          const updatedMediaTypes = prev.content.mediaTypes.filter((_, index) => index !== mediaIndex);
+          
+          return {
+            ...prev,
+            content: {
+              ...prev.content,
+              mediaUrls: updatedMediaUrls,
+              mediaTypes: updatedMediaTypes
+            }
+          };
+        }
+        return prev;
+      });
+
     } catch (error) {
       console.error('Error deleting media:', error);
-      setError(error.message);
+      alert('Failed to delete media');
     }
   };
 
@@ -367,7 +396,7 @@ function ProfilePage({ user, onLocationUpdate }) {
                             />
                           )}
                           <button
-                            onClick={() => handleImmediateMediaDelete(location._id, index)}
+                            onClick={() => handleDeleteMedia(location._id, index)}
                             style={{
                               position: 'absolute',
                               top: '5px',

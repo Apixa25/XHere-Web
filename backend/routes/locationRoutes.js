@@ -203,4 +203,46 @@ router.put('/:id', auth, upload.array('media'), async (req, res) => {
   }
 });
 
+router.delete('/:locationId/media/:mediaIndex', auth, async (req, res) => {
+  try {
+    const { locationId, mediaIndex } = req.params;
+    const location = await Location.findById(locationId);
+
+    if (!location) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    // Check if user has permission to delete
+    if (!req.user.isAdmin && location.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to modify this location' });
+    }
+
+    // Check if mediaIndex is valid
+    if (mediaIndex >= location.content.mediaUrls.length) {
+      return res.status(400).json({ error: 'Invalid media index' });
+    }
+
+    // Get the media file path
+    const mediaPath = location.content.mediaUrls[mediaIndex];
+
+    // Remove the file from storage
+    const fullPath = path.join(__dirname, '..', 'uploads', mediaPath);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+    }
+
+    // Remove the media from the arrays
+    location.content.mediaUrls.splice(mediaIndex, 1);
+    location.content.mediaTypes.splice(mediaIndex, 1);
+
+    // Save the updated location
+    await location.save();
+
+    res.json(location);
+  } catch (error) {
+    console.error('Error deleting media:', error);
+    res.status(500).json({ error: 'Error deleting media' });
+  }
+});
+
 module.exports = router; 
