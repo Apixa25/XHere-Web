@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 
 function ProfilePage({ user, onLocationUpdate }) {
   const [userLocations, setUserLocations] = useState([]);
@@ -8,6 +10,7 @@ function ProfilePage({ user, onLocationUpdate }) {
   const [editingLocation, setEditingLocation] = useState(null);
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
   const [mediaToDelete, setMediaToDelete] = useState([]);
+  const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
   const fetchUserLocations = async () => {
@@ -158,37 +161,121 @@ function ProfilePage({ user, onLocationUpdate }) {
     }
   };
 
-  const handleImmediateMediaDelete = async (locationId, mediaIndex) => {
+  const handleDeleteMedia = async (locationId, mediaIndex) => {
+    console.log('Attempting to delete media at index:', mediaIndex);
+    
     try {
-      console.log('Attempting to delete media at index:', mediaIndex);
       const token = localStorage.getItem('token');
-      
-      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
-        method: 'PUT',
+      const response = await fetch(`http://localhost:3000/api/locations/${locationId}/media/${mediaIndex}`, {
+        method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete media');
+      }
+
+      // Update the locations state to reflect the deleted media
+      setUserLocations(prevLocations => {
+        return prevLocations.map(location => {
+          if (location._id === locationId) {
+            // Create new arrays without the deleted media
+            const updatedMediaUrls = location.content.mediaUrls.filter((_, index) => index !== mediaIndex);
+            const updatedMediaTypes = location.content.mediaTypes.filter((_, index) => index !== mediaIndex);
+            
+            return {
+              ...location,
+              content: {
+                ...location.content,
+                mediaUrls: updatedMediaUrls,
+                mediaTypes: updatedMediaTypes
+              }
+            };
+          }
+          return location;
+        });
+      });
+
+      // If we're currently editing this location, update the editingLocation state as well
+      setEditingLocation(prev => {
+        if (prev && prev._id === locationId) {
+          const updatedMediaUrls = prev.content.mediaUrls.filter((_, index) => index !== mediaIndex);
+          const updatedMediaTypes = prev.content.mediaTypes.filter((_, index) => index !== mediaIndex);
+          
+          return {
+            ...prev,
+            content: {
+              ...prev.content,
+              mediaUrls: updatedMediaUrls,
+              mediaTypes: updatedMediaTypes
+            }
+          };
+        }
+        return prev;
+      });
+
+    } catch (error) {
+      console.error('Error deleting media:', error);
+      alert('Failed to delete media');
+    }
+  };
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    // Add your authentication logic here
+    // This should match the logic in your App.js handleAuth function
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const decoded = jwtDecode(credentialResponse.credential);
+      
+      const response = await fetch('http://localhost:3000/api/auth/google', {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          deleteMediaIndexes: JSON.stringify([mediaIndex])
+          token: credentialResponse.credential,
+          email: decoded.email,
+          name: decoded.name
         })
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete media');
+        throw new Error('Google authentication failed');
       }
 
-      const updatedLocation = await response.json();
-      setUserLocations(userLocations.map(loc => 
-        loc._id === locationId ? updatedLocation : loc
-      ));
-      onLocationUpdate();
+      const data = await response.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.reload();
     } catch (error) {
-      console.error('Error deleting media:', error);
-      setError(error.message);
+      console.error('Google login error:', error);
+      alert('Failed to login with Google');
     }
   };
+
+  const renderAuthForm = () => (
+    <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px' }}>
+      <h2>{isRegistering ? 'Register' : 'Login'}</h2>
+      <form onSubmit={handleAuth}>
+        {/* ... existing form fields ... */}
+      </form>
+      
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <p>Or continue with:</p>
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => {
+            console.log('Google Login Failed');
+          }}
+        />
+      </div>
+    </div>
+  );
 
   if (!user) {
     return <div>Please log in to view your profile.</div>;
@@ -367,7 +454,7 @@ function ProfilePage({ user, onLocationUpdate }) {
                             />
                           )}
                           <button
-                            onClick={() => handleImmediateMediaDelete(location._id, index)}
+                            onClick={() => handleDeleteMedia(location._id, index)}
                             style={{
                               position: 'absolute',
                               top: '5px',
