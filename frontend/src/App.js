@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, createContext, useContext } fr
 import { GoogleMap, useLoadScript, InfoWindow, Marker } from '@react-google-maps/api';
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const LIBRARIES = ['places'];
 
@@ -188,6 +189,9 @@ function App() {
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
+
+  console.log('Google Client ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID);
+
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -548,9 +552,11 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <GoogleMapsProvider>
-        <RouterProvider router={router} />
-      </GoogleMapsProvider>
+      <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+        <GoogleMapsProvider>
+          <RouterProvider router={router} />
+        </GoogleMapsProvider>
+      </GoogleOAuthProvider>
     </ErrorBoundary>
   );
 }
