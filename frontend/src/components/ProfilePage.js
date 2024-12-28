@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 
 function ProfilePage({ user, onLocationUpdate }) {
   const [userLocations, setUserLocations] = useState([]);
@@ -8,6 +10,7 @@ function ProfilePage({ user, onLocationUpdate }) {
   const [editingLocation, setEditingLocation] = useState(null);
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
   const [mediaToDelete, setMediaToDelete] = useState([]);
+  const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
   const fetchUserLocations = async () => {
@@ -218,6 +221,61 @@ function ProfilePage({ user, onLocationUpdate }) {
       alert('Failed to delete media');
     }
   };
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    // Add your authentication logic here
+    // This should match the logic in your App.js handleAuth function
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const decoded = jwtDecode(credentialResponse.credential);
+      
+      const response = await fetch('http://localhost:3000/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: credentialResponse.credential,
+          email: decoded.email,
+          name: decoded.name
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Google authentication failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.reload();
+    } catch (error) {
+      console.error('Google login error:', error);
+      alert('Failed to login with Google');
+    }
+  };
+
+  const renderAuthForm = () => (
+    <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px' }}>
+      <h2>{isRegistering ? 'Register' : 'Login'}</h2>
+      <form onSubmit={handleAuth}>
+        {/* ... existing form fields ... */}
+      </form>
+      
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <p>Or continue with:</p>
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => {
+            console.log('Google Login Failed');
+          }}
+        />
+      </div>
+    </div>
+  );
 
   if (!user) {
     return <div>Please log in to view your profile.</div>;
