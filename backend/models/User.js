@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema({
   isAdmin: {
     type: Boolean,
     default: false
+  },
+  googleId: {
+    type: String,
+    sparse: true
   }
 }, {
   timestamps: true  // Adds createdAt and updatedAt fields
