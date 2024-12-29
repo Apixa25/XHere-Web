@@ -30,3 +30,17 @@ yarn-error.log*
 uploads/*
 !uploads/.gitkeep
 
+# Additional cache directories
+.cache
+*/.cache
+*/*/.cache
+/frontend/.cache
+/frontend/node_modules/.cache
+/backend/.cache
+/backend/node_modules/.cache
+
+# Additional build directories
+/dist
+/frontend/dist
+/backend/dist
+
