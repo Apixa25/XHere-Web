@@ -567,6 +567,8 @@ function App() {
       element: <ProfilePage 
         user={user} 
         onLocationUpdate={fetchLocations}
+        isRegistering={isRegistering}
+        handleAuth={handleAuth}
       />
     }
   ]);

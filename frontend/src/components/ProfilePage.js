@@ -3,14 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 
-function ProfilePage({ user, onLocationUpdate }) {
+const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [userLocations, setUserLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingLocation, setEditingLocation] = useState(null);
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
   const [mediaToDelete, setMediaToDelete] = useState([]);
-  const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
   const fetchUserLocations = async () => {
@@ -220,12 +219,6 @@ function ProfilePage({ user, onLocationUpdate }) {
       console.error('Error deleting media:', error);
       alert('Failed to delete media');
     }
-  };
-
-  const handleAuth = async (e) => {
-    e.preventDefault();
-    // Add your authentication logic here
-    // This should match the logic in your App.js handleAuth function
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {

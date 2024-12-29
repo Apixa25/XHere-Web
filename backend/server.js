@@ -175,6 +175,44 @@ app.use('/api/auth', authRoutes);  // This will handle /api/auth/register and /a
 app.use('/api/user', userRoutes);  // This will handle user-related routes like /api/user/profile
 app.use('/api/locations', locationRoutes);
 
+app.delete('/api/locations/:locationId/media/:mediaIndex', authenticateToken, async (req, res) => {
+  try {
+    const { locationId, mediaIndex } = req.params;
+    
+    // Find the location
+    const location = await Location.findById(locationId);
+    
+    if (!location) {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+
+    // Verify ownership
+    if (location.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized to delete this media' });
+    }
+
+    // Convert mediaIndex to number and verify it's valid
+    const index = parseInt(mediaIndex, 10);
+    if (index < 0 || index >= location.media.length) {
+      return res.status(400).json({ message: 'Invalid media index' });
+    }
+
+    // Get the media item to delete
+    const mediaToDelete = location.media[index];
+
+    // Remove the media from the array
+    location.media.splice(index, 1);
+    
+    // Save the updated location
+    await location.save();
+
+    res.json({ message: 'Media deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting media:', error);
+    res.status(500).json({ message: 'Error deleting media', error: error.message });
+  }
+});
+
 // Separate server startup
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
