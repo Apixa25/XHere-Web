@@ -31,7 +31,17 @@ function GoogleMapsProvider({ children }) {
 }
 
 // Add this new component at the top of your file, outside the App component
-function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmit, contentForm, setContentForm, user, handleDeleteLocation }) {
+function LocationInfoWindow({ 
+  selectedLocation, 
+  selectedMarker, 
+  onClose, 
+  onSubmit, 
+  contentForm, 
+  setContentForm, 
+  user, 
+  handleDeleteLocation,
+  setSelectedMarker
+}) {
   if (selectedLocation) {
     return (
       <InfoWindow
@@ -106,7 +116,7 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
           lat: selectedMarker.location.coordinates[1],
           lng: selectedMarker.location.coordinates[0]
         }}
-        onCloseClick={() => setSelectedMarker(null)}
+        onCloseClick={() => onClose('marker')}
       >
         <div>
           {console.log('Marker data:', selectedMarker)}
@@ -594,22 +604,25 @@ function App() {
               })}
 
               {/* Single InfoWindow component */}
-              <LocationInfoWindow
-                selectedLocation={selectedLocation}
-                selectedMarker={selectedMarker}
-                onClose={(type) => {
-                  if (type === 'marker') {
-                    setSelectedMarker(null);
-                  } else {
-                    setSelectedLocation(null);
-                  }
-                }}
-                onSubmit={handleLocationSubmit}
-                contentForm={contentForm}
-                setContentForm={setContentForm}
-                user={user}
-                handleDeleteLocation={handleDeleteLocation}
-              />
+              {(selectedLocation || selectedMarker) && (
+                <LocationInfoWindow
+                  selectedLocation={selectedLocation}
+                  selectedMarker={selectedMarker}
+                  onClose={(type) => {
+                    if (type === 'marker') {
+                      setSelectedMarker(null);
+                    } else {
+                      setSelectedLocation(null);
+                    }
+                  }}
+                  onSubmit={handleLocationSubmit}
+                  contentForm={contentForm}
+                  setContentForm={setContentForm}
+                  user={user}
+                  handleDeleteLocation={handleDeleteLocation}
+                  setSelectedMarker={setSelectedMarker}
+                />
+              )}
             </GoogleMap>
           </div>
         </div>
