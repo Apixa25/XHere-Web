@@ -9,6 +9,7 @@ const path = require('path');
 const config = require('./config/config');
 const sequelize = require('./config/database');
 const initializeDatabase = require('./config/init-db');
+const { authenticateToken } = require('./middleware/auth');
 
 // Import models
 const User = require('./models/User');
