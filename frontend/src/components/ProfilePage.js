@@ -22,7 +22,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       
       const endpoint = user.isAdmin ? 
         'http://localhost:3000/api/locations' : 
-        'http://localhost:3000/api/user/locations';
+        `http://localhost:3000/api/locations?userId=${user.id}`;
       
       const response = await fetch(endpoint, {
         headers: {
