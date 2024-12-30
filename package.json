@@ -11,6 +11,11 @@
     "build": "cd frontend && npm run build"
   },
   "dependencies": {
-    "@react-google-maps/api": "^2.19.2"
+    "@react-google-maps/api": "^2.19.2",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.5"
   }
 }
