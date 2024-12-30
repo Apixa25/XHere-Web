@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Location = require('../models/Location');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { authenticateToken } = require('../middleware/auth');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 // Get all locations
-router.get('/', auth.authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const locations = await Location.findAll({
       include: [{
@@ -23,30 +24,8 @@ router.get('/', auth.authenticateToken, async (req, res) => {
   }
 });
 
-// Add DELETE endpoint
-router.delete('/:id', auth.authenticateToken, async (req, res) => {
-  try {
-    const location = await Location.findByPk(req.params.id);
-    
-    if (!location) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-
-    // Check if user is authorized to delete (either admin or creator)
-    if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
-      return res.status(403).json({ error: 'Not authorized to delete this location' });
-    }
-
-    await location.destroy();
-    res.json({ message: 'Location deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting location:', error);
-    res.status(500).json({ error: 'Error deleting location' });
-  }
-});
-
 // Add POST endpoint
-router.post('/', auth.authenticateToken, upload.array('media'), async (req, res) => {
+router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
   try {
     const { latitude, longitude, text, isAnonymous } = req.body;
     
@@ -76,6 +55,27 @@ router.post('/', auth.authenticateToken, upload.array('media'), async (req, res)
     res.status(201).json(locationWithCreator);
   } catch (error) {
     console.error('Error creating location:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete endpoint
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const location = await Location.findByPk(req.params.id);
+    
+    if (!location) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    if (location.creatorId !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this location' });
+    }
+
+    await location.destroy();
+    res.json({ message: 'Location deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting location:', error);
     res.status(500).json({ error: error.message });
   }
 });
