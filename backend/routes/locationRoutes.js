@@ -2,13 +2,11 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Location = require('../models/Location');
+const User = require('../models/User');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-
-// Add these constants at the top of the file
-const MAX_FILES = 5;  // Maximum number of files allowed
-const MAX_FILE_SIZE = 50 * 1024 * 1024;  // 50MB in bytes
+const { Op } = require('sequelize');
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -27,44 +25,26 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: MAX_FILE_SIZE,  // 50MB file size limit
-    files: MAX_FILES  // Maximum number of files
-  },
-  fileFilter: (req, file, cb) => {
-    // Check file types
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only images and videos are allowed.'));
-    }
+    fileSize: 50 * 1024 * 1024,
+    files: 5
   }
-});
-
-// Add at the top of the file, after imports
-router.use((req, res, next) => {
-  console.log('Location route hit:', req.method, req.path);
-  next();
-});
-
-// Add this at the top of your routes (after the middleware)
-router.get('/test', (req, res) => {
-  res.json({ message: 'Location routes are working' });
 });
 
 // Get all locations
 router.get('/', auth, async (req, res) => {
   try {
-    const locations = await Location.find();
-    
-    // Populate creator details only for non-anonymous posts
-    for (let location of locations) {
-      if (!location.content.isAnonymous) {
-        await location.populate({
-          path: 'creator',
-          select: 'email profile.name _id'
-        });
-      }
-    }
+    const locations = await Location.findAll({
+      include: [{
+        model: User,
+        as: 'creator',
+        attributes: ['id', 'email', 'profile'],
+        where: {
+          '$Location.content.isAnonymous$': false
+        },
+        required: false
+      }],
+      order: [['createdAt', 'DESC']]
+    });
     
     res.json(locations);
   } catch (error) {
@@ -83,10 +63,10 @@ router.post('/', auth, upload.array('media'), async (req, res) => {
     const mediaUrls = req.files ? req.files.map(file => file.path) : [];
     const mediaTypes = req.files ? req.files.map(file => file.mimetype) : [];
 
-    const location = new Location({
+    const location = await Location.create({
       location: {
         type: 'Point',
-        coordinates: [req.body.longitude, req.body.latitude]
+        coordinates: [parseFloat(req.body.longitude), parseFloat(req.body.latitude)]
       },
       content: {
         text: req.body.text || '',
@@ -94,19 +74,20 @@ router.post('/', auth, upload.array('media'), async (req, res) => {
         mediaTypes,
         isAnonymous: req.body.isAnonymous === 'true'
       },
-      creator: req.user.userId
+      creatorId: req.user.userId
     });
 
-    await location.save();
-    
-    // Only populate creator details if not anonymous
+    // If not anonymous, include creator details
     if (!req.body.isAnonymous) {
-      await location.populate({
-        path: 'creator',
-        select: 'email profile.name _id'
+      await location.reload({
+        include: [{
+          model: User,
+          as: 'creator',
+          attributes: ['email', 'profile', 'id']
+        }]
       });
     }
-    
+
     res.status(201).json(location);
   } catch (error) {
     console.error('Error creating location:', error);
@@ -114,88 +95,57 @@ router.post('/', auth, upload.array('media'), async (req, res) => {
   }
 });
 
-// Delete location
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    const location = await Location.findById(req.params.id);
-    if (!location) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-    
-    // Allow deletion if user is admin or creator
-    if (!req.user.isAdmin && location.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-    
-    await location.deleteOne();
-    res.json({ message: 'Location deleted' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update location route
+// Update location
 router.put('/:id', auth, upload.array('media'), async (req, res) => {
-  console.log('==== PUT REQUEST DEBUG ====');
-  console.log('Route hit:', req.method, req.path);
-  console.log('Location ID:', req.params.id);
-  console.log('Request body:', req.body);
-  console.log('Delete Media Indexes:', req.body.deleteMediaIndexes);
-  
   try {
-    const location = await Location.findById(req.params.id);
+    const location = await Location.findByPk(req.params.id);
     
     if (!location) {
       return res.status(404).json({ error: 'Location not found' });
     }
-    
-    // Allow updates if user is admin or creator
-    if (!req.user.isAdmin && location.creator.toString() !== req.user.userId) {
-      return res.status(403).json({ error: 'Not authorized' });
+
+    if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to modify this location' });
     }
 
-    // Update text content if provided
-    if (req.body.text !== undefined) {
-      location.content.text = req.body.text;
-    }
-
-    // Handle media deletions if any
+    // Handle media deletions
     if (req.body.deleteMediaIndexes) {
-      console.log('Processing media deletions');
-      const indexesToDelete = JSON.parse(req.body.deleteMediaIndexes);
-      console.log('Indexes to delete:', indexesToDelete);
-      console.log('Current media URLs:', location.content.mediaUrls);
-      
-      const newMediaUrls = location.content.mediaUrls.filter((_, index) => 
-        !indexesToDelete.includes(index)
-      );
-      const newMediaTypes = location.content.mediaTypes.filter((_, index) => 
-        !indexesToDelete.includes(index)
-      );
-      
-      console.log('New media URLs after deletion:', newMediaUrls);
-      
-      location.content.mediaUrls = newMediaUrls;
-      location.content.mediaTypes = newMediaTypes;
+      const deleteIndexes = JSON.parse(req.body.deleteMediaIndexes);
+      const content = location.content;
+      content.mediaUrls = content.mediaUrls.filter((_, index) => !deleteIndexes.includes(index));
+      content.mediaTypes = content.mediaTypes.filter((_, index) => !deleteIndexes.includes(index));
+      location.content = content;
     }
 
-    // Add new media files if any
-    if (req.files && req.files.length > 0) {
-      const newMediaUrls = req.files.map(file => file.path);
+    // Add new media
+    if (req.files?.length > 0) {
+      const newMediaUrls = req.files.map(file => file.path.replace('\\', '/'));
       const newMediaTypes = req.files.map(file => file.mimetype);
-      
-      location.content.mediaUrls = [...location.content.mediaUrls, ...newMediaUrls];
-      location.content.mediaTypes = [...location.content.mediaTypes, ...newMediaTypes];
+      const content = location.content;
+      content.mediaUrls = [...content.mediaUrls, ...newMediaUrls];
+      content.mediaTypes = [...content.mediaTypes, ...newMediaTypes];
+      location.content = content;
+    }
+
+    // Update text if provided
+    if (req.body.text !== undefined) {
+      location.content = {
+        ...location.content,
+        text: req.body.text
+      };
     }
 
     await location.save();
-    console.log('Location updated successfully');
-    
-    await location.populate({
-      path: 'creator',
-      select: 'email profile.name _id'
+
+    // Reload with creator details
+    await location.reload({
+      include: [{
+        model: User,
+        as: 'creator',
+        attributes: ['email', 'profile', 'id']
+      }]
     });
-    
+
     res.json(location);
   } catch (error) {
     console.error('Error updating location:', error);
@@ -203,45 +153,24 @@ router.put('/:id', auth, upload.array('media'), async (req, res) => {
   }
 });
 
-router.delete('/:locationId/media/:mediaIndex', auth, async (req, res) => {
+// Delete location
+router.delete('/:id', auth, async (req, res) => {
   try {
-    const { locationId, mediaIndex } = req.params;
-    const location = await Location.findById(locationId);
-
+    const location = await Location.findByPk(req.params.id);
+    
     if (!location) {
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    // Check if user has permission to delete
-    if (!req.user.isAdmin && location.creator.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Not authorized to modify this location' });
+    if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this location' });
     }
 
-    // Check if mediaIndex is valid
-    if (mediaIndex >= location.content.mediaUrls.length) {
-      return res.status(400).json({ error: 'Invalid media index' });
-    }
-
-    // Get the media file path
-    const mediaPath = location.content.mediaUrls[mediaIndex];
-
-    // Remove the file from storage
-    const fullPath = path.join(__dirname, '..', 'uploads', mediaPath);
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
-    }
-
-    // Remove the media from the arrays
-    location.content.mediaUrls.splice(mediaIndex, 1);
-    location.content.mediaTypes.splice(mediaIndex, 1);
-
-    // Save the updated location
-    await location.save();
-
-    res.json(location);
+    await location.destroy();
+    res.json({ message: 'Location deleted successfully' });
   } catch (error) {
-    console.error('Error deleting media:', error);
-    res.status(500).json({ error: 'Error deleting media' });
+    console.error('Error deleting location:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

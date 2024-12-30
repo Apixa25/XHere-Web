@@ -5,7 +5,7 @@ const User = require('../models/User');
 const Location = require('../models/Location');
 const multer = require('multer');
 const path = require('path');
-const mongoose = require('mongoose');
+const { Op } = require('sequelize');
 
 // Configure multer for profile image uploads
 const storage = multer.diskStorage({
@@ -37,8 +37,9 @@ router.get('/profile', auth, async (req, res) => {
   try {
     console.log('Fetching profile for user:', req.user.userId);
     
-    const user = await User.findById(req.user.userId)
-      .select('-password');
+    const user = await User.findByPk(req.user.userId, {
+      attributes: { exclude: ['password'] }
+    });
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -54,7 +55,7 @@ router.get('/profile', auth, async (req, res) => {
 // PUT /api/user/profile - Update user profile
 router.put('/profile', auth, upload.single('profileImage'), async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findByPk(req.user.userId);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -62,11 +63,19 @@ router.put('/profile', auth, upload.single('profileImage'), async (req, res) => 
 
     // Update profile image if provided
     if (req.file) {
-      user.profileImage = req.file.path.replace('\\', '/');
+      user.profile = {
+        ...user.profile,
+        imageUrl: req.file.path.replace('\\', '/')
+      };
     }
 
     // Update other fields if provided
-    if (req.body.name) user.name = req.body.name;
+    if (req.body.name) {
+      user.profile = {
+        ...user.profile,
+        name: req.body.name
+      };
+    }
     if (req.body.email) user.email = req.body.email;
 
     await user.save();
@@ -204,11 +213,14 @@ router.get('/user/locations', auth, async (req, res) => {
   try {
     console.log('Fetching locations for user:', req.user.userId);
     
-    const locations = await Location.find({ 
-      creator: req.user.userId 
-    }).populate({
-      path: 'creator',
-      select: 'email profile.name _id'
+    const locations = await Location.findAll({ 
+      where: { creatorId: req.user.userId },
+      include: [{
+        model: User,
+        as: 'creator',
+        attributes: ['email', 'profile', 'id']
+      }],
+      order: [['createdAt', 'DESC']]
     });
     
     console.log(`Found ${locations.length} locations for user`);

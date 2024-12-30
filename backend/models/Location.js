@@ -1,35 +1,49 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const locationSchema = new mongoose.Schema({
+const Location = sequelize.define('Location', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
   location: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      required: true
-    },
-    coordinates: {
-      type: [Number],  // [longitude, latitude]
-      required: true
-    }
+    type: DataTypes.GEOMETRY('POINT'),
+    allowNull: false
   },
   content: {
-    text: String,
-    mediaUrls: [String],
-    mediaTypes: [String],
-    isAnonymous: { type: Boolean, default: false }
+    type: DataTypes.JSONB,
+    defaultValue: {
+      text: '',
+      mediaUrls: [],
+      mediaTypes: [],
+      isAnonymous: false
+    }
   },
-  creator: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+  creatorId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
   }
 }, {
-  timestamps: true  // Adds createdAt and updatedAt fields
+  timestamps: true,
+  indexes: [
+    {
+      using: 'GIST',
+      fields: ['location']
+    }
+  ]
 });
 
-// Create a 2dsphere index for geospatial queries
-locationSchema.index({ location: '2dsphere' });
-
-const Location = mongoose.model('Location', locationSchema);
+// Define associations
+Location.associate = (models) => {
+  Location.belongsTo(models.User, {
+    foreignKey: 'creatorId',
+    as: 'creator'
+  });
+};
 
 module.exports = Location; 
