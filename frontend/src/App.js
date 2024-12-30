@@ -106,7 +106,7 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
           lat: selectedMarker.location.coordinates[1],
           lng: selectedMarker.location.coordinates[0]
         }}
-        onCloseClick={() => onClose('marker')}
+        onCloseClick={() => setSelectedMarker(null)}
       >
         <div>
           {console.log('Marker data:', selectedMarker)}
@@ -162,7 +162,7 @@ function LocationInfoWindow({ selectedLocation, selectedMarker, onClose, onSubmi
           )}
           {user && (user.isAdmin || (selectedMarker.creator && user.userId === selectedMarker.creator._id)) && (
             <button
-              onClick={() => handleDeleteLocation(selectedMarker._id)}
+              onClick={() => handleDeleteLocation(selectedMarker.id)}
               style={{
                 padding: '8px 16px',
                 backgroundColor: '#f44336',
@@ -441,24 +441,30 @@ function App() {
 
   const handleDeleteLocation = async (locationId) => {
     try {
+      console.log('Attempting to delete location:', locationId);
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/locations/${locationId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
-      if (response.ok) {
-        setLocationData(prevLocations => 
-          prevLocations.filter(loc => loc.id !== locationId)
-        );
-        setSelectedMarker(null);
-      } else {
-        console.error('Failed to delete location');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete location');
       }
+
+      // Update state only after successful deletion
+      setLocationData(prevLocations => 
+        prevLocations.filter(loc => loc.id !== locationId)
+      );
+      setSelectedMarker(null);
     } catch (error) {
       console.error('Error deleting location:', error);
+      // Optionally show error to user
+      alert(error.message || 'Failed to delete location');
     }
   };
 
