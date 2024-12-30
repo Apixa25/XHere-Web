@@ -2,18 +2,27 @@ const sequelize = require('./database');
 const User = require('../models/User');
 const Location = require('../models/Location');
 
-const initializeDatabase = async () => {
+async function initializeDatabase() {
   try {
-    // Create PostGIS extension if it doesn't exist
-    await sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
+    // Define associations
+    Location.belongsTo(User, {
+      foreignKey: 'creatorId',
+      as: 'creator'
+    });
+    
+    User.hasMany(Location, {
+      foreignKey: 'creatorId',
+      as: 'locations'
+    });
 
-    // Sync all models
+    // Sync database
     await sequelize.sync({ alter: true });
+    
     console.log('Database synchronized successfully');
   } catch (error) {
-    console.error('Database initialization error:', error);
+    console.error('Error initializing database:', error);
     throw error;
   }
-};
+}
 
 module.exports = initializeDatabase; 

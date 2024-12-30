@@ -1,219 +1,81 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const Location = require('../models/Location');
-const multer = require('multer');
-const path = require('path');
-const { Op } = require('sequelize');
+const upload = require('../middleware/upload');
 
-// Configure multer for profile image uploads
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/profiles/');
-  },
-  filename: function(req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (extname && mimetype) {
-      return cb(null, true);
-    }
-    cb(new Error('Only jpeg, jpg, and png files are allowed!'));
-  }
-});
-
-// GET /api/user/profile - Fetch user profile
-router.get('/profile', auth, async (req, res) => {
+// User registration
+router.post('/register', async (req, res) => {
   try {
-    console.log('Fetching profile for user:', req.user.userId);
+    const { email, password } = req.body;
     
-    const user = await User.findByPk(req.user.userId, {
-      attributes: { exclude: ['password'] }
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const user = await User.create({
+      email,
+      password: hashedPassword
     });
-    
+
+    // Generate token
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.status(201).json({ token, user: { id: user.id, email: user.email } });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Error registering user' });
+  }
+});
+
+// User login
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user
+    const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    res.json(user);
+    // Verify password
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({ token, user: { id: user.id, email: user.email } });
   } catch (error) {
-    console.error('Error fetching profile:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Error logging in' });
   }
 });
 
-// PUT /api/user/profile - Update user profile
-router.put('/profile', auth, upload.single('profileImage'), async (req, res) => {
+// Get user's locations
+router.get('/locations', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.userId);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Update profile image if provided
-    if (req.file) {
-      user.profile = {
-        ...user.profile,
-        imageUrl: req.file.path.replace('\\', '/')
-      };
-    }
-
-    // Update other fields if provided
-    if (req.body.name) {
-      user.profile = {
-        ...user.profile,
-        name: req.body.name
-      };
-    }
-    if (req.body.email) user.email = req.body.email;
-
-    await user.save();
-    res.json(user);
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// GET /api/locations - Fetch all locations
-router.get('/locations', auth, async (req, res) => {
-  try {
-    console.log('Fetching all locations. User:', req.user.userId);
-    
-    const locations = await Location.find()
-      .populate({
-        path: 'creator',
-        select: 'email profile.name _id'
-      })
-      .sort({ createdAt: -1 });
-    
-    console.log(`Found ${locations.length} total locations`);
-    res.json(locations);
-  } catch (error) {
-    console.error('Error fetching locations:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// PUT /api/locations/:id - Update location
-router.put('/locations/:id', auth, upload.array('media'), async (req, res) => {
-  try {
-    console.log('Update request for location:', req.params.id);
-    console.log('Request body:', req.body);
-    console.log('Files:', req.files);
-    
-    const location = await Location.findById(req.params.id);
-    
-    if (!location) {
-      console.log('Location not found');
-      return res.status(404).json({ error: 'Location not found' });
-    }
-
-    // Check authorization
-    if (!req.user.isAdmin && location.creator.toString() !== req.user.userId) {
-      console.log('Authorization failed');
-      return res.status(403).json({ error: 'Not authorized to modify this location' });
-    }
-
-    // Update text if provided
-    if (req.body.text !== undefined) {
-      location.content.text = req.body.text;
-    }
-
-    // Handle media deletions
-    if (req.body.deleteMediaIndexes) {
-      try {
-        const deleteIndexes = JSON.parse(JSON.parse(req.body.deleteMediaIndexes));
-        console.log('Deleting media at indexes:', deleteIndexes);
-        
-        if (Array.isArray(deleteIndexes)) {
-          location.content.mediaUrls = location.content.mediaUrls.filter((_, index) => 
-            !deleteIndexes.includes(index)
-          );
-          location.content.mediaTypes = location.content.mediaTypes.filter((_, index) => 
-            !deleteIndexes.includes(index)
-          );
-        }
-      } catch (error) {
-        console.error('Error parsing deleteMediaIndexes:', error);
-        return res.status(400).json({ error: 'Invalid deleteMediaIndexes format' });
-      }
-    }
-
-    // Add new media files
-    if (req.files && req.files.length > 0) {
-      const newMediaUrls = req.files.map(file => file.path.replace('\\', '/'));
-      const newMediaTypes = req.files.map(file => file.mimetype);
-      
-      location.content.mediaUrls = [...location.content.mediaUrls, ...newMediaUrls];
-      location.content.mediaTypes = [...location.content.mediaTypes, ...newMediaTypes];
-    }
-
-    await location.save();
-    console.log('Location updated successfully');
-    
-    // Populate creator info before sending response
-    await location.populate({
-      path: 'creator',
-      select: 'email profile.name _id'
-    });
-    
-    res.json(location);
-  } catch (error) {
-    console.error('Error updating location:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// DELETE /api/locations/:id - Delete location
-router.delete('/locations/:id', auth, async (req, res) => {
-  try {
-    console.log('Delete request for location:', req.params.id);
-    console.log('User:', req.user);
-    
-    const location = await Location.findById(req.params.id);
-    
-    if (!location) {
-      console.log('Location not found');
-      return res.status(404).json({ error: 'Location not found' });
-    }
-
-    console.log('Location creator:', location.creator);
-    console.log('User ID:', req.user.userId);
-    console.log('Is admin:', req.user.isAdmin);
-
-    // Check if user is authorized to delete this location
-    if (!req.user.isAdmin && location.creator.toString() !== req.user.userId) {
-      console.log('Authorization failed');
-      return res.status(403).json({ error: 'Not authorized to delete this location' });
-    }
-
-    await Location.findByIdAndDelete(req.params.id);
-    console.log('Location deleted successfully');
-    res.json({ message: 'Location deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting location:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET /api/user/locations - Fetch user's own locations
-router.get('/user/locations', auth, async (req, res) => {
-  try {
-    console.log('Fetching locations for user:', req.user.userId);
-    
-    const locations = await Location.findAll({ 
+    const locations = await Location.findAll({
       where: { creatorId: req.user.userId },
       include: [{
         model: User,
@@ -223,11 +85,64 @@ router.get('/user/locations', auth, async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
     
-    console.log(`Found ${locations.length} locations for user`);
     res.json(locations);
   } catch (error) {
     console.error('Error fetching user locations:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Error fetching locations' });
+  }
+});
+
+// Update location
+router.put('/locations/:id', authenticateToken, upload.array('media'), async (req, res) => {
+  try {
+    const location = await Location.findByPk(req.params.id);
+    
+    if (!location) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    // Check authorization
+    if (location.creatorId !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to modify this location' });
+    }
+
+    // Update text if provided
+    if (req.body.text !== undefined) {
+      location.content = {
+        ...location.content,
+        text: req.body.text
+      };
+    }
+
+    // Handle media deletions
+    if (req.body.deleteMediaIndexes) {
+      const deleteIndexes = JSON.parse(req.body.deleteMediaIndexes);
+      if (Array.isArray(deleteIndexes)) {
+        location.content = {
+          ...location.content,
+          mediaUrls: location.content.mediaUrls.filter((_, index) => !deleteIndexes.includes(index)),
+          mediaTypes: location.content.mediaTypes.filter((_, index) => !deleteIndexes.includes(index))
+        };
+      }
+    }
+
+    // Handle new media uploads
+    if (req.files && req.files.length > 0) {
+      const newMediaUrls = req.files.map(file => file.path);
+      const newMediaTypes = req.files.map(file => file.mimetype);
+      
+      location.content = {
+        ...location.content,
+        mediaUrls: [...location.content.mediaUrls, ...newMediaUrls],
+        mediaTypes: [...location.content.mediaTypes, ...newMediaTypes]
+      };
+    }
+
+    await location.save();
+    res.json(location);
+  } catch (error) {
+    console.error('Error updating location:', error);
+    res.status(500).json({ error: 'Error updating location' });
   }
 });
 

@@ -43,15 +43,7 @@ const api = {
       }
     });
     const data = await handleResponse(response);
-    // Transform PostgreSQL geometry to expected format
-    return data.map(location => ({
-      ...location,
-      _id: location.id, // Maintain compatibility with MongoDB _id
-      location: {
-        type: 'Point',
-        coordinates: location.location.coordinates
-      }
-    }));
+    return data;
   },
   
   addLocation: async (locationData) => {
@@ -64,7 +56,6 @@ const api = {
     formData.append('text', locationData.text || '');
     formData.append('isAnonymous', locationData.isAnonymous || false);
 
-    // Append media files if any
     if (locationData.media) {
       locationData.media.forEach(file => {
         formData.append('media', file);
@@ -78,11 +69,7 @@ const api = {
       },
       body: formData
     });
-    const data = await handleResponse(response);
-    return {
-      ...data,
-      _id: data.id
-    };
+    return handleResponse(response);
   },
 
   updateLocation: async (id, updateData) => {
@@ -115,7 +102,7 @@ const api = {
     const data = await handleResponse(response);
     return {
       ...data,
-      _id: data.id
+      id: data.id
     };
   },
 

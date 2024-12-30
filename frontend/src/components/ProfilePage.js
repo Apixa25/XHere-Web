@@ -173,7 +173,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/locations/${locationId}/media/${mediaIndex}`, {
+      const response = await fetch(`${API_URL}/api/locations/${locationId}/media/${mediaIndex}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -187,8 +187,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       // Update the locations state to reflect the deleted media
       setUserLocations(prevLocations => {
         return prevLocations.map(location => {
-          if (location._id === locationId) {
-            // Create new arrays without the deleted media
+          if (location.id === locationId) {
             const updatedMediaUrls = location.content.mediaUrls.filter((_, index) => index !== mediaIndex);
             const updatedMediaTypes = location.content.mediaTypes.filter((_, index) => index !== mediaIndex);
             

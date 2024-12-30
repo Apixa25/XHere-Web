@@ -10,9 +10,7 @@ const LIBRARIES = ['places'];
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://xhere-api-d83e35dea954.herokuapp.com'
-  : 'http://localhost:3000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 function GoogleMapsProvider({ children }) {
   const { isLoaded, loadError } = useLoadScript({
@@ -311,6 +309,8 @@ function App() {
   };
 
   const handleMarkerClick = (location) => {
+    console.log('Clicked location full data:', JSON.stringify(location, null, 2));
+    console.log('Media URLs:', location.content.mediaUrls);
     console.log("Marker clicked:", location); // Debug log
     setSelectedMarker(location);
     setSelectedLocation(null); // Close any new location form
@@ -319,21 +319,20 @@ function App() {
   const handleLocationSubmit = async (data) => {
     try {
       console.log('Submitting location with data:', data);
-      const token = localStorage.getItem('token');
       
       const formData = new FormData();
       formData.append('latitude', data.lat);
       formData.append('longitude', data.lng);
-      formData.append('text', data.text);
-      formData.append('isAnonymous', data.isAnonymous.toString());
+      formData.append('text', data.text || '');
+      formData.append('isAnonymous', data.isAnonymous || false);
       
-      // Append media files if any
-      if (data.media) {
+      if (data.media && data.media.length > 0) {
         data.media.forEach(file => {
           formData.append('media', file);
         });
       }
 
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/locations`, {
         method: 'POST',
         headers: {
@@ -352,7 +351,7 @@ function App() {
       
       // Transform the location data to match expected format
       const transformedLocation = {
-        _id: newLocation.id,
+        id: newLocation.id,
         location: {
           type: 'Point',
           coordinates: [
@@ -370,9 +369,10 @@ function App() {
         createdAt: newLocation.createdAt,
         updatedAt: newLocation.updatedAt
       };
-      
-      // Update locations state
+
+      // Update locations state and refetch to ensure we have the latest data
       setLocationData(prevLocations => [...prevLocations, transformedLocation]);
+      await fetchLocations();
       
       // Reset form and selected states
       setContentForm({ text: '', media: [], isAnonymous: false });
@@ -394,10 +394,13 @@ function App() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch locations');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch locations');
       }
 
       const data = await response.json();
+      console.log('Fetched locations:', data);
+      
       if (Array.isArray(data)) {
         setLocationData(data);
       } else {
@@ -447,9 +450,8 @@ function App() {
       });
 
       if (response.ok) {
-        // Remove the deleted location from state
         setLocationData(prevLocations => 
-          prevLocations.filter(loc => loc._id !== locationId)
+          prevLocations.filter(loc => loc.id !== locationId)
         );
         setSelectedMarker(null);
       } else {
