@@ -1,29 +1,39 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const userSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
   email: {
-    type: String,
-    required: true,
-    unique: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: {
+      isEmail: true
+    }
   },
   password: {
-    type: String,
-    required: true
+    type: DataTypes.STRING,
+    allowNull: false
   },
   profile: {
-    name: String
+    type: DataTypes.JSONB,
+    defaultValue: {}
   },
   isAdmin: {
-    type: Boolean,
-    default: false
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   googleId: {
-    type: String,
-    sparse: true
+    type: DataTypes.STRING,
+    unique: true,
+    allowNull: true
   }
 }, {
-  timestamps: true  // Adds createdAt and updatedAt fields
+  timestamps: true
 });
 
-// Only create the model if it hasn't been created yet
-module.exports = mongoose.models.User || mongoose.model('User', userSchema); 
+module.exports = User; 

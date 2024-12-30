@@ -30,8 +30,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         }
       });
 
-      console.log('Response status:', response.status);
-
       if (!response.ok) {
         throw new Error('Failed to fetch locations');
       }
@@ -39,7 +37,17 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       const data = await response.json();
       console.log('Fetched locations:', data);
       
-      setUserLocations(data);
+      const transformedData = data.map(location => ({
+        ...location,
+        _id: location.id,
+        creator: location.creator ? {
+          _id: location.creator.id,
+          email: location.creator.email,
+          profile: location.creator.profile
+        } : null
+      }));
+      
+      setUserLocations(transformedData);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user locations:', error);
@@ -106,21 +114,17 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const handleUpdate = async (locationId) => {
     try {
       console.log('Attempting to update location:', locationId);
-      console.log('Form data:', editForm); // Debug log
       const token = localStorage.getItem('token');
       
-      // Create FormData to handle both text and files
       const formData = new FormData();
       formData.append('text', editForm.text);
       
-      // Add any new media files
-      if (editForm.newMedia && editForm.newMedia.length > 0) {
+      if (editForm.newMedia?.length > 0) {
         editForm.newMedia.forEach(file => {
           formData.append('media', file);
         });
       }
       
-      // Add media deletion indexes if any
       if (mediaToDelete.length > 0) {
         formData.append('deleteMediaIndexes', JSON.stringify(mediaToDelete));
       }
@@ -129,12 +133,9 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
-          // Note: Don't set Content-Type here, let browser set it for FormData
         },
         body: formData
       });
-
-      console.log('Update response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -142,17 +143,24 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       }
 
       const updatedLocation = await response.json();
-      console.log('Updated location:', updatedLocation);
       
+      const transformedLocation = {
+        ...updatedLocation,
+        _id: updatedLocation.id,
+        creator: updatedLocation.creator ? {
+          _id: updatedLocation.creator.id,
+          email: updatedLocation.creator.email,
+          profile: updatedLocation.creator.profile
+        } : null
+      };
+
       setUserLocations(prevLocations => 
         prevLocations.map(loc => 
-          loc._id === locationId ? updatedLocation : loc
+          loc._id === locationId ? transformedLocation : loc
         )
       );
       
       setEditingLocation(null);
-      setMediaToDelete([]);
-      setEditForm({ text: '', newMedia: [] });
       onLocationUpdate();
     } catch (err) {
       console.error('Update error:', err);
