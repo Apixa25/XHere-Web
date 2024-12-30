@@ -1,4 +1,4 @@
-Below is an expanded feature-implementation roadmap that incorporates your existing features (user registration, location CRUD, MongoDB storage, profile pages) along with gamification, truth verification, and crypto token functionality (wallet creation, advertising fees, view-based rewards). The list is ordered to help you build out features in a logical sequence, ensuring that foundational pieces are in place before introducing more complex mechanics.
+Below is an expanded feature-implementation roadmap that incorporates your existing features (user registration, location CRUD, PostgreSQL storage, profile pages) along with gamification, truth verification, and crypto token functionality (wallet creation, advertising fees, view-based rewards). The list is ordered to help you build out features in a logical sequence, ensuring that foundational pieces are in place before introducing more complex mechanics.
 
 1. Augment User Registration with Crypto Wallet Creation
 

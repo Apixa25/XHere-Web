@@ -2,7 +2,7 @@ Below is a high-level roadmap detailing the order in which you can implement the
 
 User registration and login
 
-Google Maps integration (with the ability to place and store locations in MongoDB)
+Google Maps integration (with the ability to place and store locations in PostgreSQL)
 User profiles (where users can see and edit their own locations)
 Each step builds on the last, ensuring a logical progression and best-practice approach.
 

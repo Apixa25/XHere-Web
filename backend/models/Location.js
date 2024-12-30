@@ -28,22 +28,6 @@ const Location = sequelize.define('Location', {
       key: 'id'
     }
   }
-}, {
-  timestamps: true,
-  indexes: [
-    {
-      using: 'GIST',
-      fields: ['location']
-    }
-  ]
 });
-
-// Define associations
-Location.associate = (models) => {
-  Location.belongsTo(models.User, {
-    foreignKey: 'creatorId',
-    as: 'creator'
-  });
-};
 
 module.exports = Location; 

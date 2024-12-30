@@ -10,6 +10,7 @@ const config = require('./config/config');
 const sequelize = require('./config/database');
 const initializeDatabase = require('./config/init-db');
 const { authenticateToken } = require('./middleware/auth');
+const fs = require('fs');
 
 // Import models
 const User = require('./models/User');
@@ -29,8 +30,14 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files middleware
-app.use('/uploads', express.static('uploads'));
+// Make sure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Initialize database
 initializeDatabase()
