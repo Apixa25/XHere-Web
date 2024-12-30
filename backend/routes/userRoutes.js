@@ -146,4 +146,27 @@ router.put('/locations/:id', authenticateToken, upload.array('media'), async (re
   }
 });
 
+// Add this new route
+router.put('/make-admin', async (req, res) => {
+  try {
+    const user = await User.findOne({ 
+      where: { 
+        email: 'stevensills2@gmail.com' 
+      } 
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.isAdmin = true;
+    await user.save();
+
+    res.json({ message: 'Admin status updated successfully' });
+  } catch (error) {
+    console.error('Error updating admin status:', error);
+    res.status(500).json({ error: 'Error updating admin status' });
+  }
+});
+
 module.exports = router; 
