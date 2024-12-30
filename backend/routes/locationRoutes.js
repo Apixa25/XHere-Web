@@ -6,17 +6,26 @@ const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
-// Get all locations
+// Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const locations = await Location.findAll({
+    const query = {
       include: [{
         model: User,
         as: 'creator',
         attributes: ['email', 'profile', 'id']
       }],
       order: [['createdAt', 'DESC']]
-    });
+    };
+
+    // If not admin and userId provided, filter by creator
+    if (!req.user.isAdmin && req.query.userId) {
+      query.where = {
+        creatorId: req.query.userId
+      };
+    }
+
+    const locations = await Location.findAll(query);
     res.json(locations);
   } catch (error) {
     console.error('Error fetching locations:', error);
