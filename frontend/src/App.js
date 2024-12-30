@@ -343,15 +343,38 @@ function App() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create location');
       }
 
       const newLocation = await response.json();
       console.log('Location created successfully:', newLocation);
       
-      // Update your locations state or handle success
-      setLocationData([...locationData, newLocation]);
+      // Transform the location data to match expected format
+      const transformedLocation = {
+        _id: newLocation.id,
+        location: {
+          type: 'Point',
+          coordinates: [
+            parseFloat(data.lng),
+            parseFloat(data.lat)
+          ]
+        },
+        content: {
+          text: data.text,
+          mediaUrls: newLocation.content?.mediaUrls || [],
+          mediaTypes: newLocation.content?.mediaTypes || [],
+          isAnonymous: data.isAnonymous
+        },
+        creator: newLocation.creator,
+        createdAt: newLocation.createdAt,
+        updatedAt: newLocation.updatedAt
+      };
+      
+      // Update locations state
+      setLocationData(prevLocations => [...prevLocations, transformedLocation]);
+      
+      // Reset form and selected states
       setContentForm({ text: '', media: [], isAnonymous: false });
       setSelectedLocation(null);
       setSelectedMarker(null);
@@ -375,14 +398,28 @@ function App() {
       }
 
       const data = await response.json();
-      setLocationData(data);
+      if (Array.isArray(data)) {
+        setLocationData(data);
+      } else {
+        console.error('Received non-array data:', data);
+        setLocationData([]);
+      }
     } catch (err) {
       console.error('Error fetching locations:', err);
+      setLocationData([]);
     }
   }, []);
 
   useEffect(() => {
+    if (user) {
+      console.log('Fetching locations for user:', user);
+      fetchLocations();
+    }
+  }, [user, fetchLocations]);
+
+  useEffect(() => {
     console.log('LocationData updated:', locationData);
+    console.log('LocationData type:', Array.isArray(locationData) ? 'array' : typeof locationData);
   }, [locationData]);
 
   const handleMapLoad = (mapInstance) => {
@@ -529,16 +566,24 @@ function App() {
               }}
             >
               {/* Existing markers */}
-              {locationData.map(location => (
-                <Marker
-                  key={location._id}
-                  position={{
-                    lat: location.location.coordinates[1],
-                    lng: location.location.coordinates[0]
-                  }}
-                  onClick={() => handleMarkerClick(location)}
-                />
-              ))}
+              {locationData.map(location => {
+                // Add safety checks for location data
+                if (!location?.location?.coordinates) {
+                  console.warn('Invalid location data:', location);
+                  return null;
+                }
+                
+                return (
+                  <Marker
+                    key={location.id || location._id}
+                    position={{
+                      lat: location.location.coordinates[1],
+                      lng: location.location.coordinates[0]
+                    }}
+                    onClick={() => handleMarkerClick(location)}
+                  />
+                );
+              })}
 
               {/* Single InfoWindow component */}
               <LocationInfoWindow

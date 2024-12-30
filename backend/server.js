@@ -17,6 +17,21 @@ const Location = require('./models/Location');
 
 const app = express();
 
+// CORS middleware
+app.use(cors({
+  origin: ['http://localhost:3001', 'https://xhere-api.herokuapp.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Body parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Static files middleware
+app.use('/uploads', express.static('uploads'));
+
 // Initialize database
 initializeDatabase()
   .then(() => {
@@ -26,6 +41,12 @@ initializeDatabase()
     console.error('Failed to initialize database:', err);
     process.exit(1);
   });
+
+// Add this before your routes
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 // Rest of the middleware and route configurations remain the same
 // Reference existing configurations from:
@@ -65,7 +86,14 @@ app.delete('/api/locations/:locationId/media/:mediaIndex', authenticateToken, as
   }
 });
 
+const authRoutes = require('./routes/authRoutes');
+const locationRoutes = require('./routes/locationRoutes');
+
+// Register routes
+app.use('/api/auth', authRoutes);
+app.use('/api/locations', locationRoutes);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
