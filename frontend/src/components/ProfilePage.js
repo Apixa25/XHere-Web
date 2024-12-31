@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
+import LocationDetails from './LocationDetails';
 
 const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [userLocations, setUserLocations] = useState([]);
@@ -11,6 +12,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
   const [mediaToDelete, setMediaToDelete] = useState([]);
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
   const fetchUserLocations = async () => {
     try {
@@ -53,6 +55,36 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       console.error('Error fetching user locations:', error);
       setError('Failed to fetch locations');
       setLoading(false);
+    }
+  };
+
+  const handleDeleteLocation = async (locationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/locations/${locationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete location');
+      }
+
+      // Remove the deleted location from state
+      setUserLocations(prevLocations => 
+        prevLocations.filter(loc => loc.id !== locationId)
+      );
+
+      // Notify parent component to update locations
+      if (onLocationUpdate) {
+        onLocationUpdate();
+      }
+    } catch (error) {
+      console.error('Error deleting location:', error);
+      alert('Failed to delete location');
     }
   };
 
@@ -572,46 +604,21 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                       })}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    {console.log('Checking edit/delete permissions:', {
-                      isAdmin: user.isAdmin,
-                      userId: user.userId || user._id,
-                      creatorId: location.creator._id,
-                      canEdit: user.isAdmin || location.creator._id === (user.userId || user._id)
-                    })}
-                    
-                    {(user.isAdmin || location.creator._id === (user.userId || user._id)) && (
-                      <>
-                        <button
-                          onClick={() => handleEdit(location)}
-                          style={{
-                            flex: 1,
-                            padding: '8px',
-                            backgroundColor: '#2196F3',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(location._id)}
-                          style={{
-                            flex: 1,
-                            padding: '8px',
-                            backgroundColor: '#f44336',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+                  <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                    <button
+                      onClick={() => handleDeleteLocation(location._id)}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               )}
