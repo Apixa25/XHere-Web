@@ -145,8 +145,14 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     setMediaToDelete([]);
   };
 
-  const handleMediaDelete = (locationId, index) => {
-    setMediaToDelete([...mediaToDelete, index]);
+  const handleMediaCheckbox = (index) => {
+    setMediaToDelete(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
   };
 
   const handleUpdate = async (locationId) => {
@@ -474,7 +480,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                           <div style={{ 
                             width: '60px', 
                             height: '60px', 
-                            position: 'relative' 
+                            position: 'relative',
+                            opacity: mediaToDelete.includes(index) ? '0.5' : '1'
                           }}>
                             {location.content.mediaTypes[index].startsWith('video/') ? (
                               <video style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
@@ -488,23 +495,40 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                               />
                             )}
                           </div>
-                          <button
-                            onClick={() => handleMediaDelete(location._id, index)}
-                            style={{
-                              padding: '4px 8px',
-                              backgroundColor: '#f44336',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            Remove
-                          </button>
+                          <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            cursor: 'pointer'
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={mediaToDelete.includes(index)}
+                              onChange={() => handleMediaCheckbox(index)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                            Delete
+                          </label>
                         </div>
                       ))}
                     </div>
+                    {mediaToDelete.length > 0 && (
+                      <button
+                        onClick={() => setMediaToDelete([])}
+                        style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#666',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          marginTop: '10px'
+                        }}
+                      >
+                        Clear Selection ({mediaToDelete.length})
+                      </button>
+                    )}
                     <input
                       type="file"
                       multiple
@@ -526,7 +550,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                         cursor: 'pointer'
                       }}
                     >
-                      Save
+                      Save {mediaToDelete.length > 0 ? `(${mediaToDelete.length} to delete)` : ''}
                     </button>
                     <button
                       onClick={() => {
