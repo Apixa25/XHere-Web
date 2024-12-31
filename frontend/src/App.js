@@ -131,7 +131,10 @@ function LocationInfoWindow({
               `Posted by: ${selectedMarker.creator?.profile?.name || 'Unknown User'}`
             }
           </p>
-          <p style={{ marginBottom: '10px' }}>{selectedMarker.content.text}</p>
+          <p style={{ 
+            fontSize: '14px',
+            marginBottom: '10px' 
+          }}>{selectedMarker.content.text}</p>
           {selectedMarker.content.mediaUrls && selectedMarker.content.mediaUrls.length > 0 && (
             <div style={{ marginTop: '10px' }}>
               {selectedMarker.content.mediaUrls.map((url, index) => {

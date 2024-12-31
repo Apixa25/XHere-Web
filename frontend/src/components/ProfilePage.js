@@ -385,7 +385,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             marginBottom: '8px',
             color: '#333'
           }}>
-            Welcome, {user?.profile?.name || 'User'}
+            Welcome, {user?.profile?.name || user?.name || 'User'}
           </h2>
           <p style={{ 
             color: '#666',

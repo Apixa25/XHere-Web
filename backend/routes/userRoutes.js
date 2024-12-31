@@ -10,7 +10,7 @@ const upload = require('../middleware/upload');
 // User registration
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, name } = req.body;
     
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -24,7 +24,10 @@ router.post('/register', async (req, res) => {
     // Create new user
     const user = await User.create({
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      profile: {
+        name: name
+      }
     });
 
     // Generate token
@@ -65,7 +68,15 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    res.json({ token, user: { id: user.id, email: user.email } });
+    res.json({ 
+      token, 
+      user: { 
+        id: user.id, 
+        email: user.email,
+        profile: user.profile,
+        isAdmin: user.isAdmin 
+      } 
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Error logging in' });
