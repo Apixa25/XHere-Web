@@ -136,10 +136,16 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     console.log('Current user:', user);
     console.log('Location creator:', location.creator);
     setEditingLocation(location);
-    setEditForm({ text: location.content.text, newMedia: [] });
+    setEditForm({
+      text: location.content.text,
+      newMedia: [],
+      mediaUrls: location.content.mediaUrls || [],
+      mediaTypes: location.content.mediaTypes || []
+    });
+    setMediaToDelete([]);
   };
 
-  const handleMediaDelete = (index) => {
+  const handleMediaDelete = (locationId, index) => {
     setMediaToDelete([...mediaToDelete, index]);
   };
 
@@ -161,7 +167,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         formData.append('deleteMediaIndexes', JSON.stringify(mediaToDelete));
       }
 
-      const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+      const response = await fetch(`${API_URL}/api/locations/${locationId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -193,7 +199,10 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       );
       
       setEditingLocation(null);
-      onLocationUpdate();
+      setMediaToDelete([]);
+      if (onLocationUpdate) {
+        onLocationUpdate();
+      }
     } catch (err) {
       console.error('Update error:', err);
       setError(err.message);
@@ -458,49 +467,40 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                         <div key={index} style={{ 
                           marginBottom: '5px', 
                           position: 'relative',
-                          height: '60px',
-                          width: '100%'
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px'
                         }}>
-                          {location.content.mediaTypes[index].startsWith('video/') ? (
-                            <video
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                borderRadius: '4px'
-                              }}
-                            >
-                              <source src={`http://localhost:3000/${url}`} type={location.content.mediaTypes[index]} />
-                              Your browser does not support the video tag.
-                            </video>
-                          ) : (
-                            <img
-                              src={`http://localhost:3000/${url}`}
-                              alt={`Media ${index + 1}`}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                borderRadius: '4px'
-                              }}
-                            />
-                          )}
+                          <div style={{ 
+                            width: '60px', 
+                            height: '60px', 
+                            position: 'relative' 
+                          }}>
+                            {location.content.mediaTypes[index].startsWith('video/') ? (
+                              <video style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
+                                <source src={`${API_URL}/${url}`} type={location.content.mediaTypes[index]} />
+                              </video>
+                            ) : (
+                              <img
+                                src={`${API_URL}/${url}`}
+                                alt={`Media ${index + 1}`}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            )}
+                          </div>
                           <button
-                            onClick={() => handleDeleteMedia(location._id, index)}
+                            onClick={() => handleMediaDelete(location._id, index)}
                             style={{
-                              position: 'absolute',
-                              top: '5px',
-                              right: '5px',
-                              padding: '2px 5px',
-                              backgroundColor: 'rgba(244, 67, 54, 0.9)',
+                              padding: '4px 8px',
+                              backgroundColor: '#f44336',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '2px',
+                              borderRadius: '4px',
                               cursor: 'pointer',
                               fontSize: '12px'
                             }}
                           >
-                            Delete
+                            Remove
                           </button>
                         </div>
                       ))}
@@ -510,7 +510,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                       multiple
                       accept="image/*,video/*"
                       onChange={(e) => setEditForm({ ...editForm, newMedia: Array.from(e.target.files) })}
-                      style={{ marginBottom: '5px' }}
+                      style={{ marginBottom: '10px' }}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -605,6 +605,20 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                    <button
+                      onClick={() => handleEdit(location)}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        backgroundColor: '#2196F3',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() => handleDeleteLocation(location._id)}
                       style={{
