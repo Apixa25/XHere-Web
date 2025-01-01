@@ -163,8 +163,16 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       console.log('Attempting to update location:', locationId);
       const token = localStorage.getItem('token');
       
+      // Find the existing location to preserve coordinates
+      const location = userLocations.find(loc => loc._id === locationId);
       const formData = new FormData();
       formData.append('text', editForm.text);
+      
+      // Preserve location coordinates
+      if (location?.location?.coordinates) {
+        formData.append('longitude', location.location.coordinates[0]);
+        formData.append('latitude', location.location.coordinates[1]);
+      }
       
       if (editForm.newMedia?.length > 0) {
         editForm.newMedia.forEach(file => {
