@@ -13,6 +13,12 @@ const GoogleMapsContext = createContext(null);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
+// Add this constant outside of your App component
+const CRESCENT_CITY_COORDS = {
+  lat: 41.7558,
+  lng: -124.2026
+};
+
 function GoogleMapsProvider({ children }) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
@@ -264,10 +270,7 @@ function App() {
   });
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [map, setMap] = useState(null);
-  const [mapCenter] = useState({
-    lat: 40.7128,
-    lng: -74.0060
-  });
+  const [mapCenter, setMapCenter] = useState(CRESCENT_CITY_COORDS);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapsError, setMapsError] = useState(null);
   const [error, setError] = useState(null);
@@ -439,10 +442,26 @@ function App() {
     }
   };
 
+  const inspectLocation = (loc) => {
+    try {
+      return {
+        id: loc.id || 'no-id',
+        lat: Number(loc.location?.coordinates?.[1]).toFixed(6),
+        lng: Number(loc.location?.coordinates?.[0]).toFixed(6),
+        text: (loc.content?.text || '').substring(0, 30) + '...',
+        creator: loc.creator?.email || 'no-creator',
+        raw_location: JSON.stringify(loc.location || {})
+      };
+    } catch (error) {
+      console.error('Error inspecting location:', error, loc);
+      return { error: 'Invalid location data', raw: JSON.stringify(loc) };
+    }
+  };
+
   const fetchLocations = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/locations`, {
+      const response = await fetch(`${API_URL}/api/locations?profile=false`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -454,14 +473,24 @@ function App() {
       }
 
       const data = await response.json();
-      console.log('Fetched locations:', data);
+      console.log('Raw location data details:', data.map(inspectLocation));
       
-      if (Array.isArray(data)) {
-        setLocationData(data);
-      } else {
-        console.error('Received non-array data:', data);
-        setLocationData([]);
-      }
+      // Validate location data
+      const validLocations = data.filter(loc => {
+        const isValid = 
+          loc?.location?.coordinates?.length === 2 &&
+          typeof loc.location.coordinates[0] === 'number' &&
+          typeof loc.location.coordinates[1] === 'number';
+        
+        if (!isValid) {
+          console.warn('Invalid location:', inspectLocation(loc));
+        }
+        return isValid;
+      });
+
+      console.log('Valid locations:', validLocations.length);
+      console.log('Valid location details:', validLocations.map(inspectLocation));
+      setLocationData(validLocations);
     } catch (err) {
       console.error('Error fetching locations:', err);
       setLocationData([]);
@@ -661,19 +690,17 @@ function App() {
               }}
             >
               {/* Existing markers */}
-              {locationData.map(location => {
-                // Add safety checks for location data
-                if (!location?.location?.coordinates) {
-                  console.warn('Invalid location data:', location);
-                  return null;
-                }
-                
+              {locationData.map((location) => {
+                console.log('Rendering marker:', {
+                  lat: Number(location.location?.coordinates?.[1]),
+                  lng: Number(location.location?.coordinates?.[0])
+                });
                 return (
                   <Marker
-                    key={location.id || location._id}
+                    key={location.id}
                     position={{
-                      lat: location.location.coordinates[1],
-                      lng: location.location.coordinates[0]
+                      lat: Number(location.location?.coordinates?.[1]),
+                      lng: Number(location.location?.coordinates?.[0])
                     }}
                     onClick={() => handleMarkerClick(location)}
                   />
@@ -723,6 +750,16 @@ function App() {
     selectedLocation: selectedLocation,
     routerPath: window.location.pathname 
   });
+
+  console.log('Detailed location data:', locationData.map(loc => ({
+    id: loc.id,
+    lat: loc?.location?.coordinates?.[1],
+    lng: loc?.location?.coordinates?.[0],
+    text: loc?.content?.text,
+    creator: loc?.creator?.email
+  })));
+
+  console.log('Rendering markers for locations:', locationData.map(inspectLocation));
 
   return (
     <ErrorBoundary>
