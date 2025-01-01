@@ -13,10 +13,9 @@ const GoogleMapsContext = createContext(null);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
-// Add this constant outside of your App component
-const CRESCENT_CITY_COORDS = {
-  lat: 41.7558,
-  lng: -124.2026
+const defaultCenter = {
+  lat: 41.7555,
+  lng: -124.2025
 };
 
 function GoogleMapsProvider({ children }) {
@@ -270,7 +269,7 @@ function App() {
   });
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [map, setMap] = useState(null);
-  const [mapCenter, setMapCenter] = useState(CRESCENT_CITY_COORDS);
+  const [center, setCenter] = useState(defaultCenter);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapsError, setMapsError] = useState(null);
   const [error, setError] = useState(null);
@@ -677,9 +676,12 @@ function App() {
             <GoogleMap
               mapContainerStyle={mapStyles}
               zoom={13}
-              center={mapCenter}
+              center={center}
               onClick={handleMapClick}
-              onLoad={handleMapLoad}
+              onLoad={(map) => {
+                console.log('Map loaded successfully');
+                map.setCenter(defaultCenter);
+              }}
               onUnmount={handleMapUnmount}
               options={{
                 disableDefaultUI: true,
