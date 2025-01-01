@@ -273,6 +273,7 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapsError, setMapsError] = useState(null);
   const [error, setError] = useState(null);
+  const [hoveredMarker, setHoveredMarker] = useState(null);
 
   const mapStyles = {
     height: "100vh",
@@ -691,23 +692,39 @@ function App() {
                 streetViewControl: false
               }}
             >
-              {/* Existing markers */}
-              {locationData.map((location) => {
-                console.log('Rendering marker:', {
-                  lat: Number(location.location?.coordinates?.[1]),
-                  lng: Number(location.location?.coordinates?.[0])
-                });
-                return (
+              {locationData.map((location) => (
+                <React.Fragment key={location.id}>
                   <Marker
-                    key={location.id}
                     position={{
                       lat: Number(location.location?.coordinates?.[1]),
                       lng: Number(location.location?.coordinates?.[0])
                     }}
                     onClick={() => handleMarkerClick(location)}
+                    onMouseOver={() => setHoveredMarker(location)}
+                    onMouseOut={() => setHoveredMarker(null)}
                   />
-                );
-              })}
+                  {hoveredMarker?.id === location.id && (
+                    <InfoWindow
+                      position={{
+                        lat: Number(location.location?.coordinates?.[1]),
+                        lng: Number(location.location?.coordinates?.[0])
+                      }}
+                      options={{
+                        pixelOffset: new window.google.maps.Size(0, -40),
+                        disableAutoPan: true
+                      }}
+                    >
+                      <div style={{
+                        padding: '8px',
+                        maxWidth: '200px',
+                        fontSize: '14px'
+                      }}>
+                        {location.content.text}
+                      </div>
+                    </InfoWindow>
+                  )}
+                </React.Fragment>
+              ))}
 
               {/* Single InfoWindow component */}
               {(selectedLocation || selectedMarker) && (
