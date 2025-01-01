@@ -77,8 +77,9 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    if (location.creatorId !== req.user.userId) {
-      return res.status(403).json({ error: 'Not authorized to delete this location' });
+    // Allow deletion if user is admin OR is the creator
+    if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
+      return res.status(403).json({ error: 'Unauthorized to delete this location' });
     }
 
     await location.destroy();
@@ -98,44 +99,51 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    // Check authorization
-    if (location.creatorId !== req.user.userId) {
-      return res.status(403).json({ error: 'Not authorized to modify this location' });
+    // Allow updates if user is admin OR is the creator
+    if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
+      return res.status(403).json({ error: 'Unauthorized to update this location' });
     }
 
-    // Update text if provided
-    if (req.body.text !== undefined) {
-      location.content = {
-        ...location.content,
-        text: req.body.text
-      };
+    // Update location data
+    const { latitude, longitude, text, isAnonymous } = req.body;
+    
+    const updatedContent = {
+      ...location.content,
+      text: text || location.content.text,
+      isAnonymous: isAnonymous === 'true'
+    };
+
+    // Handle new media files if any
+    if (req.files && req.files.length > 0) {
+      updatedContent.mediaUrls = [
+        ...location.content.mediaUrls,
+        ...req.files.map(file => file.path)
+      ];
+      updatedContent.mediaTypes = [
+        ...location.content.mediaTypes,
+        ...req.files.map(file => file.mimetype)
+      ];
     }
 
-    // Handle media deletions
+    // Handle media deletion if specified
     if (req.body.deleteMediaIndexes) {
       const deleteIndexes = JSON.parse(req.body.deleteMediaIndexes);
-      if (Array.isArray(deleteIndexes)) {
-        location.content = {
-          ...location.content,
-          mediaUrls: location.content.mediaUrls.filter((_, index) => !deleteIndexes.includes(index)),
-          mediaTypes: location.content.mediaTypes.filter((_, index) => !deleteIndexes.includes(index))
-        };
-      }
+      updatedContent.mediaUrls = updatedContent.mediaUrls.filter((_, index) => 
+        !deleteIndexes.includes(index)
+      );
+      updatedContent.mediaTypes = updatedContent.mediaTypes.filter((_, index) => 
+        !deleteIndexes.includes(index)
+      );
     }
 
-    // Handle new media uploads
-    if (req.files && req.files.length > 0) {
-      const newMediaUrls = req.files.map(file => file.path);
-      const newMediaTypes = req.files.map(file => file.mimetype);
-      
-      location.content = {
-        ...location.content,
-        mediaUrls: [...(location.content.mediaUrls || []), ...newMediaUrls],
-        mediaTypes: [...(location.content.mediaTypes || []), ...newMediaTypes]
-      };
-    }
-
-    await location.save();
+    // Update the location
+    await location.update({
+      location: {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)]
+      },
+      content: updatedContent
+    });
 
     // Fetch updated location with creator info
     const updatedLocation = await Location.findByPk(location.id, {
@@ -149,7 +157,7 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
     res.json(updatedLocation);
   } catch (error) {
     console.error('Error updating location:', error);
-    res.status(500).json({ error: 'Error updating location' });
+    res.status(500).json({ error: error.message });
   }
 });
 
