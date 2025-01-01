@@ -98,6 +98,13 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
   useEffect(() => {
     console.log('Current user object:', user);
+    console.log('Is admin?:', user?.isAdmin);
+  }, [user]);
+
+  useEffect(() => {
+    console.log('Full user object:', user);
+    console.log('User admin status:', user?.isAdmin);
+    console.log('User profile:', user?.profile);
   }, [user]);
 
   const handleDelete = async (locationId) => {
@@ -296,6 +303,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       }
 
       const data = await response.json();
+      console.log('Login response:', data);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       window.location.reload();
@@ -383,16 +391,36 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         <div>
           <h2 style={{ 
             marginBottom: '8px',
-            color: '#333'
+            color: '#333',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
           }}>
             Welcome, {user?.profile?.name || user?.name || 'User'}
+            {console.log('Rendering admin badge, isAdmin:', user?.isAdmin)}
+            {user?.isAdmin === true && (
+              <span style={{
+                backgroundColor: '#FF4081',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                height: '20px'
+              }}>
+                Admin
+              </span>
+            )}
           </h2>
           <p style={{ 
             color: '#666',
             fontSize: '14px'
           }}>
             {user?.email}
-            {user.isAdmin && <span style={{ marginLeft: '8px', color: '#2196F3' }}>(Admin)</span>}
           </p>
         </div>
         <Link to="/">
