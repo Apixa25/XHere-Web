@@ -4,6 +4,7 @@ import { GoogleMap, useLoadScript, InfoWindow, Marker } from '@react-google-maps
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 
 const LIBRARIES = ['places'];
 
@@ -200,10 +201,51 @@ function LocationInfoWindow({
 
 function App() {
   const [user, setUser] = useState(() => {
-    // Check localStorage for user data when app initializes
     const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      console.log('Loading saved user:', parsedUser); // Debug log
+      return parsedUser;
+    }
+    return null;
   });
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          // Fetch fresh user data from the server
+          const response = await fetch(`${API_URL}/api/users/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            console.log('Fresh user data loaded:', userData); // Debug log
+            
+            // Update localStorage with fresh data
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
+          } else {
+            console.error('Failed to load user data');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error loading user:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+        }
+      }
+    };
+
+    loadUser();
+  }, []);
 
   console.log('Google Client ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID);
 
@@ -524,6 +566,38 @@ function App() {
       </form>
     </div>
   );
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const decoded = jwtDecode(credentialResponse.credential);
+      
+      const response = await fetch(`${API_URL}/api/users/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: credentialResponse.credential,
+          email: decoded.email,
+          name: decoded.name
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Google authentication failed');
+      }
+
+      const data = await response.json();
+      console.log('Google login response:', data); // Debug log
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+    } catch (error) {
+      console.error('Google login error:', error);
+      alert('Failed to login with Google');
+    }
+  };
 
   // Only render the map when user is logged in
   if (!user) {

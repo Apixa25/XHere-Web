@@ -50,7 +50,11 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ 
+      where: { email },
+      attributes: ['id', 'email', 'password', 'isAdmin', 'profile']
+    });
+    
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -63,7 +67,10 @@ router.post('/login', async (req, res) => {
 
     // Generate token
     const token = jwt.sign(
-      { userId: user.id },
+      { 
+        userId: user.id,
+        isAdmin: user.isAdmin
+      },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -158,6 +165,42 @@ router.put('/locations/:id', authenticateToken, upload.array('media'), async (re
 });
 
 // Add this new route
+router.post('/google', async (req, res) => {
+  try {
+    const user = await User.findOne({
+      where: { email: req.body.email },
+      attributes: ['id', 'email', 'isAdmin', 'profile']
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const token = jwt.sign(
+      { 
+        userId: user.id,
+        isAdmin: user.isAdmin
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        profile: user.profile,
+        isAdmin: user.isAdmin
+      }
+    });
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(500).json({ error: 'Authentication failed' });
+  }
+});
+
+// Add this new route
 router.put('/make-admin', async (req, res) => {
   try {
     const user = await User.findOne({ 
@@ -177,6 +220,30 @@ router.put('/make-admin', async (req, res) => {
   } catch (error) {
     console.error('Error updating admin status:', error);
     res.status(500).json({ error: 'Error updating admin status' });
+  }
+});
+
+// Add this new route
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId, {
+      attributes: ['id', 'email', 'profile', 'isAdmin']
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      profile: user.profile,
+      name: user.profile?.name || user.email,
+      isAdmin: user.isAdmin
+    });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Error fetching user data' });
   }
 });
 
