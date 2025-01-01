@@ -103,21 +103,16 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    // Allow updates if user is admin OR is the creator
     if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
       return res.status(403).json({ error: 'Unauthorized to update this location' });
     }
 
-    // Update location data
-    const { latitude, longitude, text, isAnonymous } = req.body;
-    
     const updatedContent = {
       ...location.content,
-      text: text || location.content.text,
-      isAnonymous: isAnonymous === 'true'
+      text: req.body.text || location.content.text,
+      isAnonymous: req.body.isAnonymous === 'true'
     };
 
-    // Handle new media files if any
     if (req.files && req.files.length > 0) {
       updatedContent.mediaUrls = [
         ...location.content.mediaUrls,
@@ -129,7 +124,6 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
       ];
     }
 
-    // Handle media deletion if specified
     if (req.body.deleteMediaIndexes) {
       const deleteIndexes = JSON.parse(req.body.deleteMediaIndexes);
       updatedContent.mediaUrls = updatedContent.mediaUrls.filter((_, index) => 
@@ -140,17 +134,22 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
       );
     }
 
-    // Update the location
+    // Preserve existing location coordinates if new ones aren't provided
+    const locationData = {
+      type: 'Point',
+      coordinates: [
+        req.body.longitude ? parseFloat(req.body.longitude) : location.location.coordinates[0],
+        req.body.latitude ? parseFloat(req.body.latitude) : location.location.coordinates[1]
+      ]
+    };
+
     await location.update({
-      location: {
-        type: 'Point',
-        coordinates: [parseFloat(longitude), parseFloat(latitude)]
-      },
+      location: locationData,
       content: updatedContent
     });
 
     // Fetch updated location with creator info
-    const updatedLocation = await Location.findByPk(location.id, {
+    const updatedLocationWithCreator = await Location.findByPk(location.id, {
       include: [{
         model: User,
         as: 'creator',
@@ -158,7 +157,7 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
       }]
     });
 
-    res.json(updatedLocation);
+    res.json(updatedLocationWithCreator);
   } catch (error) {
     console.error('Error updating location:', error);
     res.status(500).json({ error: error.message });
