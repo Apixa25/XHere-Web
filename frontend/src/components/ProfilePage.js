@@ -22,11 +22,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       const token = localStorage.getItem('token');
       console.log('Fetching with token:', token);
       
-      const endpoint = user.isAdmin ? 
-        'http://localhost:3000/api/locations' : 
-        `http://localhost:3000/api/locations?userId=${user.id}`;
-      
-      const response = await fetch(endpoint, {
+      const response = await fetch('http://localhost:3000/api/locations?profile=true', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

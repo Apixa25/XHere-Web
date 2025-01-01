@@ -18,12 +18,16 @@ router.get('/', authenticateToken, async (req, res) => {
       order: [['createdAt', 'DESC']]
     };
 
-    // If not admin and userId provided, filter by creator
-    if (!req.user.isAdmin && req.query.userId) {
-      query.where = {
-        creatorId: req.query.userId
-      };
+    // For profile page requests, filter based on user type and userId
+    if (req.query.profile === 'true') {
+      if (!req.user.isAdmin) {
+        query.where = {
+          creatorId: req.user.userId
+        };
+      }
+      // Admin users will see all locations in their profile
     }
+    // For map page requests, no filtering - everyone sees all locations
 
     const locations = await Location.findAll(query);
     res.json(locations);
