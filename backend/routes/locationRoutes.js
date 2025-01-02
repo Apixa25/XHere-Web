@@ -5,6 +5,7 @@ const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
+const { checkAndAwardBadges } = require('./badgeRoutes');
 
 // Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
@@ -65,7 +66,13 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       }]
     });
 
-    res.status(201).json(locationWithCreator);
+    // Check for new badges
+    const newBadges = await checkAndAwardBadges(req.user.userId);
+
+    res.status(201).json({ 
+      location: locationWithCreator,
+      newBadges // Include any new badges earned
+    });
   } catch (error) {
     console.error('Error creating location:', error);
     res.status(500).json({ error: error.message });

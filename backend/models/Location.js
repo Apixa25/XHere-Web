@@ -27,6 +27,22 @@ const Location = sequelize.define('Location', {
       model: 'Users',
       key: 'id'
     }
+  },
+  upvotes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  downvotes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  verificationStatus: {
+    type: DataTypes.ENUM('unverified', 'pending', 'verified'),
+    defaultValue: 'unverified'
+  },
+  voters: {
+    type: DataTypes.JSONB,
+    defaultValue: [] // Will store user IDs who have voted
   }
 });
 

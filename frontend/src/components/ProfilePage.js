@@ -383,6 +383,70 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ 
+        backgroundColor: '#f5f5f5',
+        padding: '20px',
+        borderRadius: '8px',
+        marginBottom: '20px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <div className="user-stats" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px',
+          marginBottom: '20px'
+        }}>
+          <div className="stat-card" style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ color: '#2196F3', marginBottom: '5px' }}>Points</h3>
+            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{user.points || 0}</p>
+          </div>
+          
+          <div className="stat-card" style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ color: '#4CAF50', marginBottom: '5px' }}>Reputation</h3>
+            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{user.reputation || 0}</p>
+          </div>
+        </div>
+
+        <div className="badges-section" style={{ marginTop: '20px' }}>
+          <h3 style={{ marginBottom: '15px' }}>Badges</h3>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            {(user.badges || []).map((badge, index) => (
+              <div key={index} style={{
+                backgroundColor: 'white',
+                padding: '8px 15px',
+                borderRadius: '20px',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}>
+                <span style={{ color: badge.color || '#666' }}>🏆</span>
+                {badge.name}
+              </div>
+            ))}
+            {(!user.badges || user.badges.length === 0) && (
+              <p style={{ color: '#666', fontStyle: 'italic' }}>
+                No badges earned yet. Keep contributing to earn badges!
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
