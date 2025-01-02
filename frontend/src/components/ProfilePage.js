@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import LocationDetails from './LocationDetails';
+import api from '../services/api';
 
 const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [userLocations, setUserLocations] = useState([]);
@@ -13,6 +14,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [mediaToDelete, setMediaToDelete] = useState([]);
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const [userData, setUserData] = useState(user);
 
   const fetchUserLocations = async () => {
     try {
@@ -317,6 +319,19 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     }
   };
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await api.getUserProfile(user.id);
+        setUserData(response.user);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, [user.id]);
+
   const renderAuthForm = () => (
     <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px' }}>
       <h2>{isRegistering ? 'Register' : 'Login'}</h2>
@@ -402,7 +417,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             textAlign: 'center'
           }}>
             <h3 style={{ color: '#2196F3', marginBottom: '5px' }}>Points</h3>
-            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{user.points || 0}</p>
+            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{userData?.points || 0}</p>
           </div>
           
           <div className="stat-card" style={{
@@ -412,7 +427,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             textAlign: 'center'
           }}>
             <h3 style={{ color: '#4CAF50', marginBottom: '5px' }}>Reputation</h3>
-            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{user.reputation || 0}</p>
+            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{userData?.reputation || 0}</p>
           </div>
         </div>
 
@@ -423,7 +438,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             flexWrap: 'wrap',
             gap: '10px'
           }}>
-            {(user.badges || []).map((badge, index) => (
+            {(userData?.badges || []).map((badge, index) => (
               <div key={index} style={{
                 backgroundColor: 'white',
                 padding: '8px 15px',
@@ -437,7 +452,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 {badge.name}
               </div>
             ))}
-            {(!user.badges || user.badges.length === 0) && (
+            {(!userData?.badges || userData?.badges.length === 0) && (
               <p style={{ color: '#666', fontStyle: 'italic' }}>
                 No badges earned yet. Keep contributing to earn badges!
               </p>
@@ -464,9 +479,9 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             alignItems: 'center',
             gap: '10px'
           }}>
-            Welcome, {user?.profile?.name || user?.name || 'User'}
-            {console.log('Rendering admin badge, isAdmin:', user?.isAdmin)}
-            {user?.isAdmin === true && (
+            Welcome, {userData?.profile?.name || userData?.name || 'User'}
+            {console.log('Rendering admin badge, isAdmin:', userData?.isAdmin)}
+            {userData?.isAdmin === true && (
               <span style={{
                 backgroundColor: '#FF4081',
                 color: 'white',
@@ -488,7 +503,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             color: '#666',
             fontSize: '14px'
           }}>
-            {user?.email}
+            {userData?.email}
           </p>
         </div>
         <Link to="/">
@@ -506,7 +521,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         </Link>
       </div>
 
-      <h3>{user.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
+      <h3>{userData?.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
       {loading ? (
         <p>Loading...</p>
       ) : error ? (
@@ -538,7 +553,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 margin: '0 auto'
               }}
             >
-              {location.creator._id !== user._id && (
+              {location.creator._id !== userData._id && (
                 <div style={{ 
                   fontSize: '12px', 
                   color: '#666', 

@@ -247,4 +247,21 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/profile/:userId', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.userId, {
+      attributes: ['id', 'email', 'points', 'reputation', 'badges', 'profile'],
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Error fetching user profile' });
+  }
+});
+
 module.exports = router; 

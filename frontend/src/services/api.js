@@ -152,6 +152,17 @@ const api = {
       }
     });
     return handleResponse(response);
+  },
+
+  // Get user profile
+  getUserProfile: async (userId) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/users/profile/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return handleResponse(response);
   }
 };
 
