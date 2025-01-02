@@ -59,6 +59,17 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       await voter.save();
     }
 
+    // Handle points for location creator based on vote type
+    const locationCreator = await User.findByPk(location.creatorId);
+    if (locationCreator) {
+      if (voteType === 'upvote') {
+        locationCreator.points += 1; // Point for receiving an upvote
+      } else if (voteType === 'downvote') {
+        locationCreator.points = Math.max(0, locationCreator.points - 1); // Subtract point for downvote, but don't go below 0
+      }
+      await locationCreator.save();
+    }
+
     res.json({ 
       message: 'Vote recorded successfully',
       location: {
