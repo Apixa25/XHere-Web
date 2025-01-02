@@ -16,6 +16,24 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Location not found' });
     }
 
+    // Award points to the voter
+    const voter = await User.findByPk(userId);
+    if (voter) {
+      voter.points += 1; // Point for voting
+      await voter.save();
+    }
+
+    // Handle points for location creator based on vote type
+    const locationCreator = await User.findByPk(location.creatorId);
+    if (locationCreator) {
+      if (voteType === 'upvote') {
+        locationCreator.points += 1; // Point for receiving an upvote
+      } else if (voteType === 'downvote') {
+        locationCreator.points = Math.max(0, locationCreator.points - 1); // Subtract point for downvote, but don't go below 0
+      }
+      await locationCreator.save();
+    }
+
     // Check if user has already voted
     const voters = location.voters || [];
     const existingVote = voters.find(v => v.userId === userId);
@@ -51,24 +69,6 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     }
 
     await location.save();
-
-    // Award points to the voter
-    const voter = await User.findByPk(userId);
-    if (voter) {
-      voter.points += 1; // Point for voting
-      await voter.save();
-    }
-
-    // Handle points for location creator based on vote type
-    const locationCreator = await User.findByPk(location.creatorId);
-    if (locationCreator) {
-      if (voteType === 'upvote') {
-        locationCreator.points += 1; // Point for receiving an upvote
-      } else if (voteType === 'downvote') {
-        locationCreator.points = Math.max(0, locationCreator.points - 1); // Subtract point for downvote, but don't go below 0
-      }
-      await locationCreator.save();
-    }
 
     res.json({ 
       message: 'Vote recorded successfully',
