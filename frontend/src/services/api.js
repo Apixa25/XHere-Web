@@ -115,6 +115,43 @@ const api = {
       }
     });
     return handleResponse(response);
+  },
+
+  // Vote on a location
+  voteLocation: async (locationId, voteType) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/votes/${locationId}/vote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ voteType })
+    });
+    return handleResponse(response);
+  },
+
+  // Get user badges
+  getUserBadges: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/badges/user/badges`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return handleResponse(response);
+  },
+
+  // Check for new badges
+  checkBadges: async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/badges/check-badges`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return handleResponse(response);
   }
 };
 

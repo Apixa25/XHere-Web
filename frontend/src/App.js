@@ -1,10 +1,20 @@
 // App.js
-import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { GoogleMap, useLoadScript, InfoWindow, Marker } from '@react-google-maps/api';
-import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
-import ProfilePage from './components/ProfilePage';
+import React, { useState, useEffect, useCallback, useRef, createContext } from 'react';
+import { 
+  GoogleMap, 
+  LoadScript, 
+  Marker, 
+  InfoWindow,
+  useLoadScript 
+} from '@react-google-maps/api';
+import api from './services/api';
+import './App.css';
+import BadgeNotification from './components/BadgeNotification';
+import VoteButtons from './components/VoteButtons';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
+import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
+import ProfilePage from './components/ProfilePage';
 
 const LIBRARIES = ['places'];
 
@@ -46,7 +56,8 @@ function LocationInfoWindow({
   setContentForm, 
   user, 
   handleDeleteLocation,
-  setSelectedMarker
+  setSelectedMarker,
+  handleVoteUpdate
 }) {
   if (selectedLocation) {
     return (
@@ -141,6 +152,10 @@ function LocationInfoWindow({
             fontSize: '14px',
             marginBottom: '10px' 
           }}>{selectedMarker.content.text}</p>
+          <VoteButtons 
+            location={selectedMarker}
+            onVoteUpdate={handleVoteUpdate}
+          />
           {selectedMarker.content.mediaUrls && selectedMarker.content.mediaUrls.length > 0 && (
             <div style={{ marginTop: '10px' }}>
               {selectedMarker.content.mediaUrls.map((url, index) => {
@@ -274,6 +289,7 @@ function App() {
   const [mapsError, setMapsError] = useState(null);
   const [error, setError] = useState(null);
   const [hoveredMarker, setHoveredMarker] = useState(null);
+  const [newBadges, setNewBadges] = useState([]);
 
   const mapStyles = {
     height: "100vh",
@@ -350,13 +366,29 @@ function App() {
     setUser(null);
   };
 
-  const handleMapClick = (event) => {
+  const handleVoteUpdate = async (updatedLocation) => {
+    setLocationData(locationData.map(loc => 
+      loc.id === updatedLocation.id ? { ...loc, ...updatedLocation } : loc
+    ));
+
+    // Check for new badges
+    try {
+      const { newBadges } = await api.checkBadges();
+      if (newBadges && newBadges.length > 0) {
+        setNewBadges(newBadges);
+      }
+    } catch (error) {
+      console.error('Error checking badges:', error);
+    }
+  };
+
+  const handleMapClick = async (e) => {
     if (!user) return;
     
     // Only set selectedLocation if we're clicking on the map (not a marker)
-    if (!event.placeId) {
-      const clickedLat = event.latLng.lat();
-      const clickedLng = event.latLng.lng();
+    if (!e.placeId) {
+      const clickedLat = e.latLng.lat();
+      const clickedLng = e.latLng.lng();
       
       setSelectedLocation({
         lat: clickedLat,
@@ -731,12 +763,9 @@ function App() {
                 <LocationInfoWindow
                   selectedLocation={selectedLocation}
                   selectedMarker={selectedMarker}
-                  onClose={(type) => {
-                    if (type === 'marker') {
-                      setSelectedMarker(null);
-                    } else {
-                      setSelectedLocation(null);
-                    }
+                  onClose={() => {
+                    setSelectedLocation(null);
+                    setSelectedMarker(null);
                   }}
                   onSubmit={handleLocationSubmit}
                   contentForm={contentForm}
@@ -744,6 +773,7 @@ function App() {
                   user={user}
                   handleDeleteLocation={handleDeleteLocation}
                   setSelectedMarker={setSelectedMarker}
+                  handleVoteUpdate={handleVoteUpdate}
                 />
               )}
             </GoogleMap>
