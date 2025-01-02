@@ -61,4 +61,30 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
   }
 });
 
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const { locationId, voteType } = req.body;
+    const userId = req.user.userId;
+
+    const location = await Location.findByPk(locationId);
+    
+    // Debug log before update
+    console.log(`Before vote - Location ${locationId}: upvotes=${location.upvotes}, downvotes=${location.downvotes}, totalPoints=${location.totalPoints}`);
+
+    // ... voting logic ...
+
+    // After updating votes, calculate total points
+    location.totalPoints = location.upvotes - location.downvotes;
+    await location.save();
+
+    // Debug log after update
+    console.log(`After vote - Location ${locationId}: upvotes=${location.upvotes}, downvotes=${location.downvotes}, totalPoints=${location.totalPoints}`);
+
+    res.json(location);
+  } catch (error) {
+    console.error('Error processing vote:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
