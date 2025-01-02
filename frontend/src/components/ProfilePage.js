@@ -36,7 +36,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       const token = localStorage.getItem('token');
       console.log('Fetching with token:', token);
       
-      const response = await fetch('http://localhost:3000/api/locations?profile=true', {
+      const response = await fetch(`${API_URL}/api/locations?profile=true`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -47,6 +47,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       }
 
       const data = await response.json();
+      console.log('Raw location data:', JSON.stringify(data[0], null, 2));
       console.log('Fetched locations:', data);
       
       const transformedData = data.map(location => ({
@@ -352,6 +353,123 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     </div>
   );
 
+  const LocationCard = ({ location }) => {
+    console.log("LocationCard props:", location);
+    return (
+      <div style={{
+        backgroundColor: 'white',
+        padding: '15px',
+        borderRadius: '8px',
+        marginBottom: '15px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '10px'
+        }}>
+          <div>
+            <p style={{ 
+              fontSize: '16px', 
+              fontWeight: 'bold',
+              marginBottom: '4px',
+              marginTop: 0
+            }}>
+              Location Details
+            </p>
+            <p style={{ 
+              fontSize: '14px',
+              margin: '0 0 8px 0' 
+            }}>
+              {location.content.text}
+            </p>
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: '4px'
+          }}>
+            <div style={{
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            }}>
+              {location.totalPoints !== undefined ? location.totalPoints : 0} pts
+            </div>
+            {location.verificationStatus === 'verified' && (
+              <div style={{
+                backgroundColor: '#2196F3',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                fontSize: '12px'
+              }}>
+                ✓ Verified
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          marginBottom: '10px'
+        }}>
+          <span style={{ fontSize: '14px', color: '#666' }}>
+            👍 {location.upvotes || 0}
+          </span>
+          <span style={{ fontSize: '14px', color: '#666' }}>
+            👎 {location.downvotes || 0}
+          </span>
+        </div>
+
+        {location.content.mediaUrls && location.content.mediaUrls.length > 0 && (
+          <div style={{ marginTop: '10px' }}>
+            {location.content.mediaUrls.map((url, index) => {
+              const mediaType = location.content.mediaTypes[index];
+              if (mediaType?.startsWith('video/')) {
+                return (
+                  <video
+                    key={index}
+                    controls
+                    style={{
+                      width: '100%',
+                      maxHeight: '200px',
+                      marginBottom: '10px'
+                    }}
+                  >
+                    <source src={`${API_URL}/${url}`} type={mediaType} />
+                    Your browser does not support the video tag.
+                  </video>
+                );
+              } else {
+                return (
+                  <img
+                    key={index}
+                    src={`${API_URL}/${url}`}
+                    alt="Location media"
+                    style={{
+                      width: '100%',
+                      maxHeight: '200px',
+                      objectFit: 'cover',
+                      marginBottom: '10px',
+                      borderRadius: '4px'
+                    }}
+                  />
+                );
+              }
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (!user) {
     return <div>Please log in to view your profile.</div>;
   }
@@ -553,6 +671,23 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 margin: '0 auto'
               }}
             >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginBottom: '8px'
+              }}>
+                <div style={{
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}>
+                  {location.totalPoints || 0} pts
+                </div>
+              </div>
+
               {location.creator._id !== userData?._id && (
                 <div style={{ 
                   fontSize: '12px', 

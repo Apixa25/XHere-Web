@@ -8,30 +8,12 @@ const User = require('../models/User');
 router.post('/:locationId/vote', authenticateToken, async (req, res) => {
   try {
     const { locationId } = req.params;
-    const { voteType } = req.body; // 'upvote' or 'downvote'
+    const { voteType } = req.body;
     const userId = req.user.userId;
 
     const location = await Location.findByPk(locationId);
     if (!location) {
       return res.status(404).json({ error: 'Location not found' });
-    }
-
-    // Award points to the voter
-    const voter = await User.findByPk(userId);
-    if (voter) {
-      voter.points += 1; // Point for voting
-      await voter.save();
-    }
-
-    // Handle points for location creator based on vote type
-    const locationCreator = await User.findByPk(location.creatorId);
-    if (locationCreator) {
-      if (voteType === 'upvote') {
-        locationCreator.points += 1; // Point for receiving an upvote
-      } else if (voteType === 'downvote') {
-        locationCreator.points = Math.max(0, locationCreator.points - 1); // Subtract point for downvote, but don't go below 0
-      }
-      await locationCreator.save();
     }
 
     // Check if user has already voted
@@ -44,38 +26,33 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       }
       // Remove old vote
       location[existingVote.voteType + 's'] -= 1;
+      // Adjust points
+      location.totalPoints -= (existingVote.voteType === 'upvote' ? 5 : -2);
     }
 
     // Add new vote
     location[voteType + 's'] += 1;
+    
+    // Update points
+    location.totalPoints += (voteType === 'upvote' ? 5 : -2);
     
     // Update voters array
     const updatedVoters = voters.filter(v => v.userId !== userId);
     updatedVoters.push({ userId, voteType });
     location.voters = updatedVoters;
 
-    // Check for verification status
-    const netVotes = location.upvotes - location.downvotes;
-    if (netVotes >= 10 && location.verificationStatus !== 'verified') {
-      location.verificationStatus = 'verified';
-      
-      // Award points to location creator
-      const creator = await User.findByPk(location.creatorId);
-      if (creator) {
-        creator.points += 50; // Points for getting location verified
-        creator.reputation += 10;
-        await creator.save();
-      }
-    }
-
     await location.save();
+
+    console.log("Updated location points:", location.totalPoints);
 
     res.json({ 
       message: 'Vote recorded successfully',
       location: {
+        id: location.id,
         upvotes: location.upvotes,
         downvotes: location.downvotes,
-        verificationStatus: location.verificationStatus
+        verificationStatus: location.verificationStatus,
+        totalPoints: location.totalPoints
       }
     });
   } catch (error) {
