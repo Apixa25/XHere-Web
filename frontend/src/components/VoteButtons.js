@@ -8,6 +8,7 @@ const VoteButtons = ({ location, onVoteUpdate }) => {
     try {
       setIsVoting(true);
       const response = await api.voteLocation(location.id, voteType);
+      console.log('Vote response:', response);
       onVoteUpdate(response.location);
     } catch (error) {
       console.error('Error voting:', error);

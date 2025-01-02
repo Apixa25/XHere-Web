@@ -386,9 +386,17 @@ function App() {
   };
 
   const handleVoteUpdate = async (updatedLocation) => {
-    setLocationData(locationData.map(loc => 
+    // Update the location in locationData
+    setLocationData(prevLocations => prevLocations.map(loc => 
       loc.id === updatedLocation.id ? { ...loc, ...updatedLocation } : loc
     ));
+
+    // Update the selectedMarker if it's the same location
+    setSelectedMarker(prevMarker => 
+      prevMarker?.id === updatedLocation.id 
+        ? { ...prevMarker, ...updatedLocation }
+        : prevMarker
+    );
 
     // Check for new badges
     try {
