@@ -656,7 +656,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         }}>
           {userLocations.map(location => (
             <div
-              key={location._id}
+              key={location.id}
               style={{
                 width: '275px',
                 height: '275px',
@@ -684,7 +684,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                   fontSize: '12px',
                   fontWeight: 'bold'
                 }}>
-                  {location.totalPoints || 0} pts
+                  {location.upvotes - location.downvotes} pts
                 </div>
               </div>
 
