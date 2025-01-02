@@ -15,10 +15,10 @@ async function initializeDatabase() {
       as: 'locations'
     });
 
-    // Sync database
+    // Sync database with new fields
     await sequelize.sync({ alter: true });
     
-    console.log('Database synchronized successfully');
+    console.log('Database synchronized successfully with new gamification fields');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;

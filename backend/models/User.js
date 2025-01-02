@@ -23,6 +23,18 @@ const User = sequelize.define('User', {
     type: DataTypes.JSONB,
     defaultValue: {}
   },
+  points: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  reputation: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  badges: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   isAdmin: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
