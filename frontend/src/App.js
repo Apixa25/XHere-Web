@@ -161,7 +161,7 @@ function LocationInfoWindow({
               fontSize: '12px',
               fontWeight: 'bold'
             }}>
-              {selectedMarker.totalPoints || 0} pts
+              {selectedMarker.upvotes - selectedMarker.downvotes} pts
             </div>
           </div>
 
