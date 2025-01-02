@@ -6,6 +6,7 @@ import LocationDetails from './LocationDetails';
 import api from '../services/api';
 
 const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
+  const [userData, setUserData] = useState(null);
   const [userLocations, setUserLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,7 +15,18 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [mediaToDelete, setMediaToDelete] = useState([]);
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
-  const [userData, setUserData] = useState(user);
+
+  const fetchUserData = async () => {
+    try {
+      const response = await api.getUserProfile(user.id);
+      setUserData({
+        ...response.user,
+        isAdmin: user.isAdmin
+      });
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
   const fetchUserLocations = async () => {
     try {
@@ -88,6 +100,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
   useEffect(() => {
     if (user) {
+      setUserData({ ...user });
+      fetchUserData();
       fetchUserLocations();
     } else {
       setLoading(false);
@@ -319,19 +333,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     }
   };
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await api.getUserProfile(user.id);
-        setUserData(response.user);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-
-    fetchUserData();
-  }, [user.id]);
-
   const renderAuthForm = () => (
     <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px' }}>
       <h2>{isRegistering ? 'Register' : 'Login'}</h2>
@@ -480,8 +481,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             gap: '10px'
           }}>
             Welcome, {userData?.profile?.name || userData?.name || 'User'}
-            {console.log('Rendering admin badge, isAdmin:', userData?.isAdmin)}
-            {userData?.isAdmin === true && (
+            {user?.isAdmin === true && (
               <span style={{
                 backgroundColor: '#FF4081',
                 color: 'white',
@@ -553,7 +553,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 margin: '0 auto'
               }}
             >
-              {location.creator._id !== userData._id && (
+              {location.creator._id !== userData?._id && (
                 <div style={{ 
                   fontSize: '12px', 
                   color: '#666', 
