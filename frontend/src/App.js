@@ -136,26 +136,45 @@ function LocationInfoWindow({
         onCloseClick={() => onClose('marker')}
       >
         <div>
-          {console.log('Marker data:', selectedMarker)}
-          <p style={{ 
-            fontSize: '14px', 
-            color: '#666', 
-            marginBottom: '8px',
-            fontStyle: 'italic'
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '10px'
           }}>
-            {selectedMarker.content.isAnonymous === true ? 
-              'Posted anonymously' : 
-              `Posted by: ${selectedMarker.creator?.profile?.name || 'Unknown User'}`
-            }
-          </p>
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#666',
+              fontStyle: 'italic',
+              margin: 0
+            }}>
+              {selectedMarker.content.isAnonymous === true ? 
+                'Posted anonymously' : 
+                `Posted by: ${selectedMarker.creator?.profile?.name || 'Unknown User'}`
+              }
+            </p>
+            <div style={{
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            }}>
+              {selectedMarker.totalPoints || 0} pts
+            </div>
+          </div>
+
           <p style={{ 
             fontSize: '14px',
             marginBottom: '10px' 
           }}>{selectedMarker.content.text}</p>
+          
           <VoteButtons 
             location={selectedMarker}
             onVoteUpdate={handleVoteUpdate}
           />
+          
           {selectedMarker.content.mediaUrls && selectedMarker.content.mediaUrls.length > 0 && (
             <div style={{ marginTop: '10px' }}>
               {selectedMarker.content.mediaUrls.map((url, index) => {

@@ -31,6 +31,7 @@ router.get('/', authenticateToken, async (req, res) => {
     // For map page requests, no filtering - everyone sees all locations
 
     const locations = await Location.findAll(query);
+    console.log("Location from DB:", JSON.stringify(locations[0], null, 2));
     res.json(locations);
   } catch (error) {
     console.error('Error fetching locations:', error);

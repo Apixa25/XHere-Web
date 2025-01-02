@@ -43,6 +43,16 @@ const Location = sequelize.define('Location', {
   voters: {
     type: DataTypes.JSONB,
     defaultValue: [] // Will store user IDs who have voted
+  },
+  totalPoints: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
+  },
+  pointsHistory: {
+    type: DataTypes.JSONB,
+    defaultValue: [],  // Will store point transactions
+    allowNull: false
   }
 });
 
