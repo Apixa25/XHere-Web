@@ -4,7 +4,10 @@ const { authenticateToken } = require('../middleware/auth');
 const Location = require('../models/Location');
 const User = require('../models/User');
 
-// Vote on a location
+// Define these constants ONCE at the top
+const VERIFICATION_THRESHOLD = 5;
+const PENDING_THRESHOLD = 2;
+
 router.post('/:locationId/vote', authenticateToken, async (req, res) => {
   try {
     const { locationId } = req.params;
@@ -22,28 +25,54 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
 
     if (existingVote) {
       if (existingVote.voteType === voteType) {
-        return res.status(400).json({ error: 'You have already voted' });
+        // User is trying to vote the same way twice - remove their vote entirely
+        location[voteType + 's'] -= 1;
+        location.totalPoints -= (voteType === 'upvote' ? 1 : -1);
+        location.voters = voters.filter(v => v.userId !== userId);
+      } else {
+        // User is switching their vote
+        // First remove old vote
+        location[existingVote.voteType + 's'] -= 1;
+        // Then add new vote
+        location[voteType + 's'] += 1;
+        // Update total points (switching from up to down = -2, down to up = +2)
+        location.totalPoints += (voteType === 'upvote' ? 2 : -2);
+        // Update voter's vote type
+        location.voters = voters.map(v => 
+          v.userId === userId ? { ...v, voteType } : v
+        );
       }
-      // Remove old vote
-      location[existingVote.voteType + 's'] -= 1;
-      // Adjust points
-      location.totalPoints -= (existingVote.voteType === 'upvote' ? 5 : -2);
+    } else {
+      // New vote
+      location[voteType + 's'] += 1;
+      location.totalPoints += (voteType === 'upvote' ? 1 : -1);
+      location.voters.push({ userId, voteType });
     }
 
-    // Add new vote
-    location[voteType + 's'] += 1;
-    
-    // Update points
-    location.totalPoints += (voteType === 'upvote' ? 5 : -2);
-    
-    // Update voters array
-    const updatedVoters = voters.filter(v => v.userId !== userId);
-    updatedVoters.push({ userId, voteType });
-    location.voters = updatedVoters;
+    // Calculate net votes (upvotes - downvotes)
+    const netVotes = location.upvotes - location.downvotes;
+
+    // Update verification status based on net votes
+    if (netVotes >= VERIFICATION_THRESHOLD) {
+      location.verificationStatus = 'verified';
+    } else if (netVotes >= PENDING_THRESHOLD) {
+      location.verificationStatus = 'pending';
+    } else {
+      location.verificationStatus = 'unverified';
+    }
 
     await location.save();
 
-    console.log("Updated location points:", location.totalPoints);
+    console.log('Vote update:', {
+      locationId,
+      userId,
+      voteType,
+      upvotes: location.upvotes,
+      downvotes: location.downvotes,
+      netVotes,
+      verificationStatus: location.verificationStatus,
+      voters: location.voters
+    });
 
     res.json({ 
       message: 'Vote recorded successfully',
