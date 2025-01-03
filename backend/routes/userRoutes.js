@@ -249,15 +249,30 @@ router.get('/me', authenticateToken, async (req, res) => {
 
 router.get('/profile/:userId', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByPk(req.params.userId, {
-      attributes: ['id', 'email', 'points', 'reputation', 'badges', 'profile'],
+    const user = await User.findByPk(req.params.userId);
+    const locations = await Location.findAll({
+      where: { creatorId: req.params.userId }
     });
+    
+    // Calculate total points from all user locations
+    const totalPoints = locations.reduce((sum, location) => 
+      sum + (location.upvotes - location.downvotes), 0
+    );
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user });
+    // Update user's points in database
+    user.points = totalPoints;
+    await user.save();
+
+    res.json({ 
+      user: {
+        ...user.toJSON(),
+        points: totalPoints
+      }
+    });
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Error fetching user profile' });

@@ -61,12 +61,23 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       }));
       
       setUserLocations(transformedData);
+      const totalPoints = calculateTotalPoints(transformedData);
+      setUserData(prevData => ({
+        ...prevData,
+        points: totalPoints
+      }));
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user locations:', error);
       setError('Failed to fetch locations');
       setLoading(false);
     }
+  };
+
+  const calculateTotalPoints = (locations) => {
+    return locations.reduce((total, location) => {
+      return total + (location.upvotes - location.downvotes);
+    }, 0);
   };
 
   const handleDeleteLocation = async (locationId) => {
@@ -515,19 +526,48 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ 
+    <div style={{
+      padding: '20px',
+      maxWidth: '800px',
+      margin: '0 auto'
+    }}>
+      <div style={{
         backgroundColor: '#f5f5f5',
         padding: '20px',
         borderRadius: '8px',
         marginBottom: '20px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h2 style={{ margin: '0' }}>
+          Welcome, {userData?.name || 'User'}
+        </h2>
+        <button
+          onClick={() => navigate('/')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Back to Map
+        </button>
+      </div>
+
+      <div style={{
+        backgroundColor: '#f5f5f5',
+        padding: '20px',
+        borderRadius: '8px',
+        marginBottom: '20px'
       }}>
         <div className="user-stats" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '20px',
-          marginBottom: '20px'
+          gap: '20px'
         }}>
           <div className="stat-card" style={{
             backgroundColor: 'white',
@@ -536,7 +576,15 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             textAlign: 'center'
           }}>
             <h3 style={{ color: '#2196F3', marginBottom: '5px' }}>Points</h3>
-            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{userData?.points || 0}</p>
+            <p style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>{userData?.points || 0}</p>
+            <p style={{ 
+              fontSize: '12px', 
+              color: '#666',
+              margin: '0',
+              fontStyle: 'italic'
+            }}>
+              Total upvotes minus downvotes across all your locations
+            </p>
           </div>
           
           <div className="stat-card" style={{
@@ -546,97 +594,51 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             textAlign: 'center'
           }}>
             <h3 style={{ color: '#4CAF50', marginBottom: '5px' }}>Reputation</h3>
-            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{userData?.reputation || 0}</p>
-          </div>
-        </div>
-
-        <div className="badges-section" style={{ marginTop: '20px' }}>
-          <h3 style={{ marginBottom: '15px' }}>Badges</h3>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '10px'
-          }}>
-            {(userData?.badges || []).map((badge, index) => (
-              <div key={index} style={{
-                backgroundColor: 'white',
-                padding: '8px 15px',
-                borderRadius: '20px',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}>
-                <span style={{ color: badge.color || '#666' }}>🏆</span>
-                {badge.name}
-              </div>
-            ))}
-            {(!userData?.badges || userData?.badges.length === 0) && (
-              <p style={{ color: '#666', fontStyle: 'italic' }}>
-                No badges earned yet. Keep contributing to earn badges!
-              </p>
-            )}
+            <p style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>{userData?.reputation || 0}</p>
+            <p style={{ 
+              fontSize: '12px', 
+              color: '#666',
+              margin: '0',
+              fontStyle: 'italic'
+            }}>
+              Earned by having your locations verified as accurate
+            </p>
           </div>
         </div>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '20px',
+      <div style={{
         backgroundColor: '#f5f5f5',
         padding: '20px',
         borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        marginBottom: '20px'
       }}>
-        <div>
-          <h2 style={{ 
-            marginBottom: '8px',
-            color: '#333',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            Welcome, {userData?.profile?.name || userData?.name || 'User'}
-            {user?.isAdmin === true && (
-              <span style={{
-                backgroundColor: '#FF4081',
-                color: 'white',
-                padding: '4px 8px',
-                borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                height: '20px'
-              }}>
-                Admin
-              </span>
-            )}
-          </h2>
-          <p style={{ 
-            color: '#666',
-            fontSize: '14px'
-          }}>
-            {userData?.email}
-          </p>
+        <h3 style={{ marginBottom: '15px' }}>Badges</h3>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          {(userData?.badges || []).map((badge, index) => (
+            <div key={index} style={{
+              backgroundColor: 'white',
+              padding: '8px 15px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <span style={{ color: badge.color || '#666' }}>🏆</span>
+              {badge.name}
+            </div>
+          ))}
+          {(!userData?.badges || userData?.badges.length === 0) && (
+            <p style={{ color: '#666', fontStyle: 'italic' }}>
+              No badges earned yet. Keep contributing to earn badges!
+            </p>
+          )}
         </div>
-        <Link to="/">
-          <button style={{
-            padding: '8px 16px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s'
-          }}>
-            Back to Map
-          </button>
-        </Link>
       </div>
 
       <h3>{userData?.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
