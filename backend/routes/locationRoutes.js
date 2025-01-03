@@ -49,6 +49,7 @@ router.get('/', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
   try {
     console.log('Received location data:', req.body);
+    console.log('Received files:', req.files);
     
     const { 
       latitude, 
@@ -77,19 +78,25 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
           deleteAt.setDate(deleteAt.getDate() + time);
           break;
       }
-      console.log('Calculated deleteAt:', deleteAt);
     }
+
+    // Create the content object with media information
+    const content = {
+      text: text || '',
+      mediaUrls: req.files ? req.files.map(file => file.path) : [],
+      mediaTypes: req.files ? req.files.map(file => file.mimetype) : [],
+      isAnonymous: isAnonymous === 'true'
+    };
 
     const location = await Location.create({
       location: {
         type: 'Point',
         coordinates: [parseFloat(longitude), parseFloat(latitude)]
       },
-      text,
-      isAnonymous: isAnonymous === 'true',
+      content,
+      creatorId: req.user.userId,
       autoDelete: autoDelete === 'true',
-      deleteAt,
-      creatorId: req.user.userId
+      deleteAt
     });
 
     console.log('Created location:', location);

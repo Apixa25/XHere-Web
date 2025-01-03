@@ -3,11 +3,19 @@ import React from 'react';
 const LocationDetails = ({ location }) => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
+  console.log('LocationDetails - received location:', location);
+  console.log('LocationDetails - media URLs:', location?.content?.mediaUrls);
+  console.log('LocationDetails - media types:', location?.content?.mediaTypes);
+
   return (
     <div>
       <p>{location.content.text}</p>
       {location.content.mediaUrls && location.content.mediaUrls.map((url, index) => {
-        const mediaType = location.content.mediaTypes[index];
+        const mediaType = location.content.mediaTypes?.[index];
+        const fullUrl = url.startsWith('http') ? url : `${API_URL}/${url}`;
+        
+        console.log('Attempting to render media:', { url: fullUrl, type: mediaType });
+
         if (mediaType?.startsWith('video/')) {
           return (
             <video
