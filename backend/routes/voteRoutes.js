@@ -21,21 +21,21 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    // Ensure voters array exists
-    location.voters = location.voters || [];
+    // Ensure voters is an array
+    if (!Array.isArray(location.voters)) {
+      location.voters = [];
+    }
 
-    // Log current state
-    console.log('Current location state:', {
-      upvotes: location.upvotes,
-      downvotes: location.downvotes,
-      voters: location.voters
-    });
+    console.log('Current voters:', location.voters);
 
     // Check if user has already voted
-    const existingVote = location.voters.find(v => v.userId === userId);
-    console.log('Existing vote:', existingVote);
+    const existingVoteIndex = location.voters.findIndex(v => v.userId === userId);
+    console.log('Existing vote index:', existingVoteIndex);
 
-    if (existingVote) {
+    if (existingVoteIndex !== -1) {
+      const existingVote = location.voters[existingVoteIndex];
+      console.log('Existing vote found:', existingVote);
+
       // If trying to vote the same way, reject
       if (existingVote.voteType === voteType) {
         console.log('Rejecting duplicate vote');
@@ -49,20 +49,34 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       console.log('Changing vote from', existingVote.voteType, 'to', voteType);
       
       // Remove old vote
-      location[existingVote.voteType + 's'] = Math.max(0, location[existingVote.voteType + 's'] - 1);
+      if (existingVote.voteType === 'upvote') {
+        location.upvotes = Math.max(0, location.upvotes - 1);
+      } else {
+        location.downvotes = Math.max(0, location.downvotes - 1);
+      }
       
       // Add new vote
-      location[voteType + 's'] = (location[voteType + 's'] || 0) + 1;
+      if (voteType === 'upvote') {
+        location.upvotes += 1;
+      } else {
+        location.downvotes += 1;
+      }
       
-      // Update vote type in voters array
-      const voterIndex = location.voters.findIndex(v => v.userId === userId);
-      location.voters[voterIndex] = { userId, voteType };
+      // Update vote in voters array
+      location.voters[existingVoteIndex] = { userId, voteType };
     } else {
       // New vote
       console.log('Recording new vote');
-      location[voteType + 's'] = (location[voteType + 's'] || 0) + 1;
+      if (voteType === 'upvote') {
+        location.upvotes = (location.upvotes || 0) + 1;
+      } else {
+        location.downvotes = (location.downvotes || 0) + 1;
+      }
       location.voters.push({ userId, voteType });
     }
+
+    // Force the voters array to be marked as changed
+    location.changed('voters', true);
 
     // Recalculate total points
     location.totalPoints = location.upvotes - location.downvotes;
@@ -77,6 +91,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       location.verificationStatus = 'unverified';
     }
 
+    console.log('Saving location with voters:', location.voters);
     await location.save();
 
     console.log('Updated location state:', {
