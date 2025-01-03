@@ -1,79 +1,93 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
 const VoteButtons = ({ location, onVoteUpdate }) => {
   const [isVoting, setIsVoting] = useState(false);
+  const [userVoteType, setUserVoteType] = useState(null);
+  const [error, setError] = useState(null);
   
-  const VERIFICATION_THRESHOLD = 5;
-  const PENDING_THRESHOLD = 2;
+  // Check user's current vote on component mount and when location updates
+  useEffect(() => {
+    const checkUserVote = () => {
+      if (location?.voters) {
+        const userId = JSON.parse(localStorage.getItem('user'))?.userId;
+        const existingVote = location.voters.find(v => v.userId === userId);
+        console.log('Current user vote:', existingVote);
+        setUserVoteType(existingVote ? existingVote.voteType : null);
+      }
+    };
 
-  const getVerificationProgress = () => {
-    const points = location.totalPoints || 0;
-    if (points >= VERIFICATION_THRESHOLD) return null;
-    
-    const nextThreshold = points < PENDING_THRESHOLD ? PENDING_THRESHOLD : VERIFICATION_THRESHOLD;
-    const pointsNeeded = nextThreshold - points;
-    
-    return (
-      <span style={{
-        fontSize: '12px',
-        color: '#666',
-        marginLeft: '10px'
-      }}>
-        {points < PENDING_THRESHOLD 
-          ? `${pointsNeeded} points until pending` 
-          : `${pointsNeeded} points until verified`}
-      </span>
-    );
-  };
+    checkUserVote();
+  }, [location]);
 
   const handleVote = async (voteType) => {
+    if (isVoting) return;
+    
     try {
       setIsVoting(true);
+      setError(null);
+      
+      console.log('Attempting to vote:', voteType);
+      console.log('Current user vote:', userVoteType);
+      
       const response = await api.voteLocation(location.id, voteType);
+      
+      if (response.error) {
+        console.error('Vote error:', response.error);
+        setError(response.error);
+        return;
+      }
+      
       console.log('Vote response:', response);
       onVoteUpdate(response.location);
+      setUserVoteType(voteType);
     } catch (error) {
-      console.error('Error voting:', error);
-      alert(error.message || 'Error recording vote');
+      console.error('Vote error:', error);
+      setError(error.message || 'Error voting');
     } finally {
       setIsVoting(false);
     }
   };
 
+  // Determine if buttons should be disabled
+  const upvoteDisabled = isVoting || userVoteType === 'upvote';
+  const downvoteDisabled = isVoting || userVoteType === 'downvote';
+
   return (
     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
       <button
         onClick={() => handleVote('upvote')}
-        disabled={isVoting}
+        disabled={upvoteDisabled}
         style={{
           padding: '5px 10px',
-          backgroundColor: '#4CAF50',
+          backgroundColor: userVoteType === 'upvote' ? '#45a049' : '#4CAF50',
           color: 'white',
           border: 'none',
           borderRadius: '4px',
-          cursor: isVoting ? 'default' : 'pointer',
-          opacity: isVoting ? 0.7 : 1
+          cursor: upvoteDisabled ? 'not-allowed' : 'pointer',
+          opacity: upvoteDisabled ? 0.7 : 1
         }}
       >
         👍 {location.upvotes || 0}
       </button>
       <button
         onClick={() => handleVote('downvote')}
-        disabled={isVoting}
+        disabled={downvoteDisabled}
         style={{
           padding: '5px 10px',
-          backgroundColor: '#f44336',
+          backgroundColor: userVoteType === 'downvote' ? '#d32f2f' : '#f44336',
           color: 'white',
           border: 'none',
           borderRadius: '4px',
-          cursor: isVoting ? 'default' : 'pointer',
-          opacity: isVoting ? 0.7 : 1
+          cursor: downvoteDisabled ? 'not-allowed' : 'pointer',
+          opacity: downvoteDisabled ? 0.7 : 1
         }}
       >
         👎 {location.downvotes || 0}
       </button>
-      {getVerificationProgress()}
+      {error && (
+        <span style={{ color: 'red', fontSize: '12px' }}>{error}</span>
+      )}
     </div>
   );
 };
