@@ -142,17 +142,27 @@ function LocationInfoWindow({
             alignItems: 'center',
             marginBottom: '10px'
           }}>
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#666',
-              fontStyle: 'italic',
-              margin: 0
-            }}>
-              {selectedMarker.content.isAnonymous === true ? 
-                'Posted anonymously' : 
-                `Posted by: ${selectedMarker.creator?.profile?.name || 'Unknown User'}`
-              }
-            </p>
+            <div>
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#666',
+                fontStyle: 'italic',
+                margin: 0
+              }}>
+                {selectedMarker.content.isAnonymous === true ? 
+                  'Posted anonymously' : 
+                  `Posted by: ${selectedMarker.creator?.profile?.name || 'Unknown User'}`
+                }
+              </p>
+              <p style={{ 
+                fontSize: '12px', 
+                color: '#666',
+                margin: '0',
+                marginTop: '2px'
+              }}>
+                {new Date(selectedMarker.createdAt).toLocaleDateString()}
+              </p>
+            </div>
             <div style={{
               backgroundColor: '#4CAF50',
               color: 'white',
