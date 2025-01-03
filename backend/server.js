@@ -11,6 +11,7 @@ const sequelize = require('./config/database');
 const initializeDatabase = require('./config/init-db');
 const { authenticateToken } = require('./middleware/auth');
 const fs = require('fs');
+const { scheduleCleanup } = require('./scripts/cleanupExpiredLocations');
 
 // Import models
 const User = require('./models/User');
@@ -110,3 +111,10 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+try {
+  scheduleCleanup();
+  console.log('Cleanup scheduler initialized');
+} catch (error) {
+  console.error('Failed to initialize cleanup scheduler:', error);
+}

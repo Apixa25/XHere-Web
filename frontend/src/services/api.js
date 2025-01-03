@@ -46,30 +46,30 @@ const api = {
     return data;
   },
   
-  addLocation: async (locationData) => {
+  addLocation: async (formData) => {
     const token = localStorage.getItem('token');
-    const formData = new FormData();
     
-    // Append location data
-    formData.append('latitude', locationData.latitude);
-    formData.append('longitude', locationData.longitude);
-    formData.append('text', locationData.text || '');
-    formData.append('isAnonymous', locationData.isAnonymous || false);
-
-    if (locationData.media) {
-      locationData.media.forEach(file => {
-        formData.append('media', file);
-      });
+    // Log the FormData contents before sending
+    console.log('Sending FormData contents:');
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
     }
 
     const response = await fetch(`${API_URL}/api/locations`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
+        // Remove Content-Type header to let browser set it with boundary for FormData
       },
       body: formData
     });
-    return handleResponse(response);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create location');
+    }
+
+    return response.json();
   },
 
   updateLocation: async (id, updateData) => {
