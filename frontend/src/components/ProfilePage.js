@@ -661,16 +661,18 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
               key={location.id}
               style={{
                 width: '275px',
-                height: '275px',
+                minHeight: '275px',
+                maxHeight: editingLocation?._id === location._id ? 'none' : '275px',
                 padding: '15px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
                 backgroundColor: 'white',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden',
+                overflow: 'visible',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                margin: '0 auto'
+                margin: '0 auto',
+                position: 'relative'
               }}
             >
               <div style={{
@@ -702,7 +704,20 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
               
               {editingLocation?._id === location._id ? (
                 // Edit mode
-                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: '10px',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  zIndex: 1
+                }}>
                   <textarea
                     value={editForm.text}
                     onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
