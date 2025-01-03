@@ -19,9 +19,12 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const fetchUserData = async () => {
     try {
       const response = await api.getUserProfile(user.id);
+      console.log('User profile response:', response);
       setUserData({
         ...response.user,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
+        name: response.user.profile?.name || response.user.email,
+        profile: response.user.profile || {}
       });
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -571,7 +574,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         alignItems: 'center'
       }}>
         <h2 style={{ margin: '0' }}>
-          Welcome, {userData?.name || 'User'}
+          Welcome, {userData?.profile?.name || userData?.email || 'User'}
         </h2>
         <button
           onClick={() => navigate('/')}
