@@ -60,7 +60,13 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           _id: location.creator.id,
           email: location.creator.email,
           profile: location.creator.profile
-        } : null
+        } : null,
+        content: {
+          ...location.content,
+          mediaTypes: location.content?.mediaTypes || [],
+          mediaUrls: location.content?.mediaUrls || [],
+          text: location.content?.text || ''
+        }
       }));
       
       setUserLocations(transformedData);
@@ -514,6 +520,45 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     );
   };
 
+  const renderLocationMedia = (location) => {
+    return location.content?.mediaUrls?.map((url, index) => {
+      const mediaType = location.content?.mediaTypes?.[index] || 'image/jpeg';
+      
+      if (mediaType?.startsWith('video/')) {
+        return (
+          <video
+            key={index}
+            controls
+            style={{
+              width: '100%',
+              maxHeight: '200px',
+              marginBottom: '10px'
+            }}
+          >
+            <source src={`${API_URL}/${url}`} type={mediaType} />
+            Your browser does not support the video tag.
+          </video>
+        );
+      } else {
+        return (
+          <img 
+            key={index}
+            src={`${API_URL}/${url}`}
+            alt={`Location media ${index + 1}`}
+            style={{
+              width: '100%',
+              maxHeight: '200px',
+              objectFit: 'cover',
+              marginBottom: '10px',
+              borderRadius: '4px'
+            }}
+            onError={(e) => console.error('Image failed to load:', url)}
+          />
+        );
+      }
+    });
+  };
+
   if (!user) {
     return <div>Please log in to view your profile.</div>;
   }
@@ -888,40 +933,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                       marginBottom: '10px',
                       overflow: 'hidden'
                     }}>
-                      {location.content.mediaUrls?.map((url, index) => {
-                        const mediaType = location.content.mediaTypes[index];
-                        
-                        if (mediaType.startsWith('video/')) {
-                          return (
-                            <video
-                              key={index}
-                              controls
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                              }}
-                            >
-                              <source src={`http://localhost:3000/${url}`} type={mediaType} />
-                              Your browser does not support the video tag.
-                            </video>
-                          );
-                        } else {
-                          return (
-                            <img
-                              key={index}
-                              src={`http://localhost:3000/${url}`}
-                              alt="Location media"
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                borderRadius: '4px'
-                              }}
-                            />
-                          );
-                        }
-                      })}
+                      {renderLocationMedia(location)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
