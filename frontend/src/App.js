@@ -343,8 +343,25 @@ function LocationInfoWindow({
   return null;
 }
 
+// Add this helper function before your App component
+const getUserFromStorage = () => {
+  const token = localStorage.getItem('token');
+  const storedUser = localStorage.getItem('user');
+  
+  if (token && storedUser) {
+    try {
+      return JSON.parse(storedUser);
+    } catch (error) {
+      console.error('Error parsing stored user:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+  }
+  return null;
+};
+
 function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(getUserFromStorage());
   const [error, setError] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
@@ -384,6 +401,36 @@ function App() {
       fetchLocations();
     }
   }, [user]);
+
+  useEffect(() => {
+    const verifyToken = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const response = await fetch('http://localhost:3000/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Token verification failed');
+          }
+          
+          const userData = await response.json();
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        } catch (error) {
+          console.error('Token verification failed:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+        }
+      }
+    };
+
+    verifyToken();
+  }, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -444,7 +491,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user'); // Remove user data
+    localStorage.removeItem('user');
     setUser(null);
   };
 
