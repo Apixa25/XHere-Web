@@ -58,6 +58,14 @@ const Location = sequelize.define('Location', {
     type: DataTypes.JSONB,
     defaultValue: [],  // Will store point transactions
     allowNull: false
+  },
+  autoDelete: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  deleteAt: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 });
 

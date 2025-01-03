@@ -57,7 +57,8 @@ function LocationInfoWindow({
   user, 
   handleDeleteLocation,
   setSelectedMarker,
-  handleVoteUpdate
+  handleVoteUpdate,
+  submitting
 }) {
   const getStatusBadge = () => {
     switch(selectedMarker.verificationStatus) {
@@ -102,13 +103,18 @@ function LocationInfoWindow({
       >
         <form onSubmit={(e) => {
           e.preventDefault();
-          onSubmit({
+          const submissionData = {
             lat: selectedLocation.lat,
             lng: selectedLocation.lng,
             text: contentForm.text,
             media: contentForm.media,
-            isAnonymous: contentForm.isAnonymous
-          });
+            isAnonymous: contentForm.isAnonymous,
+            autoDelete: contentForm.autoDelete,
+            deleteTime: contentForm.deleteTime,
+            deleteUnit: contentForm.deleteUnit
+          };
+          console.log('Form submission data:', submissionData);
+          onSubmit(submissionData);
         }}>
           <textarea
             value={contentForm.text}
@@ -128,33 +134,81 @@ function LocationInfoWindow({
           />
           <div style={{ 
             display: 'flex', 
-            alignItems: 'center', 
+            flexDirection: 'column',
+            gap: '10px',
             marginBottom: '10px' 
           }}>
-            <input
-              type="checkbox"
-              id="anonymous"
-              checked={contentForm.isAnonymous}
-              onChange={e => setContentForm({ 
-                ...contentForm, 
-                isAnonymous: e.target.checked 
-              })}
-              style={{ marginRight: '8px' }}
-            />
-            <label htmlFor="anonymous" style={{ fontSize: '14px', color: '#666' }}>
-              Post anonymously
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                id="anonymous"
+                checked={contentForm.isAnonymous}
+                onChange={e => setContentForm({ 
+                  ...contentForm, 
+                  isAnonymous: e.target.checked 
+                })}
+                style={{ marginRight: '8px' }}
+              />
+              <label htmlFor="anonymous" style={{ fontSize: '14px', color: '#666' }}>
+                Post anonymously
+              </label>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                id="autoDelete"
+                checked={contentForm.autoDelete}
+                onChange={e => setContentForm({ 
+                  ...contentForm, 
+                  autoDelete: e.target.checked 
+                })}
+                style={{ marginRight: '8px' }}
+              />
+              <label htmlFor="autoDelete" style={{ fontSize: '14px', color: '#666' }}>
+                Auto-delete after
+              </label>
+              {contentForm.autoDelete && (
+                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '10px' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    value={contentForm.deleteTime}
+                    onChange={e => setContentForm({
+                      ...contentForm,
+                      deleteTime: parseInt(e.target.value) || 0
+                    })}
+                    style={{ 
+                      width: '60px',
+                      marginRight: '8px',
+                      padding: '4px'
+                    }}
+                  />
+                  <select
+                    value={contentForm.deleteUnit}
+                    onChange={e => setContentForm({
+                      ...contentForm,
+                      deleteUnit: e.target.value
+                    })}
+                    style={{ padding: '4px' }}
+                  >
+                    <option value="minutes">Minutes</option>
+                    <option value="hours">Hours</option>
+                    <option value="days">Days</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-          <button type="submit" style={{
-            padding: '8px 16px',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            width: '100%'
-          }}>
-            Save Location
+          <button 
+            type="submit" 
+            disabled={submitting}
+            style={{
+              opacity: submitting ? 0.7 : 1,
+              cursor: submitting ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {submitting ? 'Submitting...' : 'Submit'}
           </button>
         </form>
       </InfoWindow>
@@ -290,54 +344,21 @@ function LocationInfoWindow({
 }
 
 function App() {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      console.log('Loading saved user:', parsedUser); // Debug log
-      return parsedUser;
-    }
-    return null;
+  const [user, setUser] = useState(null);
+  const [error, setError] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [locationData, setLocationData] = useState([]);
+  const [routerPath, setRouterPath] = useState('/');
+  const [submitting, setSubmitting] = useState(false);
+  const [contentForm, setContentForm] = useState({
+    text: '',
+    media: [],
+    isAnonymous: false,
+    autoDelete: false,
+    deleteTime: 0,
+    deleteUnit: 'minutes'
   });
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          // Fetch fresh user data from the server
-          const response = await fetch(`${API_URL}/api/users/me`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            console.log('Fresh user data loaded:', userData); // Debug log
-            
-            // Update localStorage with fresh data
-            localStorage.setItem('user', JSON.stringify(userData));
-            setUser(userData);
-          } else {
-            console.error('Failed to load user data');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setUser(null);
-          }
-        } catch (error) {
-          console.error('Error loading user:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setUser(null);
-        }
-      }
-    };
-
-    loadUser();
-  }, []);
-
-  console.log('Google Client ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID);
 
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
@@ -345,19 +366,10 @@ function App() {
     password: '',
     name: ''
   });
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [locationData, setLocationData] = useState([]);
-  const [contentForm, setContentForm] = useState({
-    text: '',
-    media: [],
-    isAnonymous: false
-  });
-  const [selectedMarker, setSelectedMarker] = useState(null);
   const [map, setMap] = useState(null);
   const [center, setCenter] = useState(defaultCenter);
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapsError, setMapsError] = useState(null);
-  const [error, setError] = useState(null);
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [newBadges, setNewBadges] = useState([]);
 
@@ -484,71 +496,60 @@ function App() {
     setSelectedLocation(null); // Close any new location form
   };
 
-  const handleLocationSubmit = async (data) => {
+  const handleLocationSubmit = async (locationData) => {
+    setSubmitting(true);
+    
     try {
-      console.log('Submitting location with data:', data);
-      
+      console.log('Handling location submit with data:', locationData);
+
       const formData = new FormData();
-      formData.append('latitude', data.lat);
-      formData.append('longitude', data.lng);
-      formData.append('text', data.text || '');
-      formData.append('isAnonymous', data.isAnonymous || false);
       
-      if (data.media && data.media.length > 0) {
-        data.media.forEach(file => {
+      // Convert values to strings and ensure they're not undefined
+      formData.append('latitude', String(locationData.lat));
+      formData.append('longitude', String(locationData.lng));
+      formData.append('text', String(locationData.text || ''));
+      formData.append('isAnonymous', String(locationData.isAnonymous || false));
+      formData.append('autoDelete', String(locationData.autoDelete || false));
+      
+      if (locationData.autoDelete) {
+        formData.append('deleteTime', String(locationData.deleteTime || 0));
+        formData.append('deleteUnit', String(locationData.deleteUnit || 'minutes'));
+      }
+
+      // Debug log
+      console.log('FormData contents before sending:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+
+      // Handle media files if present
+      if (locationData.media && locationData.media.length > 0) {
+        locationData.media.forEach(file => {
           formData.append('media', file);
         });
       }
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/locations`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create location');
-      }
-
-      const newLocation = await response.json();
-      console.log('Location created successfully:', newLocation);
+      const response = await api.addLocation(formData);
+      console.log('Location created successfully:', response);
       
-      // Transform the location data to match expected format
-      const transformedLocation = {
-        id: newLocation.id,
-        location: {
-          type: 'Point',
-          coordinates: [
-            parseFloat(data.lng),
-            parseFloat(data.lat)
-          ]
-        },
-        content: {
-          text: data.text,
-          mediaUrls: newLocation.content?.mediaUrls || [],
-          mediaTypes: newLocation.content?.mediaTypes || [],
-          isAnonymous: data.isAnonymous
-        },
-        creator: newLocation.creator,
-        createdAt: newLocation.createdAt,
-        updatedAt: newLocation.updatedAt
-      };
-
-      // Update locations state and refetch to ensure we have the latest data
-      setLocationData(prevLocations => [...prevLocations, transformedLocation]);
+      // Reset form
+      setContentForm({
+        text: '',
+        media: [],
+        isAnonymous: false,
+        autoDelete: false,
+        deleteTime: 0,
+        deleteUnit: 'minutes'
+      });
+      
+      setSelectedLocation(null);
       await fetchLocations();
       
-      // Reset form and selected states
-      setContentForm({ text: '', media: [], isAnonymous: false });
-      setSelectedLocation(null);
-      setSelectedMarker(null);
-    } catch (err) {
-      console.error('Error submitting location data:', err);
-      setError(err.message);
+    } catch (error) {
+      console.error('Error submitting location data:', error);
+      setError('Failed to submit location');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -852,6 +853,7 @@ function App() {
                   handleDeleteLocation={handleDeleteLocation}
                   setSelectedMarker={setSelectedMarker}
                   handleVoteUpdate={handleVoteUpdate}
+                  submitting={submitting}
                 />
               )}
             </GoogleMap>

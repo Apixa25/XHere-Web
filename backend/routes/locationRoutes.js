@@ -48,37 +48,55 @@ router.get('/', authenticateToken, async (req, res) => {
 // Add POST endpoint
 router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
   try {
-    const { latitude, longitude, text, isAnonymous } = req.body;
+    console.log('Received location data:', req.body);
     
+    const { 
+      latitude, 
+      longitude, 
+      text, 
+      isAnonymous, 
+      autoDelete, 
+      deleteTime, 
+      deleteUnit 
+    } = req.body;
+
+    // Calculate deleteAt time if autoDelete is enabled
+    let deleteAt = null;
+    if (autoDelete === 'true') {
+      deleteAt = new Date();
+      const time = parseInt(deleteTime);
+      
+      switch(deleteUnit) {
+        case 'minutes':
+          deleteAt.setMinutes(deleteAt.getMinutes() + time);
+          break;
+        case 'hours':
+          deleteAt.setHours(deleteAt.getHours() + time);
+          break;
+        case 'days':
+          deleteAt.setDate(deleteAt.getDate() + time);
+          break;
+      }
+      console.log('Calculated deleteAt:', deleteAt);
+    }
+
     const location = await Location.create({
       location: {
         type: 'Point',
         coordinates: [parseFloat(longitude), parseFloat(latitude)]
       },
-      content: {
-        text: text || '',
-        mediaUrls: req.files ? req.files.map(file => file.path) : [],
-        mediaTypes: req.files ? req.files.map(file => file.mimetype) : [],
-        isAnonymous: isAnonymous === 'true'
-      },
+      text,
+      isAnonymous: isAnonymous === 'true',
+      autoDelete: autoDelete === 'true',
+      deleteAt,
       creatorId: req.user.userId
     });
 
-    // Fetch the created location with creator info
-    const locationWithCreator = await Location.findByPk(location.id, {
-      include: [{
-        model: User,
-        as: 'creator',
-        attributes: ['email', 'profile', 'id']
-      }]
-    });
-
-    // Check for new badges
-    const newBadges = await checkAndAwardBadges(req.user.userId);
+    console.log('Created location:', location);
 
     res.status(201).json({ 
-      location: locationWithCreator,
-      newBadges // Include any new badges earned
+      location,
+      newBadges: []
     });
   } catch (error) {
     console.error('Error creating location:', error);
