@@ -3,6 +3,29 @@ import api from '../services/api';
 
 const VoteButtons = ({ location, onVoteUpdate }) => {
   const [isVoting, setIsVoting] = useState(false);
+  
+  const VERIFICATION_THRESHOLD = 5;
+  const PENDING_THRESHOLD = 2;
+
+  const getVerificationProgress = () => {
+    const points = location.totalPoints || 0;
+    if (points >= VERIFICATION_THRESHOLD) return null;
+    
+    const nextThreshold = points < PENDING_THRESHOLD ? PENDING_THRESHOLD : VERIFICATION_THRESHOLD;
+    const pointsNeeded = nextThreshold - points;
+    
+    return (
+      <span style={{
+        fontSize: '12px',
+        color: '#666',
+        marginLeft: '10px'
+      }}>
+        {points < PENDING_THRESHOLD 
+          ? `${pointsNeeded} points until pending` 
+          : `${pointsNeeded} points until verified`}
+      </span>
+    );
+  };
 
   const handleVote = async (voteType) => {
     try {
@@ -50,17 +73,7 @@ const VoteButtons = ({ location, onVoteUpdate }) => {
       >
         👎 {location.downvotes || 0}
       </button>
-      {location.verificationStatus === 'verified' && (
-        <span style={{ 
-          backgroundColor: '#2196F3',
-          color: 'white',
-          padding: '2px 8px',
-          borderRadius: '12px',
-          fontSize: '12px'
-        }}>
-          ✓ Verified
-        </span>
-      )}
+      {getVerificationProgress()}
     </div>
   );
 };

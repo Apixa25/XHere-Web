@@ -59,6 +59,41 @@ function LocationInfoWindow({
   setSelectedMarker,
   handleVoteUpdate
 }) {
+  const getStatusBadge = () => {
+    switch(selectedMarker.verificationStatus) {
+      case 'verified':
+        return (
+          <div style={{
+            backgroundColor: '#2196F3',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            display: 'inline-block',
+            marginLeft: '8px'
+          }}>
+            ✓ Verified
+          </div>
+        );
+      case 'pending':
+        return (
+          <div style={{
+            backgroundColor: '#FFA726',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            display: 'inline-block',
+            marginLeft: '8px'
+          }}>
+            ⏳ Pending Verification
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (selectedLocation) {
     return (
       <InfoWindow
@@ -164,14 +199,20 @@ function LocationInfoWindow({
               </p>
             </div>
             <div style={{
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 'bold'
+              display: 'flex',
+              alignItems: 'center'
             }}>
-              {selectedMarker.upvotes - selectedMarker.downvotes} pts
+              <div style={{
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                {selectedMarker.upvotes - selectedMarker.downvotes} pts
+              </div>
+              {getStatusBadge()}
             </div>
           </div>
 

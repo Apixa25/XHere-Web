@@ -364,6 +364,41 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     </div>
   );
 
+  const getStatusBadge = (location) => {
+    switch(location.verificationStatus) {
+      case 'verified':
+        return (
+          <div style={{
+            backgroundColor: '#2196F3',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            display: 'inline-block',
+            marginLeft: '8px'
+          }}>
+            ✓ Verified
+          </div>
+        );
+      case 'pending':
+        return (
+          <div style={{
+            backgroundColor: '#FFA726',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            display: 'inline-block',
+            marginLeft: '8px'
+          }}>
+            ⏳ Pending Verification
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   const LocationCard = ({ location }) => {
     console.log("LocationCard props:", location);
     return (
@@ -403,26 +438,21 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             gap: '4px'
           }}>
             <div style={{
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 'bold'
+              display: 'flex',
+              alignItems: 'center'
             }}>
-              {location.totalPoints !== undefined ? location.totalPoints : 0} pts
-            </div>
-            {location.verificationStatus === 'verified' && (
               <div style={{
-                backgroundColor: '#2196F3',
+                backgroundColor: '#4CAF50',
                 color: 'white',
                 padding: '4px 8px',
                 borderRadius: '12px',
-                fontSize: '12px'
+                fontSize: '12px',
+                fontWeight: 'bold'
               }}>
-                ✓ Verified
+                {location.totalPoints !== undefined ? location.totalPoints : 0} pts
               </div>
-            )}
+              {getStatusBadge(location)}
+            </div>
           </div>
         </div>
 
