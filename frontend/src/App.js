@@ -15,6 +15,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
+import backgroundImage from './images/background.jpg';
 
 const LIBRARIES = ['places'];
 
@@ -361,7 +362,21 @@ const getUserFromStorage = () => {
 };
 
 function App() {
-  const [user, setUser] = useState(getUserFromStorage());
+  const [user, setUser] = useState(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: ''
+  });
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--bg-image',
+      `url(${backgroundImage})`
+    );
+  }, []);
+
   const [error, setError] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
@@ -377,12 +392,6 @@ function App() {
     deleteUnit: 'minutes'
   });
 
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: ''
-  });
   const [map, setMap] = useState(null);
   const [center, setCenter] = useState(defaultCenter);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -711,7 +720,7 @@ function App() {
   };
 
   const renderAuthForm = () => (
-    <div style={{ maxWidth: '400px', margin: '40px auto', padding: '20px' }}>
+    <div className="auth-container">
       <h2>{isRegistering ? 'Register' : 'Login'}</h2>
       <form onSubmit={handleAuth}>
         {isRegistering && (
@@ -722,6 +731,7 @@ function App() {
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
               required={isRegistering}
+              placeholder="Enter your name"
             />
           </div>
         )}
@@ -732,6 +742,7 @@ function App() {
             value={formData.email}
             onChange={(e) => setFormData({...formData, email: e.target.value})}
             required
+            placeholder="Enter your email"
           />
         </div>
         <div>
@@ -741,13 +752,21 @@ function App() {
             value={formData.password}
             onChange={(e) => setFormData({...formData, password: e.target.value})}
             required
+            placeholder="Enter your password"
           />
         </div>
         <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
-        <button type="button" onClick={() => {
-          setIsRegistering(!isRegistering);
-          setFormData({ email: '', password: '', name: '' }); // Clear form when switching
-        }}>
+        <button 
+          type="button" 
+          onClick={() => {
+            setIsRegistering(!isRegistering);
+            setFormData({ email: '', password: '', name: '' });
+          }}
+          style={{
+            backgroundColor: '#6c757d',
+            marginTop: '10px'
+          }}
+        >
           {isRegistering ? 'Switch to Login' : 'Switch to Register'}
         </button>
       </form>
