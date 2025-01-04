@@ -371,11 +371,19 @@ function App() {
   });
 
   useEffect(() => {
-    document.documentElement.style.setProperty(
-      '--bg-image',
-      `url(${backgroundImage})`
-    );
-  }, []);
+    if (!user) {
+      // Set background image for login page
+      document.documentElement.style.setProperty(
+        '--bg-image',
+        `url(${backgroundImage})`
+      );
+      document.body.classList.add('auth-page');
+    } else {
+      // Remove background image for other pages
+      document.documentElement.style.removeProperty('--bg-image');
+      document.body.classList.remove('auth-page');
+    }
+  }, [user]);
 
   const [error, setError] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
