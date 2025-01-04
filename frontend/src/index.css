@@ -2,18 +2,27 @@ body {
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
+  background-color: white;
+  min-height: 100vh;
+  width: 100%;
+  overflow-y: auto;
+}
+
+/* Only apply dark background and image to auth pages */
+body.auth-page {
   background-color: #282c34;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  min-height: 100vh;
-  width: 100%;
-  position: fixed;
-  overflow-y: auto;
+  background-attachment: fixed;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* Only apply background image to auth pages */
+.auth-page #root {
   background-image: var(--bg-image);
   background-size: cover;
   background-position: center;
