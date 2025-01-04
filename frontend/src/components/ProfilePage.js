@@ -728,7 +728,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         <div style={{ 
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(315px, 1fr))',
-          gap: '20px',
+          gap: '40px',
           justifyContent: 'center',
           padding: '20px',
           maxWidth: '1200px',
@@ -750,7 +750,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 overflow: 'visible',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 margin: '0 auto',
-                position: 'relative'
+                position: 'relative',
+                marginBottom: '20px'
               }}
             >
               <div style={{
