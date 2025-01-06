@@ -604,11 +604,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   }
 
   return (
-    <div style={{
-      padding: '20px',
-      maxWidth: '800px',
-      margin: '0 auto'
-    }}>
+    <div className="profile-container">
       <div style={{
         backgroundColor: '#f5f5f5',
         padding: '20px',
@@ -682,6 +678,19 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
               Earned by having your locations verified as accurate
             </p>
           </div>
+        </div>
+      </div>
+
+      <div className="credits-section">
+        <h3>XHere Credits</h3>
+        <div className="credits-display">
+          <span className="credits-amount">{user?.credits || 0}</span>
+          <span className="credits-label">credits available</span>
+        </div>
+        
+        <div className="credits-history">
+          <h4>Recent Credit Activity</h4>
+          {/* We can add credit history here in future updates */}
         </div>
       </div>
 

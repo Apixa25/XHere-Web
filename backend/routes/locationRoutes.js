@@ -48,6 +48,20 @@ router.get('/', authenticateToken, async (req, res) => {
 // Add POST endpoint
 router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
   try {
+    const { creditAmount } = req.body;
+    
+    // Check if user has enough credits
+    const user = await User.findByPk(req.user.userId);
+    if (creditAmount > user.credits) {
+      return res.status(400).json({ error: 'Insufficient credits' });
+    }
+
+    // Deduct credits from user
+    if (creditAmount > 0) {
+      user.credits -= creditAmount;
+      await user.save();
+    }
+
     console.log('Received location data:', req.body);
     console.log('Received files:', req.files);
     
@@ -96,7 +110,8 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       content,
       creatorId: req.user.userId,
       autoDelete: autoDelete === 'true',
-      deleteAt
+      deleteAt,
+      credits: creditAmount || 0
     });
 
     console.log('Created location:', location);

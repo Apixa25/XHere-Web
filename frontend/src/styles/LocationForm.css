@@ -1,0 +1,49 @@
+.credits-section {
+  margin: 15px 0;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+.credits-toggle {
+  margin-bottom: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.credits-input-container {
+  padding: 10px;
+  background-color: white;
+  border-radius: 4px;
+}
+
+.credits-balance {
+  color: #666;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.credits-input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.credits-input {
+  width: 100px;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.credits-info {
+  color: #666;
+  font-size: 0.9em;
+} 
