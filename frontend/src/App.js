@@ -16,6 +16,7 @@ import { jwtDecode } from 'jwt-decode';
 import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 import backgroundImage from './images/background.jpg';
+import './styles/LocationForm.css';
 
 const LIBRARIES = ['places'];
 
@@ -61,6 +62,9 @@ function LocationInfoWindow({
   handleVoteUpdate,
   submitting
 }) {
+  const [assignCredits, setAssignCredits] = useState(false);
+  const [creditAmount, setCreditAmount] = useState(0);
+
   const getStatusBadge = () => {
     switch(selectedMarker.verificationStatus) {
       case 'verified':
@@ -112,7 +116,8 @@ function LocationInfoWindow({
             isAnonymous: contentForm.isAnonymous,
             autoDelete: contentForm.autoDelete,
             deleteTime: contentForm.deleteTime,
-            deleteUnit: contentForm.deleteUnit
+            deleteUnit: contentForm.deleteUnit,
+            credits: assignCredits ? creditAmount : 0
           };
           console.log('Form submission data:', submissionData);
           onSubmit(submissionData);
@@ -201,12 +206,57 @@ function LocationInfoWindow({
               )}
             </div>
           </div>
+          <div className="form-section credits-section">
+            <div className="credits-toggle">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={assignCredits}
+                  onChange={(e) => {
+                    setAssignCredits(e.target.checked);
+                    if (!e.target.checked) setCreditAmount(0);
+                  }}
+                />
+                Assign XHere credits to this location
+              </label>
+            </div>
+
+            {assignCredits && (
+              <div className="credits-input-container">
+                <div className="credits-balance">
+                  Available: {user?.credits || 0} credits
+                </div>
+                <div className="credits-input-group">
+                  <label htmlFor="creditAmount">Amount to assign:</label>
+                  <input
+                    id="creditAmount"
+                    type="number"
+                    min="1"
+                    max={user?.credits || 0}
+                    value={creditAmount}
+                    onChange={(e) => setCreditAmount(Math.min(
+                      parseInt(e.target.value) || 0,
+                      user?.credits || 0
+                    ))}
+                    className="credits-input"
+                  />
+                </div>
+                <div className="credits-info">
+                  <small>
+                    These credits will be available for other users to collect 
+                    when they visit this location.
+                  </small>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button 
             type="submit" 
-            disabled={submitting}
+            disabled={submitting || (assignCredits && creditAmount > (user?.credits || 0))}
             style={{
-              opacity: submitting ? 0.7 : 1,
-              cursor: submitting ? 'not-allowed' : 'pointer'
+              opacity: (submitting || (assignCredits && creditAmount > (user?.credits || 0))) ? 0.7 : 1,
+              cursor: (submitting || (assignCredits && creditAmount > (user?.credits || 0))) ? 'not-allowed' : 'pointer'
             }}
           >
             {submitting ? 'Submitting...' : 'Submit'}

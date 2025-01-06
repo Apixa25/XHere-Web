@@ -66,6 +66,11 @@ const Location = sequelize.define('Location', {
   deleteAt: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  credits: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
   }
 });
 
