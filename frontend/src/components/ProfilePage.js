@@ -681,50 +681,102 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         </div>
       </div>
 
-      <div className="credits-section">
-        <h3>XHere Credits</h3>
-        <div className="credits-display">
-          <span className="credits-amount">{user?.credits || 0}</span>
-          <span className="credits-label">credits available</span>
-        </div>
-        
-        <div className="credits-history">
-          <h4>Recent Credit Activity</h4>
-          {/* We can add credit history here in future updates */}
-        </div>
-      </div>
-
       <div style={{
-        backgroundColor: '#f5f5f5',
-        padding: '20px',
-        borderRadius: '8px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '20px',
         marginBottom: '20px'
       }}>
-        <h3 style={{ marginBottom: '15px' }}>Badges</h3>
         <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '10px'
+          backgroundColor: '#f5f5f5',
+          padding: '20px',
+          borderRadius: '8px',
         }}>
-          {(userData?.badges || []).map((badge, index) => (
-            <div key={index} style={{
-              backgroundColor: 'white',
-              padding: '8px 15px',
-              borderRadius: '20px',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
+          <h3 style={{ marginBottom: '15px' }}>XHere Credits</h3>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '15px'
+          }}>
+            <div style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#2196F3',
+              marginBottom: '5px'
             }}>
-              <span style={{ color: badge.color || '#666' }}>🏆</span>
-              {badge.name}
+              {user?.credits || 0}
             </div>
-          ))}
-          {(!userData?.badges || userData?.badges.length === 0) && (
-            <p style={{ color: '#666', fontStyle: 'italic' }}>
-              No badges earned yet. Keep contributing to earn badges!
-            </p>
-          )}
+            <div style={{
+              fontSize: '14px',
+              color: '#666'
+            }}>
+              credits available
+            </div>
+          </div>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px'
+          }}>
+            <h4 style={{ 
+              marginBottom: '10px',
+              fontSize: '14px',
+              color: '#444'
+            }}>Recent Credit Activity</h4>
+            <div style={{
+              color: '#666',
+              fontSize: '13px',
+              fontStyle: 'italic'
+            }}>
+              No recent activity
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          backgroundColor: '#f5f5f5',
+          padding: '20px',
+          borderRadius: '8px',
+        }}>
+          <h3 style={{ marginBottom: '15px' }}>Badges</h3>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '15px',
+            borderRadius: '8px',
+            minHeight: '150px'
+          }}>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              {(user?.badges || []).map((badge, index) => (
+                <div key={index} style={{
+                  backgroundColor: 'white',
+                  padding: '8px 15px',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  border: '1px solid #eee'
+                }}>
+                  <span style={{ color: badge.color || '#666' }}>🏆</span>
+                  {badge.name}
+                </div>
+              ))}
+              {(!user?.badges || user?.badges.length === 0) && (
+                <p style={{ 
+                  color: '#666', 
+                  fontStyle: 'italic',
+                  fontSize: '13px'
+                }}>
+                  No badges earned yet. Keep contributing to earn badges!
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
