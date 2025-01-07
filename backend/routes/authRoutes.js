@@ -3,9 +3,6 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { OAuth2Client } = require('google-auth-library');
-
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Register route
 router.post('/register', async (req, res) => {
@@ -43,24 +40,29 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('Login attempt:', { email });
+    console.log('Login attempt for:', email);
 
-    // Check if user exists
     const user = await User.findOne({ 
-      where: { email } 
+      where: { email },
+      attributes: ['id', 'email', 'password', 'profile'] 
     });
 
     if (!user) {
+      console.log('User not found');
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Validate password
+    console.log('Stored password hash:', user.password);
+    console.log('Attempting to compare with provided password');
+    
     const validPassword = await bcrypt.compare(password, user.password);
+    console.log('Password validation result:', validPassword);
+
     if (!validPassword) {
+      console.log('Invalid password for user:', email);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Create and send token
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET,
@@ -81,54 +83,11 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Google login route
+// If you need Google auth, uncomment and install google-auth-library
+/*
 router.post('/google', async (req, res) => {
-  try {
-    const { token } = req.body;
-
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-
-    const payload = ticket.getPayload();
-    
-    // Check if user exists
-    let user = await User.findOne({ 
-      where: { email: payload.email } 
-    });
-
-    if (!user) {
-      // Create new user if they don't exist
-      user = await User.create({
-        email: payload.email,
-        profile: {
-          name: payload.name
-        },
-        password: await bcrypt.hash(Math.random().toString(36), 10),
-        googleId: payload.sub
-      });
-    }
-
-    // Create JWT token
-    const jwtToken = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      token: jwtToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        profile: user.profile
-      }
-    });
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({ error: 'Authentication failed' });
-  }
+  // Google auth code here
 });
+*/
 
 module.exports = router; 
