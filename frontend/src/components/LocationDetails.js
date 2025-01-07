@@ -1,6 +1,8 @@
 import React from 'react';
 
 const LocationDetails = ({ location }) => {
+  console.log('Full location object in LocationDetails:', location);
+
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
   console.log('LocationDetails - received location:', location);
@@ -10,6 +12,19 @@ const LocationDetails = ({ location }) => {
   return (
     <div>
       <p>{location.content.text}</p>
+      
+      {/* Modified Credits Display */}
+      {Number(location?.credits) > 0 && (
+        <div className="credits-badge-container" style={{
+          marginBottom: '10px',
+          marginTop: '5px'
+        }}>
+          <div className="credits-badge">
+            💎 {location.credits} {location.credits === 1 ? 'Credit' : 'Credits'} Available
+          </div>
+        </div>
+      )}
+
       {location.content.mediaUrls && location.content.mediaUrls.map((url, index) => {
         const mediaType = location.content.mediaTypes?.[index];
         const fullUrl = url.startsWith('http') ? url : `${API_URL}/${url}`;

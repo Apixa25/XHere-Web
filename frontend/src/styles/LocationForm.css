@@ -46,4 +46,20 @@
 .credits-info {
   color: #666;
   font-size: 0.9em;
+}
+
+.credits-badge {
+  background-color: #4CAF50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.credits-badge-container {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
 } 
