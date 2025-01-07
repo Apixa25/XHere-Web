@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
     // Find user
     const user = await User.findOne({ 
       where: { email },
-      attributes: ['id', 'email', 'password', 'isAdmin', 'profile']
+      attributes: ['id', 'email', 'password', 'isAdmin', 'profile', 'credits']
     });
     
     if (!user) {
@@ -81,7 +81,8 @@ router.post('/login', async (req, res) => {
         id: user.id, 
         email: user.email,
         profile: user.profile,
-        isAdmin: user.isAdmin 
+        isAdmin: user.isAdmin,
+        credits: user.credits
       } 
     });
   } catch (error) {
@@ -169,7 +170,7 @@ router.post('/google', async (req, res) => {
   try {
     const user = await User.findOne({
       where: { email: req.body.email },
-      attributes: ['id', 'email', 'isAdmin', 'profile']
+      attributes: ['id', 'email', 'isAdmin', 'profile', 'credits']
     });
 
     if (!user) {
@@ -191,7 +192,8 @@ router.post('/google', async (req, res) => {
         id: user.id,
         email: user.email,
         profile: user.profile,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
+        credits: user.credits
       }
     });
   } catch (error) {
@@ -227,7 +229,7 @@ router.put('/make-admin', async (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.userId, {
-      attributes: ['id', 'email', 'profile', 'isAdmin']
+      attributes: ['id', 'email', 'profile', 'isAdmin', 'credits']
     });
 
     if (!user) {
@@ -239,7 +241,8 @@ router.get('/me', authenticateToken, async (req, res) => {
       email: user.email,
       profile: user.profile,
       name: user.profile?.name || user.email,
-      isAdmin: user.isAdmin
+      isAdmin: user.isAdmin,
+      credits: user.credits
     });
   } catch (error) {
     console.error('Error fetching user:', error);
