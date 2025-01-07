@@ -4,6 +4,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import LocationDetails from './LocationDetails';
 import api from '../services/api';
+import BadgeDisplay from './BadgeDisplay';
 
 const AdminBadge = () => (
   <div style={{
@@ -697,104 +698,10 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         </div>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '20px',
-        marginBottom: '20px'
-      }}>
-        <div style={{
-          backgroundColor: '#f5f5f5',
-          padding: '20px',
-          borderRadius: '8px',
-        }}>
-          <h3 style={{ marginBottom: '15px' }}>XHere Credits</h3>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '15px',
-            borderRadius: '8px',
-            marginBottom: '15px'
-          }}>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: '#2196F3',
-              marginBottom: '5px'
-            }}>
-              {user?.credits || 0}
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#666'
-            }}>
-              credits available
-            </div>
-          </div>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '15px',
-            borderRadius: '8px'
-          }}>
-            <h4 style={{ 
-              marginBottom: '10px',
-              fontSize: '14px',
-              color: '#444'
-            }}>Recent Credit Activity</h4>
-            <div style={{
-              color: '#666',
-              fontSize: '13px',
-              fontStyle: 'italic'
-            }}>
-              No recent activity
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          backgroundColor: '#f5f5f5',
-          padding: '20px',
-          borderRadius: '8px',
-        }}>
-          <h3 style={{ marginBottom: '15px' }}>Badges</h3>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '15px',
-            borderRadius: '8px',
-            minHeight: '150px'
-          }}>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '10px'
-            }}>
-              {(user?.badges || []).map((badge, index) => (
-                <div key={index} style={{
-                  backgroundColor: 'white',
-                  padding: '8px 15px',
-                  borderRadius: '20px',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  border: '1px solid #eee'
-                }}>
-                  <span style={{ color: badge.color || '#666' }}>🏆</span>
-                  {badge.name}
-                </div>
-              ))}
-              {(!user?.badges || user?.badges.length === 0) && (
-                <p style={{ 
-                  color: '#666', 
-                  fontStyle: 'italic',
-                  fontSize: '13px'
-                }}>
-                  No badges earned yet. Keep contributing to earn badges!
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <BadgeDisplay 
+        badges={userData?.badges || []} 
+        credits={userData?.credits || 0} 
+      />
 
       <h3>{userData?.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
       {loading ? (
