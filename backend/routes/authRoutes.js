@@ -44,7 +44,7 @@ router.post('/login', async (req, res) => {
 
     const user = await User.findOne({ 
       where: { email },
-      attributes: ['id', 'email', 'password', 'profile'] 
+      attributes: ['id', 'email', 'password', 'profile', 'credits']
     });
 
     if (!user) {
@@ -74,7 +74,8 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.profile?.name
+        name: user.profile?.name,
+        credits: user.credits
       }
     });
   } catch (error) {

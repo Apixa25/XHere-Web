@@ -65,6 +65,10 @@ function LocationInfoWindow({
   const [assignCredits, setAssignCredits] = useState(false);
   const [creditAmount, setCreditAmount] = useState(0);
 
+  console.log('LocationInfoWindow user prop:', user);
+  console.log('LocationInfoWindow user credits:', user?.profile?.credits, user?.credits);
+  console.log('LocationInfoWindow user profile:', user?.profile);
+
   const getStatusBadge = () => {
     switch(selectedMarker.verificationStatus) {
       case 'verified':
@@ -224,7 +228,7 @@ function LocationInfoWindow({
             {assignCredits && (
               <div className="credits-input-container">
                 <div className="credits-balance">
-                  Available: {user?.credits || 0} credits
+                  Available: {user?.credits ?? 0} credits
                 </div>
                 <div className="credits-input-group">
                   <label htmlFor="creditAmount">Amount to assign:</label>
@@ -232,11 +236,11 @@ function LocationInfoWindow({
                     id="creditAmount"
                     type="number"
                     min="1"
-                    max={user?.credits || 0}
+                    max={user?.credits ?? 0}
                     value={creditAmount}
                     onChange={(e) => setCreditAmount(Math.min(
                       parseInt(e.target.value) || 0,
-                      user?.credits || 0
+                      user?.credits ?? 0
                     ))}
                     className="credits-input"
                   />
@@ -253,10 +257,10 @@ function LocationInfoWindow({
 
           <button 
             type="submit" 
-            disabled={submitting || (assignCredits && creditAmount > (user?.credits || 0))}
+            disabled={submitting || (assignCredits && creditAmount > (user?.credits ?? 0))}
             style={{
-              opacity: (submitting || (assignCredits && creditAmount > (user?.credits || 0))) ? 0.7 : 1,
-              cursor: (submitting || (assignCredits && creditAmount > (user?.credits || 0))) ? 'not-allowed' : 'pointer'
+              opacity: (submitting || (assignCredits && creditAmount > (user?.credits ?? 0))) ? 0.7 : 1,
+              cursor: (submitting || (assignCredits && creditAmount > (user?.credits ?? 0))) ? 'not-allowed' : 'pointer'
             }}
           >
             {submitting ? 'Submitting...' : 'Submit'}
