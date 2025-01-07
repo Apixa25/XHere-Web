@@ -5,6 +5,21 @@ import { jwtDecode } from 'jwt-decode';
 import LocationDetails from './LocationDetails';
 import api from '../services/api';
 
+const AdminBadge = () => (
+  <div style={{
+    backgroundColor: '#9C27B0',
+    color: 'white',
+    padding: '8px 16px',
+    borderRadius: '16px',
+    fontSize: '24px',
+    display: 'inline-block',
+    marginLeft: '12px',
+    fontWeight: 'bold'
+  }}>
+    Admin
+  </div>
+);
+
 const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [userData, setUserData] = useState(null);
   const [userLocations, setUserLocations] = useState([]);
@@ -616,6 +631,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       }}>
         <h2 style={{ margin: '0' }}>
           Welcome, {userData?.profile?.name || userData?.email || 'User'}
+          {userData?.isAdmin && <AdminBadge />}
         </h2>
         <button
           onClick={() => navigate('/')}
