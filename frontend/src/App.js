@@ -104,28 +104,35 @@ function LocationInfoWindow({
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formData = {
+      lat: selectedLocation.lat,
+      lng: selectedLocation.lng,
+      text: contentForm.text,
+      media: contentForm.media,
+      isAnonymous: contentForm.isAnonymous,
+      autoDelete: contentForm.autoDelete,
+      deleteTime: contentForm.deleteTime,
+      deleteUnit: contentForm.deleteUnit,
+      creditAmount: assignCredits ? creditAmount : 0
+    };
+
+    try {
+      await onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error submitting location:', error);
+    }
+  };
+
   if (selectedLocation) {
     return (
       <InfoWindow
         position={selectedLocation}
         onCloseClick={() => onClose('location')}
       >
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const submissionData = {
-            lat: selectedLocation.lat,
-            lng: selectedLocation.lng,
-            text: contentForm.text,
-            media: contentForm.media,
-            isAnonymous: contentForm.isAnonymous,
-            autoDelete: contentForm.autoDelete,
-            deleteTime: contentForm.deleteTime,
-            deleteUnit: contentForm.deleteUnit,
-            credits: assignCredits ? creditAmount : 0
-          };
-          console.log('Form submission data:', submissionData);
-          onSubmit(submissionData);
-        }}>
+        <form onSubmit={handleSubmit}>
           <textarea
             value={contentForm.text}
             onChange={e => setContentForm({ ...contentForm, text: e.target.value })}
@@ -309,8 +316,21 @@ function LocationInfoWindow({
             </div>
             <div style={{
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              gap: '8px'
             }}>
+              {selectedMarker.credits > 0 && (
+                <div style={{
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}>
+                  💎 {selectedMarker.credits} Credits
+                </div>
+              )}
               <div style={{
                 backgroundColor: '#4CAF50',
                 color: 'white',
@@ -614,40 +634,31 @@ function App() {
     setSelectedLocation(null); // Close any new location form
   };
 
-  const handleLocationSubmit = async (locationData) => {
-    setSubmitting(true);
-    
+  const handleLocationSubmit = async (formData) => {
+    console.log('Form submission data:', formData);
     try {
-      console.log('Handling location submit with data:', locationData);
-
-      const formData = new FormData();
+      setSubmitting(true);
       
-      // Convert values to strings and ensure they're not undefined
-      formData.append('latitude', String(locationData.lat));
-      formData.append('longitude', String(locationData.lng));
-      formData.append('text', String(locationData.text || ''));
-      formData.append('isAnonymous', String(locationData.isAnonymous || false));
-      formData.append('autoDelete', String(locationData.autoDelete || false));
+      const data = new FormData();
+      data.append('latitude', formData.lat);
+      data.append('longitude', formData.lng);
+      data.append('text', formData.text);
+      data.append('isAnonymous', formData.isAnonymous);
+      data.append('autoDelete', formData.autoDelete || false);
+      if (formData.autoDelete) {
+        data.append('deleteTime', formData.deleteTime);
+        data.append('deleteUnit', formData.deleteUnit);
+      }
+      // Add this line to include credits
+      data.append('creditAmount', formData.creditAmount || 0);
       
-      if (locationData.autoDelete) {
-        formData.append('deleteTime', String(locationData.deleteTime || 0));
-        formData.append('deleteUnit', String(locationData.deleteUnit || 'minutes'));
-      }
-
-      // Debug log
-      console.log('FormData contents before sending:');
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-      }
-
-      // Handle media files if present
-      if (locationData.media && locationData.media.length > 0) {
-        locationData.media.forEach(file => {
-          formData.append('media', file);
+      if (formData.media) {
+        formData.media.forEach(file => {
+          data.append('media', file);
         });
       }
 
-      const response = await api.addLocation(formData);
+      const response = await api.addLocation(data);
       console.log('Location created successfully:', response);
       
       // Reset form

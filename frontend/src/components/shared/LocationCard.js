@@ -53,13 +53,25 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   };
 
   return (
-    <div className={compact ? "location-details" : "location-card"} style={{
-      backgroundColor: 'white',
-      padding: compact ? '10px' : '15px',
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      margin: compact ? '0' : '10px 0'
-    }}>
+    <div
+      key={location.id}
+      style={{
+        width: '275px',
+        minHeight: '275px',
+        maxHeight: editingLocation?._id === location._id ? 'none' : '275px',
+        padding: '15px',
+        border: '1px solid #ddd',
+        borderRadius: '8px',
+        backgroundColor: 'white',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'visible',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        margin: '0 auto',
+        position: 'relative',
+        marginBottom: '20px'
+      }}
+    >
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -103,3 +115,40 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
               ⏳ {getRemainingTime()}
             </div>
           )}
+
+          {location.credits > 0 && (
+            <div style={{
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              display: 'inline-block',
+              marginLeft: '8px'
+            }}>
+              💎 {location.credits} Credits Available
+            </div>
+          )}
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 'auto',
+            paddingTop: '10px'
+          }}>
+            {getStatusBadge()}
+            {getRemainingTime() && (
+              <div style={{
+                color: '#666',
+                fontSize: '12px'
+              }}>
+                {getRemainingTime()}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
