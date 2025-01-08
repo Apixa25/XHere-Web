@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('locations');
@@ -63,12 +65,24 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleBackToMap = () => {
+    navigate('/');
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="admin-dashboard">
-      <h2>Admin Dashboard</h2>
+      <div className="admin-header">
+        <button 
+          onClick={handleBackToMap}
+          className="back-button"
+        >
+          Back to Map
+        </button>
+        <h2>Admin Dashboard</h2>
+      </div>
       
       {loading && <div>Loading users...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
