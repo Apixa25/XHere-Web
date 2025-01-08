@@ -31,16 +31,23 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [mediaToDelete, setMediaToDelete] = useState([]);
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const token = localStorage.getItem('token');
 
   const fetchUserData = async () => {
     try {
       const response = await api.getUserProfile(user.id);
       console.log('User profile response:', response);
+      
+      // Make sure we're getting badges from the response
+      const userBadges = response.user.badges || [];
+      console.log('Fetched badges:', userBadges);
+      
       setUserData({
         ...response.user,
         isAdmin: user.isAdmin,
         name: response.user.profile?.name || response.user.email,
-        profile: response.user.profile || {}
+        profile: response.user.profile || {},
+        badges: userBadges // Make sure badges are included in userData
       });
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -137,7 +144,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
   const checkBadges = async () => {
     try {
-      const response = await fetch('/api/badges/check-badges', {
+      console.log('Checking badges...');
+      const response = await fetch('/api/badges/check', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -146,6 +154,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       });
 
       if (!response.ok) {
+        console.error('Badge check response not OK:', response.status);
         throw new Error(`Badge check failed: ${response.status}`);
       }
 
@@ -203,18 +212,39 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!token) {
+        console.error('No token available');
+        setError('Authentication required');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch('/api/users/profile', {
+        const response = await fetch(`${API_URL}/api/users/profile`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
+
+        if (!response.ok) {
+          throw new Error(`Profile fetch failed: ${response.status}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Received non-JSON response from server');
+        }
+
         const data = await response.json();
-        console.log('Full profile data:', data);
-        console.log('User badges:', data.user.badges || 'No badges found');
-        console.log('User profile:', data.user.profile);
+        console.log('Profile data received:', data);
+        
+        setUserData(data.user);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching profile:', error);
+        setError(error.message);
+        setLoading(false);
       }
     };
     
@@ -803,6 +833,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         badges={userData?.badges || []} 
         credits={userData?.credits || 0} 
       />
+      console.log('Rendering badges:', userData?.badges);
 
       <h3>{userData?.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
       {loading ? (
