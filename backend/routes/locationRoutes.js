@@ -5,7 +5,7 @@ const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
-const { checkAndAwardBadges } = require('./badgeRoutes');
+const { checkAndAwardBadges } = require('../utils/badgeChecker');
 
 // Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
@@ -215,6 +215,59 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
   } catch (error) {
     console.error('Error updating location:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/:locationId/vote', authenticateToken, async (req, res) => {
+  try {
+    const { voteType } = req.body;
+    const userId = req.user.userId;
+    const locationId = req.params.locationId;
+
+    // Update location votes
+    const location = await Location.findByPk(locationId);
+    if (voteType === 'upvote') {
+      await location.increment('upvotes');
+    }
+
+    // Update user's votesGiven count
+    await User.increment('votesGiven', {
+      where: { id: userId }
+    });
+
+    // Check for new badges
+    const newBadges = await checkAndAwardBadges(userId);
+
+    res.json({ 
+      success: true, 
+      newBadges,
+      location: await location.reload() 
+    });
+  } catch (error) {
+    console.error('Error processing vote:', error);
+    res.status(500).json({ error: 'Error processing vote' });
+  }
+});
+
+router.post('/:locationId/verify', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const locationId = req.params.locationId;
+    
+    const location = await Location.findByPk(locationId);
+    await location.update({ verificationStatus: status });
+
+    // Check for new badges for the location creator
+    const newBadges = await checkAndAwardBadges(location.creatorId);
+
+    res.json({ 
+      success: true, 
+      newBadges,
+      location: await location.reload() 
+    });
+  } catch (error) {
+    console.error('Error verifying location:', error);
+    res.status(500).json({ error: 'Error verifying location' });
   }
 });
 

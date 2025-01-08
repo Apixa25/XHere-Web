@@ -286,27 +286,17 @@ router.get('/profile/:userId', authenticateToken, async (req, res) => {
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.userId);
+    console.log('User data from DB:', JSON.stringify(user, null, 2));
     
-    console.log('Checking badges for user:', req.user.userId);
-    const locations = await Location.findAll({
-      where: { creatorId: req.user.userId }
-    });
+    const badges = await checkAndAwardBadges(req.user.userId);
+    console.log('Badges checked:', badges);
     
-    console.log('User locations verification status:', locations.map(loc => ({
-      id: loc.id,
-      status: loc.verificationStatus,
-      upvotes: loc.upvotes,
-      downvotes: loc.downvotes
-    })));
-
-    // Check for new badges
-    const newBadges = await checkAndAwardBadges(req.user.userId);
-    
-    // Include badges in response
+    // Make sure we're sending both badges and credits
     res.json({ 
       user: {
         ...user.toJSON(),
-        newBadges 
+        badges,
+        credits: user.credits || 0  // Ensure credits are included
       }
     });
   } catch (error) {

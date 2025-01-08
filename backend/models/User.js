@@ -48,6 +48,14 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     defaultValue: 100,
     allowNull: false
+  },
+  votesGiven: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  earnedBadges: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: []
   }
 }, {
   timestamps: true

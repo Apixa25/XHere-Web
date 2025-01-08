@@ -98,7 +98,7 @@ const authRoutes = require('./routes/authRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const voteRoutes = require('./routes/voteRoutes');
-const { router: badgeRoutes } = require('./routes/badgeRoutes');
+const badgeRoutes = require('./routes/badgeRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
 // Register routes
