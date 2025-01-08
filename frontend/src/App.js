@@ -13,10 +13,11 @@ import BadgeNotification from './components/BadgeNotification';
 import VoteButtons from './components/VoteButtons';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Link, Navigate } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 const LIBRARIES = ['places'];
 
@@ -910,6 +911,18 @@ function App() {
                 cursor: 'pointer'
               }}>Profile</button>
             </Link>
+            {user?.isAdmin && (
+              <Link to="/admin">
+                <button style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}>Admin</button>
+              </Link>
+            )}
             <button 
               onClick={handleLogout}
               style={{
@@ -1008,6 +1021,14 @@ function App() {
         isRegistering={isRegistering}
         handleAuth={handleAuth}
       />
+    },
+    {
+      path: "/admin",
+      element: user?.isAdmin ? (
+        <AdminDashboard />
+      ) : (
+        <Navigate to="/" replace />
+      )
     }
   ]);
 
