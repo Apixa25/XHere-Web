@@ -15,12 +15,30 @@ const AdminDashboard = () => {
   }, []);
 
   const loadUsers = async () => {
+    console.log('Attempting to load users...');
     try {
-      const response = await api.get('/api/admin/users');
-      setUsers(response.data);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Admin API Response:', response);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Users data received:', data);
+      
+      setUsers(data);
       setLoading(false);
     } catch (err) {
-      setError('Failed to load users');
+      console.error('Error loading users:', err);
+      setError(`Failed to load users: ${err.message}`);
       setLoading(false);
     }
   };
@@ -52,62 +70,73 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <h2>Admin Dashboard</h2>
       
-      <div className="search-section">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search content..."
-        />
-        <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
-          <option value="locations">Locations</option>
-        </select>
-        <button onClick={handleSearch}>Search</button>
-      </div>
+      {loading && <div>Loading users...</div>}
+      {error && <div style={{ color: 'red' }}>{error}</div>}
+      
+      {!loading && !error && (
+        <>
+          <div className="search-section">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search content..."
+            />
+            <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
+              <option value="locations">Locations</option>
+            </select>
+            <button onClick={handleSearch}>Search</button>
+          </div>
 
-      <div className="users-section">
-        <h3>Users</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Name</th>
-              <th>Credits</th>
-              <th>Admin</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id}>
-                <td>{user.email}</td>
-                <td>{user.profile?.name || 'N/A'}</td>
-                <td>{user.credits}</td>
-                <td>{user.isAdmin ? '✓' : ''}</td>
-                <td>
-                  <button 
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="delete-button"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          <div className="users-section">
+            <h3>Users ({users.length})</h3>
+            {users.length === 0 ? (
+              <p>No users found</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Name</th>
+                    <th>Credits</th>
+                    <th>Admin</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(user => (
+                    <tr key={user.id}>
+                      <td>{user.email}</td>
+                      <td>{user.profile?.name || 'N/A'}</td>
+                      <td>{user.credits}</td>
+                      <td>{user.isAdmin ? '✓' : ''}</td>
+                      <td>
+                        <button 
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="delete-button"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-      {searchResults.length > 0 && (
-        <div className="search-results">
-          <h3>Search Results</h3>
-          {searchResults.map(result => (
-            <div key={result.id} className="result-item">
-              <p>{result.content.text}</p>
-              <small>Posted by: {result.creator.email}</small>
+          {searchResults.length > 0 && (
+            <div className="search-results">
+              <h3>Search Results</h3>
+              {searchResults.map(result => (
+                <div key={result.id} className="result-item">
+                  <p>{result.content.text}</p>
+                  <small>Posted by: {result.creator.email}</small>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -109,6 +109,15 @@ app.use('/api/votes', voteRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Add this debug log
+console.log('Available routes:', app._router.stack
+  .filter(r => r.route)
+  .map(r => ({
+    path: r.route.path,
+    methods: Object.keys(r.route.methods)
+  }))
+);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
