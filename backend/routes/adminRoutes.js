@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const Location = require('../models/Location');
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
 
 // Admin middleware
 const adminAuth = async (req, res, next) => {
@@ -73,28 +73,83 @@ router.delete('/users/:userId', authenticateToken, adminAuth, async (req, res) =
 router.get('/search', authenticateToken, adminAuth, async (req, res) => {
   try {
     const { query, type } = req.query;
-    let results = [];
-    
-    if (type === 'locations') {
-      results = await Location.findAll({
-        where: {
-          content: {
-            text: {
-              [Sequelize.Op.iLike]: `%${query}%`
+    let locations = [];
+
+    switch (type) {
+      case 'locations':
+        locations = await Location.findAll({
+          where: {
+            [Op.or]: [
+              Sequelize.literal(`CAST("content"->>'text' AS TEXT) ILIKE '%${query}%'`)
+            ]
+          },
+          include: [{
+            model: User,
+            as: 'creator',
+            attributes: ['email', 'profile']
+          }],
+          order: [['createdAt', 'DESC']]
+        });
+        break;
+
+      case 'flagged':
+        locations = await Location.findAll({
+          where: {
+            [Op.or]: [
+              { verificationStatus: 'flagged' },
+              { totalPoints: { [Op.lt]: -5 } }
+            ]
+          },
+          include: [{
+            model: User,
+            as: 'creator',
+            attributes: ['email', 'profile']
+          }],
+          order: [['createdAt', 'DESC']]
+        });
+        break;
+
+      case 'recent':
+        locations = await Location.findAll({
+          where: {
+            createdAt: {
+              [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000)
             }
-          }
-        },
-        include: [{
-          model: User,
-          as: 'creator',
-          attributes: ['email', 'profile']
-        }]
-      });
+          },
+          include: [{
+            model: User,
+            as: 'creator',
+            attributes: ['email', 'profile']
+          }],
+          order: [['createdAt', 'DESC']]
+        });
+        break;
     }
+
+    // Add debug logging
+    console.log('Search results:', locations);
     
-    res.json(results);
+    res.json(locations);
   } catch (error) {
-    res.status(500).json({ error: 'Error searching content' });
+    console.error('Backend search error:', error);
+    res.status(500).json({ error: error.message || 'Error performing search' });
+  }
+});
+
+// Add this route for deleting locations
+router.delete('/locations/:locationId', authenticateToken, adminAuth, async (req, res) => {
+  try {
+    const location = await Location.findByPk(req.params.locationId);
+    
+    if (!location) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    await location.destroy();
+    res.json({ message: 'Location deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting location:', error);
+    res.status(500).json({ error: 'Error deleting location' });
   }
 });
 
