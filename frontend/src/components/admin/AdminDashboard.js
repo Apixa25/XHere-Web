@@ -55,12 +55,30 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user and all their content?')) {
+    if (window.confirm('Are you sure you want to delete this user? This will also delete all their content.')) {
       try {
-        await api.delete(`/api/admin/users/${userId}`);
-        loadUsers();
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:3000/api/admin/users/${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to delete user');
+        }
+
+        // Remove the deleted user from the state
+        setUsers(users.filter(user => user.id !== userId));
+        setLoading(false);
       } catch (err) {
-        setError('Failed to delete user');
+        console.error('Delete error:', err);
+        setError(err.message);
+        setLoading(false);
       }
     }
   };
@@ -128,6 +146,7 @@ const AdminDashboard = () => {
                         <button 
                           onClick={() => handleDeleteUser(user.id)}
                           className="delete-button"
+                          disabled={user.isAdmin}
                         >
                           Delete
                         </button>
