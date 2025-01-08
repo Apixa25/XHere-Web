@@ -833,7 +833,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         badges={userData?.badges || []} 
         credits={userData?.credits || 0} 
       />
-      console.log('Rendering badges:', userData?.badges);
 
       <h3>{userData?.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
       {loading ? (
