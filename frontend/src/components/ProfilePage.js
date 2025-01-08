@@ -135,6 +135,29 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     }
   };
 
+  const checkBadges = async () => {
+    try {
+      const response = await fetch('/api/badges/check-badges', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Badge check failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Badge check response:', data);
+      return data.newBadges;
+    } catch (error) {
+      console.error('Error checking badges:', error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     if (user) {
       setUserData({ ...user });
@@ -155,6 +178,84 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     console.log('User admin status:', user?.isAdmin);
     console.log('User profile:', user?.profile);
   }, [user]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // ... your existing profile fetch code ...
+
+      // Add this after your profile data is fetched
+      const newBadges = await checkBadges();
+      console.log('New badges earned:', newBadges);
+      
+      // Fetch current badges
+      const badgeResponse = await fetch('/api/badges/user/badges', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const badgeData = await badgeResponse.json();
+      console.log('Current badges:', badgeData.badges);
+      
+    };
+    
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/users/profile', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await response.json();
+        console.log('Full profile data:', data);
+        console.log('User badges:', data.user.badges || 'No badges found');
+        console.log('User profile:', data.user.profile);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/users/profile', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await response.json();
+        
+        // Add these detailed console logs
+        console.log('Full profile response:', data);
+        console.log('User badges:', data.user?.badges);
+        
+        // Log each location's verification status
+        const locations = await fetch('/api/locations/user', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }).then(res => res.json());
+        
+        console.log('Locations verification status:', locations.map(loc => ({
+          id: loc.id,
+          status: loc.verificationStatus,
+          upvotes: loc.upvotes,
+          downvotes: loc.downvotes
+        })));
+
+      } catch (error) {
+        console.error('Profile data fetch error:', error);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   const handleDelete = async (locationId) => {
     if (window.confirm('Are you sure you want to delete this location?')) {
