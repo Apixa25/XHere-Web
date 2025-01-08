@@ -139,6 +139,7 @@
   padding: 15px;
   background-color: white;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
 }
 
 .location-header {
@@ -155,6 +156,7 @@
 
 .location-content {
   margin-bottom: 15px;
+  overflow: hidden;
 }
 
 .location-content p {
@@ -164,11 +166,26 @@
 
 .media-preview {
   margin-top: 10px;
-  padding: 10px;
-  background-color: #f5f5f5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.media-thumbnail {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
   border-radius: 4px;
-  font-size: 14px;
-  color: #666;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.media-thumbnail:hover {
+  transform: scale(1.05);
+}
+
+video.media-thumbnail {
+  background-color: #000;
 }
 
 .location-footer {
@@ -186,5 +203,10 @@
   
   .search-section {
     flex-direction: column;
+  }
+
+  .media-thumbnail {
+    width: 100px;
+    height: 100px;
   }
 } 
