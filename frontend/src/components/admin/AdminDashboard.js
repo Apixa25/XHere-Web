@@ -135,6 +135,43 @@ const AdminDashboard = () => {
     }
   };
 
+  const renderMediaPreview = (mediaUrls, mediaTypes) => {
+    if (!mediaUrls || mediaUrls.length === 0) return null;
+
+    return (
+      <div className="media-preview">
+        {mediaUrls.map((url, index) => {
+          const mediaType = mediaTypes[index];
+          
+          if (mediaType?.startsWith('image/')) {
+            return (
+              <img
+                key={index}
+                src={`http://localhost:3000/${url}`}
+                alt={`Location media ${index + 1}`}
+                className="media-thumbnail"
+                onClick={() => window.open(`http://localhost:3000/${url}`, '_blank')}
+              />
+            );
+          } else if (mediaType?.startsWith('video/')) {
+            return (
+              <video
+                key={index}
+                controls
+                className="media-thumbnail"
+              >
+                <source src={`http://localhost:3000/${url}`} type={mediaType} />
+                Your browser does not support the video tag.
+              </video>
+            );
+          }
+          
+          return null;
+        })}
+      </div>
+    );
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -234,12 +271,7 @@ const AdminDashboard = () => {
                     </div>
                     <div className="location-content">
                       <p>{location.content.text}</p>
-                      {location.content.mediaUrls && location.content.mediaUrls.length > 0 && (
-                        <div className="media-preview">
-                          {/* Add media preview handling here */}
-                          <span>Has media attachments</span>
-                        </div>
-                      )}
+                      {renderMediaPreview(location.content.mediaUrls, location.content.mediaTypes)}
                     </div>
                     <div className="location-footer">
                       <span>By: {location.creator.email}</span>
