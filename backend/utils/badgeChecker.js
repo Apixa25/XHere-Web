@@ -2,6 +2,21 @@ const badges = require('./badgeDefinitions');
 const User = require('../models/User');
 const Location = require('../models/Location');
 
+function logBadgeDebugInfo(userId, stats, locations) {
+  console.log('Badge Debug Info:', {
+    userId,
+    stats,
+    verifiedLocationsCount: locations.filter(loc => loc.verificationStatus === 'verified').length,
+    locationDetails: locations.map(loc => ({
+      id: loc.id,
+      status: loc.verificationStatus,
+      upvotes: loc.upvotes,
+      downvotes: loc.downvotes,
+      netVotes: loc.upvotes - loc.downvotes
+    }))
+  });
+}
+
 async function getUserStats(userId) {
   // Get all necessary stats for badge checking
   const user = await User.findByPk(userId);
@@ -16,27 +31,50 @@ async function getUserStats(userId) {
   };
 }
 
+async function checkVerificationStatus(userId) {
+  const locations = await Location.findAll({ 
+    where: { creatorId: userId }
+  });
+  
+  console.log('Checking verification status:', {
+    userId,
+    totalLocations: locations.length,
+    locationStatuses: locations.map(loc => ({
+      id: loc.id,
+      status: loc.verificationStatus,
+      upvotes: loc.upvotes,
+      downvotes: loc.downvotes,
+      netVotes: loc.upvotes - loc.downvotes
+    })),
+    verifiedCount: locations.filter(loc => loc.verificationStatus === 'verified').length
+  });
+
+  return locations;
+}
+
 async function checkAndAwardBadges(userId) {
-  const stats = await getUserStats(userId);
-  const user = await User.findByPk(userId);
-  const currentBadges = user.badges || [];
-  const newBadges = [];
+  try {
+    console.log('Starting badge check for user:', userId);
+    
+    const locations = await checkVerificationStatus(userId);
+    const stats = await getUserStats(userId);
+    
+    console.log('User stats for badge check:', stats);
+    
+    // Check each badge condition
+    const earnedBadges = Object.values(badges).filter(badge => {
+      const earned = badge.condition(stats);
+      console.log(`Checking badge ${badge.name}:`, { earned });
+      return earned;
+    });
 
-  // Check each badge
-  for (const [badgeId, badge] of Object.entries(badges)) {
-    // Check if user doesn't have the badge and meets the condition
-    if (!currentBadges.find(b => b.id === badgeId) && badge.condition(stats)) {
-      newBadges.push(badge);
-      currentBadges.push(badge);
-    }
+    console.log('Earned badges:', earnedBadges);
+    
+    return earnedBadges;
+  } catch (error) {
+    console.error('Error in checkAndAwardBadges:', error);
+    throw error;
   }
-
-  if (newBadges.length > 0) {
-    user.badges = currentBadges;
-    await user.save();
-  }
-
-  return newBadges;
 }
 
 module.exports = { checkAndAwardBadges }; 

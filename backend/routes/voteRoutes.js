@@ -94,12 +94,17 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     console.log('Saving location with voters:', location.voters);
     await location.save();
 
+    // Check and award badges after successful vote
+    const { checkAndAwardBadges } = require('../utils/badgeChecker');
+    const newBadges = await checkAndAwardBadges(location.creatorId);
+
     console.log('Updated location state:', {
       upvotes: location.upvotes,
       downvotes: location.downvotes,
       voters: location.voters,
       totalPoints: location.totalPoints,
-      verificationStatus: location.verificationStatus
+      verificationStatus: location.verificationStatus,
+      newBadges
     });
 
     res.json({ 
@@ -111,7 +116,8 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
         verificationStatus: location.verificationStatus,
         totalPoints: location.totalPoints,
         voters: location.voters
-      }
+      },
+      newBadges
     });
   } catch (error) {
     console.error('Error recording vote:', error);

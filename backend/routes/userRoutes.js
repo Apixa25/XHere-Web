@@ -6,6 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const Location = require('../models/Location');
 const upload = require('../middleware/upload');
+const { checkAndAwardBadges } = require('../utils/badgeChecker');
 
 // User registration
 router.post('/register', async (req, res) => {
@@ -279,6 +280,38 @@ router.get('/profile/:userId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Error fetching user profile' });
+  }
+});
+
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId);
+    
+    console.log('Checking badges for user:', req.user.userId);
+    const locations = await Location.findAll({
+      where: { creatorId: req.user.userId }
+    });
+    
+    console.log('User locations verification status:', locations.map(loc => ({
+      id: loc.id,
+      status: loc.verificationStatus,
+      upvotes: loc.upvotes,
+      downvotes: loc.downvotes
+    })));
+
+    // Check for new badges
+    const newBadges = await checkAndAwardBadges(req.user.userId);
+    
+    // Include badges in response
+    res.json({ 
+      user: {
+        ...user.toJSON(),
+        newBadges 
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ error: 'Error fetching profile' });
   }
 });
 
