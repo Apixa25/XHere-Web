@@ -190,21 +190,32 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // ... your existing profile fetch code ...
+      try {
+        const response = await fetch(`${API_URL}/api/users/profile`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
 
-      // Add this after your profile data is fetched
-      const newBadges = await checkBadges();
-      console.log('New badges earned:', newBadges);
-      
-      // Fetch current badges
-      const badgeResponse = await fetch(`${API_URL}/api/badges/user/badges`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+        if (!response.ok) {
+          throw new Error(`Profile fetch failed: ${response.status}`);
         }
-      });
-      const badgeData = await badgeResponse.json();
-      console.log('Current badges:', badgeData.badges);
-      
+
+        const data = await response.json();
+        console.log('Profile data received:', data);
+        
+        setUserData({
+          ...data.user,
+          isAdmin: user.isAdmin,
+          name: data.user.profile?.name || data.user.email,
+          profile: data.user.profile || {},
+          badges: data.user.badges || [] // Badges come from profile endpoint only
+        });
+
+      } catch (error) {
+        console.error('Profile data fetch error:', error);
+        setError('Failed to fetch profile data');
+      }
     };
     
     fetchData();
