@@ -36,7 +36,12 @@ const AdminDashboard = () => {
       const data = await response.json();
       console.log('Users data received:', data);
       
-      setUsers(data);
+      const usersWithLocationCounts = data.map(user => ({
+        ...user,
+        locationCount: user.locationCount || 0
+      }));
+      
+      setUsers(usersWithLocationCounts);
       setLoading(false);
     } catch (err) {
       console.error('Error loading users:', err);
@@ -225,6 +230,7 @@ const AdminDashboard = () => {
                     <th>Email</th>
                     <th>Name</th>
                     <th>Credits</th>
+                    <th>Locations</th>
                     <th>Admin</th>
                     <th>Actions</th>
                   </tr>
@@ -235,6 +241,7 @@ const AdminDashboard = () => {
                       <td>{user.email}</td>
                       <td>{user.profile?.name || 'N/A'}</td>
                       <td>{user.credits}</td>
+                      <td>{user.locationCount || 0}</td>
                       <td>{user.isAdmin ? '✓' : ''}</td>
                       <td>
                         <button 
