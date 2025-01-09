@@ -11,6 +11,8 @@ const AdminDashboard = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sortField, setSortField] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
 
   useEffect(() => {
     loadUsers();
@@ -35,19 +37,49 @@ const AdminDashboard = () => {
       
       const data = await response.json();
       console.log('Users data received:', data);
+      data.forEach(user => {
+        console.log(`User ${user.email}: ${user.locationCount} locations`);
+      });
       
-      const usersWithLocationCounts = data.map(user => ({
-        ...user,
-        locationCount: user.locationCount || 0
-      }));
-      
-      setUsers(usersWithLocationCounts);
+      setUsers(data);
       setLoading(false);
     } catch (err) {
       console.error('Error loading users:', err);
       setError(`Failed to load users: ${err.message}`);
       setLoading(false);
     }
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedUsers = [...users].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aValue = sortField === 'locationCount' ? (a[sortField] || 0) : a[sortField];
+    let bValue = sortField === 'locationCount' ? (b[sortField] || 0) : b[sortField];
+    
+    // Handle nested profile.name field
+    if (sortField === 'profile.name') {
+      aValue = a.profile?.name || '';
+      bValue = b.profile?.name || '';
+    }
+    
+    if (aValue === bValue) return 0;
+    
+    const comparison = aValue > bValue ? 1 : -1;
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const getSortIcon = (field) => {
+    if (sortField !== field) return '↕️';
+    return sortDirection === 'asc' ? '↑' : '↓';
   };
 
   const handleSearch = async () => {
@@ -178,121 +210,104 @@ const AdminDashboard = () => {
   };
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error) return <div className="error-message">{error}</div>;
 
   return (
     <div className="admin-dashboard">
       <div className="admin-header">
-        <button 
-          onClick={() => navigate('/')}
-          className="back-button"
-        >
+        <h2>Admin Dashboard</h2>
+        <button className="back-button" onClick={() => navigate('/')}>
           Back to Map
         </button>
-        <h2>Admin Dashboard</h2>
       </div>
-      
-      {loading && <div>Loading users...</div>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      
-      {!loading && !error && (
-        <>
-          <div className="search-section">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search content..."
-              className="search-input"
-            />
-            <select 
-              value={searchType} 
-              onChange={(e) => setSearchType(e.target.value)}
-              className="search-select"
-            >
-              <option value="locations">Locations</option>
-              <option value="flagged">Flagged Content</option>
-              <option value="recent">Recent Content</option>
-            </select>
-            <button onClick={handleSearch} className="search-button">
-              Search
-            </button>
-          </div>
 
-          <div className="users-section">
-            <h3>Users ({users.length})</h3>
-            {users.length === 0 ? (
-              <p>No users found</p>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Email</th>
-                    <th>Name</th>
-                    <th>Credits</th>
-                    <th>Locations</th>
-                    <th>Admin</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(user => (
-                    <tr key={user.id}>
-                      <td>{user.email}</td>
-                      <td>{user.profile?.name || 'N/A'}</td>
-                      <td>{user.credits}</td>
-                      <td>{user.locationCount || 0}</td>
-                      <td>{user.isAdmin ? '✓' : ''}</td>
-                      <td>
-                        <button 
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="delete-button"
-                          disabled={user.isAdmin}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+      <div className="users-section">
+        <h3>Users ({users.length})</h3>
+        {users.length === 0 ? (
+          <p>No users found</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th onClick={() => handleSort('email')} style={headerStyle}>
+                  Email {getSortIcon('email')}
+                </th>
+                <th onClick={() => handleSort('profile.name')} style={headerStyle}>
+                  Name {getSortIcon('profile.name')}
+                </th>
+                <th onClick={() => handleSort('credits')} style={headerStyle}>
+                  Credits {getSortIcon('credits')}
+                </th>
+                <th onClick={() => handleSort('locationCount')} style={headerStyle}>
+                  Locations {getSortIcon('locationCount')}
+                </th>
+                <th>Admin</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedUsers.map(user => (
+                <tr key={user.id}>
+                  <td>{user.email}</td>
+                  <td>{user.profile?.name || 'N/A'}</td>
+                  <td>{user.credits}</td>
+                  <td>{user.locationCount || 0}</td>
+                  <td>{user.isAdmin ? '✓' : ''}</td>
+                  <td>
+                    <button 
+                      onClick={() => handleDeleteUser(user.id)}
+                      className="delete-button"
+                      disabled={user.isAdmin}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-          {searchResults.length > 0 && (
-            <div className="search-results">
-              <h3>Search Results ({searchResults.length})</h3>
-              <div className="location-grid">
-                {searchResults.map(location => (
-                  <div key={location.id} className="location-card">
-                    <div className="location-header">
-                      <span className="location-date">
-                        {new Date(location.createdAt).toLocaleDateString()}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteLocation(location.id)}
-                        className="delete-button"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                    <div className="location-content">
-                      <p>{location.content.text}</p>
-                      {renderMediaPreview(location.content.mediaUrls, location.content.mediaTypes)}
-                    </div>
-                    <div className="location-footer">
-                      <span>By: {location.creator.email}</span>
-                      <span>Points: {location.totalPoints}</span>
-                    </div>
-                  </div>
-                ))}
+      {searchResults.length > 0 && (
+        <div className="search-results">
+          <h3>Search Results ({searchResults.length})</h3>
+          <div className="location-grid">
+            {searchResults.map(location => (
+              <div key={location.id} className="location-card">
+                <div className="location-header">
+                  <span className="location-date">
+                    {new Date(location.createdAt).toLocaleDateString()}
+                  </span>
+                  <button
+                    onClick={() => handleDeleteLocation(location.id)}
+                    className="delete-button"
+                  >
+                    Delete
+                  </button>
+                </div>
+                <div className="location-content">
+                  <p>{location.content.text}</p>
+                  {renderMediaPreview(location.content.mediaUrls, location.content.mediaTypes)}
+                </div>
+                <div className="location-footer">
+                  <span>By: {location.creator.email}</span>
+                  <span>Points: {location.totalPoints}</span>
+                </div>
               </div>
-            </div>
-          )}
-        </>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
+};
+
+const headerStyle = {
+  cursor: 'pointer',
+  userSelect: 'none',
+  position: 'relative',
+  paddingRight: '20px'
 };
 
 export default AdminDashboard; 
