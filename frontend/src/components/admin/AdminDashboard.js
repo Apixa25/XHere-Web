@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import './AdminDashboard.css';
 
+const BACKEND_URL = 'http://localhost:3000';
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
@@ -13,6 +15,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+  const [failedImages, setFailedImages] = useState(new Set());
 
   useEffect(() => {
     loadUsers();
@@ -66,18 +69,31 @@ const AdminDashboard = () => {
     }
 
     try {
+      console.log('Starting search:', { type: searchType, query: searchQuery });
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/admin/search?type=${searchType}&query=${encodeURIComponent(searchQuery)}`, {
+      const searchUrl = `${BACKEND_URL}/api/admin/search?type=${searchType}&query=${encodeURIComponent(searchQuery)}`;
+      console.log('Search URL:', searchUrl);
+
+      const response = await fetch(searchUrl, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      console.log('Search response status:', response.status);
 
       if (!response.ok) {
         throw new Error('Search failed');
       }
 
       const results = await response.json();
+      console.log('Search results:', {
+        count: results.length,
+        firstResult: results[0],
+        mediaUrls: results[0]?.content?.mediaUrls,
+        mediaTypes: results[0]?.content?.mediaTypes
+      });
+
       setSearchResults(results);
     } catch (error) {
       console.error('Search error:', error);
@@ -200,6 +216,14 @@ const AdminDashboard = () => {
     );
   };
 
+  const handleImageError = (url) => {
+    if (!failedImages.has(url)) {
+      console.log(`First-time image load error for ${url}`);
+      setFailedImages(prev => new Set([...prev, url]));
+    }
+    return '/placeholder-image.png';
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
 
@@ -237,7 +261,7 @@ const AdminDashboard = () => {
       {/* Search Results */}
       {searchResults.length > 0 && (
         <div className="search-results">
-          <h3>Search Results</h3>
+          <h3>Search Results ({searchResults.length})</h3>
           <div className="result-list">
             {searchResults.map(result => (
               <div key={result.id} className="result-item">
@@ -250,6 +274,35 @@ const AdminDashboard = () => {
                   <>
                     <strong>{result.content?.text}</strong>
                     <small>Created by: {result.creator?.email}</small>
+                    {result.content?.mediaUrls && result.content.mediaUrls.length > 0 && (
+                      <div className="media-preview">
+                        {result.content.mediaUrls.map((url, index) => {
+                          const fullUrl = `${BACKEND_URL}/${url}`;
+                          return (
+                            <div key={index} className="media-item">
+                              {result.content.mediaTypes[index]?.startsWith('image') ? (
+                                failedImages.has(fullUrl) ? (
+                                  <div className="placeholder-image">
+                                    <span>Image not available</span>
+                                  </div>
+                                ) : (
+                                  <img 
+                                    src={fullUrl}
+                                    alt={`Location media ${index + 1}`}
+                                    onError={() => handleImageError(fullUrl)}
+                                  />
+                                )
+                              ) : (
+                                <video controls>
+                                  <source src={fullUrl} type={result.content.mediaTypes[index]} />
+                                  Your browser does not support the video tag.
+                                </video>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
