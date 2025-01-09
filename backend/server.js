@@ -98,7 +98,6 @@ const authRoutes = require('./routes/authRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const voteRoutes = require('./routes/voteRoutes');
-const badgeRoutes = require('./routes/badgeRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
 // Register routes
@@ -106,7 +105,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/votes', voteRoutes);
-app.use('/api/badges', badgeRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Add this debug log
