@@ -4,7 +4,6 @@ const BadgeDisplay = ({ badges = [], credits = 0 }) => {
   // Parse badges if they're a string
   const parsedBadges = typeof badges === 'string' ? JSON.parse(badges) : badges;
   
-  // Remove console.log and use only for debugging
   console.debug('BadgeDisplay received:', { 
     badges: parsedBadges,
     credits,
@@ -13,21 +12,11 @@ const BadgeDisplay = ({ badges = [], credits = 0 }) => {
 
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 1fr)',
       gap: '20px',
       marginBottom: '20px'
     }}>
-      {/* Credits Card */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: '15px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <h3 style={{ margin: 0 }}>Credits: {credits}</h3>
-      </div>
-
       {/* Badges Card - Only show if there are badges */}
       {parsedBadges && parsedBadges.length > 0 && (
         <div style={{
@@ -73,6 +62,16 @@ const BadgeDisplay = ({ badges = [], credits = 0 }) => {
           </div>
         </div>
       )}
+
+      {/* Credits Card */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '15px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <h3 style={{ margin: 0 }}>Credits: {credits}</h3>
+      </div>
     </div>
   );
 };
