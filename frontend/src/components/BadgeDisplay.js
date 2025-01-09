@@ -14,48 +14,63 @@ const BadgeDisplay = ({ badges = [], credits = 0 }) => {
     <div style={{
       display: 'grid',
       gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '20px',
-      marginBottom: '20px'
+      gap: '15px',
+      marginBottom: '15px'
     }}>
       {/* Badges Card - Only show if there are badges */}
       {parsedBadges && parsedBadges.length > 0 && (
         <div style={{
-          backgroundColor: 'white',
-          padding: '15px',
+          backgroundColor: '#f5f5f5',
+          padding: '12px',
           borderRadius: '8px',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
-          <h3 style={{ marginBottom: '15px' }}>Badges Earned</h3>
+          <h3 style={{ 
+            marginBottom: '12px',
+            fontSize: '1.1rem'
+          }}>
+            Badges Earned
+          </h3>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: '15px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: '12px'
           }}>
             {parsedBadges.map((badge, index) => (
               <div key={index} style={{
-                backgroundColor: '#f5f5f5',
-                padding: '10px',
-                borderRadius: '8px',
+                backgroundColor: 'white',
+                padding: '8px',
+                borderRadius: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px'
+                gap: '8px'
               }}>
                 <div style={{
                   backgroundColor: badge.color || '#4CAF50',
                   color: 'white',
-                  width: '40px',
-                  height: '40px',
+                  width: '32px',
+                  height: '32px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '20px'
+                  fontSize: '16px'
                 }}>
                   {badge.icon || '🏆'}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 'bold' }}>{badge.name}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>{badge.description}</div>
+                  <div style={{ 
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem'
+                  }}>
+                    {badge.name}
+                  </div>
+                  <div style={{ 
+                    fontSize: '11px',
+                    color: '#666'
+                  }}>
+                    {badge.description}
+                  </div>
                 </div>
               </div>
             ))}
@@ -65,12 +80,32 @@ const BadgeDisplay = ({ badges = [], credits = 0 }) => {
 
       {/* Credits Card */}
       <div style={{
-        backgroundColor: 'white',
-        padding: '15px',
+        backgroundColor: '#f5f5f5',
+        padding: '12px',
         borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        minHeight: '150px'
       }}>
-        <h3 style={{ margin: 0 }}>Credits: {credits}</h3>
+        <div>
+          <h3 style={{ 
+            margin: '0 0 8px 0',
+            fontSize: '1.1rem',
+            color: '#333'
+          }}>
+            Credits
+          </h3>
+          <div style={{ 
+            fontSize: '1.8rem',
+            fontWeight: 'bold',
+            color: '#4CAF50'
+          }}>
+            {credits}
+          </div>
+        </div>
       </div>
     </div>
   );
