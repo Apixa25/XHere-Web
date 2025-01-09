@@ -145,7 +145,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const checkBadges = async () => {
     try {
       console.log('Checking badges...');
-      const response = await fetch('/api/badges/check', {
+      const response = await fetch(`${API_URL}/api/badges/check`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -197,9 +197,9 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       console.log('New badges earned:', newBadges);
       
       // Fetch current badges
-      const badgeResponse = await fetch('/api/badges/user/badges', {
+      const badgeResponse = await fetch(`${API_URL}/api/badges/user/badges`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       const badgeData = await badgeResponse.json();

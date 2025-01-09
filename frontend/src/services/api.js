@@ -145,7 +145,7 @@ const api = {
   // Check for new badges
   checkBadges: async () => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/badges/check-badges`, {
+    const response = await fetch(`${API_URL}/api/badges/check`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
