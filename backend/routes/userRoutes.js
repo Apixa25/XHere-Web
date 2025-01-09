@@ -288,15 +288,15 @@ router.get('/profile', authenticateToken, async (req, res) => {
     const user = await User.findByPk(req.user.userId);
     console.log('User data from DB:', JSON.stringify(user, null, 2));
     
+    // Check and award badges in one place only
     const badges = await checkAndAwardBadges(req.user.userId);
     console.log('Badges checked:', badges);
     
-    // Make sure we're sending both badges and credits
     res.json({ 
       user: {
         ...user.toJSON(),
         badges,
-        credits: user.credits || 0  // Ensure credits are included
+        credits: user.credits || 0
       }
     });
   } catch (error) {
