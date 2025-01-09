@@ -180,4 +180,29 @@ router.delete('/locations/:locationId', authenticateToken, adminAuth, async (req
   }
 });
 
+// Add this new route alongside your existing routes
+router.put('/locations/:locationId', authenticateToken, adminAuth, async (req, res) => {
+  try {
+    const location = await Location.findByPk(req.params.locationId);
+    
+    if (!location) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    const updatedContent = {
+      ...location.content,
+      text: req.body.text
+    };
+
+    await location.update({
+      content: updatedContent
+    });
+
+    res.json({ message: 'Location updated successfully', location });
+  } catch (error) {
+    console.error('Error updating location:', error);
+    res.status(500).json({ error: 'Error updating location' });
+  }
+});
+
 module.exports = router; 

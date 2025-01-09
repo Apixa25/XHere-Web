@@ -156,11 +156,10 @@ const AdminDashboard = () => {
     if (window.confirm('Are you sure you want to delete this location?')) {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/api/admin/locations/${locationId}`, {
+        const response = await fetch(`${BACKEND_URL}/api/admin/locations/${locationId}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${token}`
           }
         });
 
@@ -170,12 +169,47 @@ const AdminDashboard = () => {
 
         // Remove the deleted location from search results
         setSearchResults(prevResults => 
-          prevResults.filter(location => location.id !== locationId)
+          prevResults.filter(result => result.id !== locationId)
         );
       } catch (err) {
         console.error('Delete location error:', err);
         setError('Failed to delete location');
       }
+    }
+  };
+
+  const handleEditLocation = async (location) => {
+    const newText = prompt('Edit location text:', location.content?.text);
+    if (newText === null) return; // User cancelled
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/admin/locations/${location.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: newText
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update location');
+      }
+
+      // Update the location in search results
+      setSearchResults(prevResults => 
+        prevResults.map(result => 
+          result.id === location.id 
+            ? { ...result, content: { ...result.content, text: newText } }
+            : result
+        )
+      );
+    } catch (err) {
+      console.error('Edit location error:', err);
+      setError('Failed to edit location');
     }
   };
 
@@ -304,6 +338,22 @@ const AdminDashboard = () => {
                       </div>
                     )}
                   </>
+                )}
+                {searchType === 'locations' && (
+                  <div className="result-actions">
+                    <button 
+                      onClick={() => handleEditLocation(result)}
+                      className="edit-button"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteLocation(result.id)}
+                      className="delete-button"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
