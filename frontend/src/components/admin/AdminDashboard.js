@@ -59,13 +59,43 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/admin/search?type=${searchType}&query=${encodeURIComponent(searchQuery)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+
+      const results = await response.json();
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setError('Search failed: ' + error.message);
+    }
+  };
+
+  const getSortIcon = (field) => {
+    if (sortField !== field) return '↕️';
+    return sortDirection === 'asc' ? '↑' : '↓';
+  };
+
   const sortedUsers = [...users].sort((a, b) => {
     if (!sortField) return 0;
     
     let aValue = sortField === 'locationCount' ? (a[sortField] || 0) : a[sortField];
     let bValue = sortField === 'locationCount' ? (b[sortField] || 0) : b[sortField];
     
-    // Handle nested profile.name field
     if (sortField === 'profile.name') {
       aValue = a.profile?.name || '';
       bValue = b.profile?.name || '';
@@ -76,45 +106,6 @@ const AdminDashboard = () => {
     const comparison = aValue > bValue ? 1 : -1;
     return sortDirection === 'asc' ? comparison : -comparison;
   });
-
-  const getSortIcon = (field) => {
-    if (sortField !== field) return '↕️';
-    return sortDirection === 'asc' ? '↑' : '↓';
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/admin/search?query=${encodeURIComponent(searchQuery)}&type=${searchType}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Search failed');
-      }
-
-      console.log('Search results:', data);
-      setSearchResults(data);
-      setLoading(false);
-    } catch (err) {
-      console.error('Search error:', err);
-      setError(`Search failed: ${err.message}`);
-      setLoading(false);
-    }
-  };
 
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user? This will also delete all their content.')) {
@@ -221,6 +212,52 @@ const AdminDashboard = () => {
         </button>
       </div>
 
+      {/* Search Section */}
+      <div className="search-section">
+        <select 
+          value={searchType}
+          onChange={(e) => setSearchType(e.target.value)}
+          className="search-type"
+        >
+          <option value="locations">Locations</option>
+          <option value="users">Users</option>
+        </select>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={`Search ${searchType}...`}
+          className="search-input"
+        />
+        <button onClick={handleSearch} className="search-button">
+          Search
+        </button>
+      </div>
+
+      {/* Search Results */}
+      {searchResults.length > 0 && (
+        <div className="search-results">
+          <h3>Search Results</h3>
+          <div className="result-list">
+            {searchResults.map(result => (
+              <div key={result.id} className="result-item">
+                {searchType === 'users' ? (
+                  <>
+                    <strong>{result.email}</strong>
+                    <small>{result.profile?.name}</small>
+                  </>
+                ) : (
+                  <>
+                    <strong>{result.content?.text}</strong>
+                    <small>Created by: {result.creator?.email}</small>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="users-section">
         <h3>Users ({users.length})</h3>
         {users.length === 0 ? (
@@ -268,37 +305,6 @@ const AdminDashboard = () => {
           </table>
         )}
       </div>
-
-      {searchResults.length > 0 && (
-        <div className="search-results">
-          <h3>Search Results ({searchResults.length})</h3>
-          <div className="location-grid">
-            {searchResults.map(location => (
-              <div key={location.id} className="location-card">
-                <div className="location-header">
-                  <span className="location-date">
-                    {new Date(location.createdAt).toLocaleDateString()}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteLocation(location.id)}
-                    className="delete-button"
-                  >
-                    Delete
-                  </button>
-                </div>
-                <div className="location-content">
-                  <p>{location.content.text}</p>
-                  {renderMediaPreview(location.content.mediaUrls, location.content.mediaTypes)}
-                </div>
-                <div className="location-footer">
-                  <span>By: {location.creator.email}</span>
-                  <span>Points: {location.totalPoints}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
