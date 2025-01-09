@@ -142,31 +142,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     }
   };
 
-  const checkBadges = async () => {
-    try {
-      console.log('Checking badges...');
-      const response = await fetch(`${API_URL}/api/badges/check`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        console.error('Badge check response not OK:', response.status);
-        throw new Error(`Badge check failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Badge check response:', data);
-      return data.newBadges;
-    } catch (error) {
-      console.error('Error checking badges:', error);
-      return [];
-    }
-  };
-
   useEffect(() => {
     if (user) {
       setUserData({ ...user });
@@ -187,39 +162,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     console.log('User admin status:', user?.isAdmin);
     console.log('User profile:', user?.profile);
   }, [user]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/users/profile`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Profile fetch failed: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Profile data received:', data);
-        
-        setUserData({
-          ...data.user,
-          isAdmin: user.isAdmin,
-          name: data.user.profile?.name || data.user.email,
-          profile: data.user.profile || {},
-          badges: data.user.badges || [] // Badges come from profile endpoint only
-        });
-
-      } catch (error) {
-        console.error('Profile data fetch error:', error);
-        setError('Failed to fetch profile data');
-      }
-    };
-    
-    fetchData();
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -250,7 +192,13 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         const data = await response.json();
         console.log('Profile data received:', data);
         
-        setUserData(data.user);
+        setUserData({
+          ...data.user,
+          isAdmin: user.isAdmin,
+          name: data.user.profile?.name || data.user.email,
+          profile: data.user.profile || {},
+          badges: data.user.badges || []
+        });
         setLoading(false);
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -260,43 +208,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     };
     
     fetchData();
-  }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('/api/users/profile', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        const data = await response.json();
-        
-        // Add these detailed console logs
-        console.log('Full profile response:', data);
-        console.log('User badges:', data.user?.badges);
-        
-        // Log each location's verification status
-        const locations = await fetch('/api/locations/user', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }).then(res => res.json());
-        
-        console.log('Locations verification status:', locations.map(loc => ({
-          id: loc.id,
-          status: loc.verificationStatus,
-          upvotes: loc.upvotes,
-          downvotes: loc.downvotes
-        })));
-
-      } catch (error) {
-        console.error('Profile data fetch error:', error);
-      }
-    };
-    
-    fetchData();
-  }, []);
+  }, [token, user]);
 
   const handleDelete = async (locationId) => {
     if (window.confirm('Are you sure you want to delete this location?')) {
