@@ -4,6 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const Location = require('../models/Location');
 const { Sequelize, Op } = require('sequelize');
+const sequelize = require('../config/database');
 
 // Admin middleware
 const adminAuth = async (req, res, next) => {
@@ -18,16 +19,42 @@ const adminAuth = async (req, res, next) => {
   }
 };
 
-// Get all users
+// Get all users with location counts
 router.get('/users', authenticateToken, adminAuth, async (req, res) => {
   try {
+    // Debug log
+    console.log('Fetching users with location counts...');
+
     const users = await User.findAll({
-      attributes: ['id', 'email', 'profile', 'isAdmin', 'credits', 'createdAt']
+      attributes: [
+        'id',
+        'email',
+        'profile',
+        'isAdmin',
+        'credits',
+        'createdAt',
+        [
+          sequelize.literal(`(
+            SELECT COALESCE(COUNT(*), 0)
+            FROM "Locations"
+            WHERE "Locations"."creatorId" = "User"."id"
+          )`),
+          'locationCount'
+        ]
+      ],
+      order: [['createdAt', 'DESC']]
     });
+
+    // Debug log
+    console.log(`Found ${users.length} users`);
+
     res.json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Error fetching users' });
+    console.error('Error in /admin/users:', error);
+    res.status(500).json({ 
+      error: 'Error fetching users',
+      details: error.message 
+    });
   }
 });
 
