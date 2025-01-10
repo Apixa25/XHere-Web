@@ -1,4 +1,3 @@
-// App.js
 import React, { useState, useEffect, useCallback, useRef, createContext } from 'react';
 import { 
   GoogleMap, 
@@ -1078,8 +1077,9 @@ function App() {
                   const markerElement = document.createElement('div');
                   markerElement.className = 'custom-marker';
                   
-                  // Create marker content with votes and credits
-                  const shortText = location.content?.text?.substring(0, 25) + (location.content?.text?.length > 25 ? '...' : '');
+                  const shortText = location.content?.text?.substring(0, 25) + 
+                    (location.content?.text?.length > 25 ? '...' : '');
+                  
                   markerElement.innerHTML = `
                     <div class="marker-content">
                       <div class="marker-text">${shortText}</div>
@@ -1090,6 +1090,24 @@ function App() {
                     </div>
                   `;
 
+                  // Add hover animation
+                  markerElement.addEventListener('mouseenter', () => {
+                    markerElement.classList.add('pulse');
+                  });
+                  
+                  markerElement.addEventListener('mouseleave', () => {
+                    markerElement.classList.remove('pulse');
+                    void markerElement.offsetWidth; // Reset animation
+                  });
+                  
+                  // Add click animation
+                  markerElement.addEventListener('click', () => {
+                    markerElement.classList.add('bounce');
+                    setTimeout(() => {
+                      markerElement.classList.remove('bounce');
+                    }, 1000);
+                  });
+
                   const advancedMarker = new window.google.maps.marker.AdvancedMarkerElement({
                     map,
                     position,
@@ -1097,7 +1115,6 @@ function App() {
                     title: location.content?.text || 'Location'
                   });
 
-                  // Add event listeners
                   advancedMarker.addListener('click', () => handleMarkerClick(location));
                   advancedMarker.addListener('mouseover', () => setHoveredMarker(location));
                   advancedMarker.addListener('mouseout', () => setHoveredMarker(null));

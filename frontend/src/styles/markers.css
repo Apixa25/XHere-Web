@@ -1,11 +1,11 @@
 .custom-marker {
   background: white;
-  border-radius: 8px 8px 8px 8px;
+  border-radius: 8px;
   padding: 8px 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   border: 2px solid #4285f4;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   min-width: 120px;
   position: relative;
 }
@@ -66,4 +66,39 @@
   display: flex;
   align-items: center;
   gap: 2px;
-} 
+}
+
+.custom-marker.popular {
+  border-color: #ffab40;
+  background: #fff8e1;
+}
+
+.custom-marker.featured {
+  border-color: #7c4dff;
+  background: #f3e5f5;
+}
+
+.custom-marker.has-media {
+  border-style: dashed;
+}
+
+/* Pulse animation on hover */
+.custom-marker.pulse {
+  animation: pulse 0.5s ease-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Bounce animation on click */
+.custom-marker.bounce {
+  animation: bounce 0.5s cubic-bezier(0.36, 0, 0.66, -0.56);
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
