@@ -1,12 +1,40 @@
 .custom-marker {
   background: white;
-  border-radius: 8px;
+  border-radius: 8px 8px 8px 8px;
   padding: 8px 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   border: 2px solid #4285f4;
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 120px;
+  position: relative;
+}
+
+.custom-marker:after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #4285f4;
+}
+
+.custom-marker:before {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid white;
+  z-index: 1;
 }
 
 .custom-marker:hover {
