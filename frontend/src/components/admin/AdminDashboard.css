@@ -294,4 +294,75 @@ th[onClick]:hover {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.view-locations-button {
+  margin-top: 10px;
+  padding: 5px 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.view-locations-button:hover {
+  background-color: #45a049;
+}
+
+.user-locations {
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.location-item {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.location-content {
+  flex: 1;
+}
+
+.location-content strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.location-content small {
+  display: block;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.location-stats {
+  display: flex;
+  gap: 15px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.location-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+.no-locations {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
 } 
