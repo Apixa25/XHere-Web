@@ -18,6 +18,7 @@ import ProfilePage from './components/ProfilePage';
 import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
+import './styles/markers.css';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1073,31 +1074,42 @@ function App() {
                   lng: Number(location.location?.coordinates?.[0])
                 };
 
-                if (advancedMarkersAvailable && window.google?.maps?.marker?.AdvancedMarkerView) {
-                  const advancedMarkerView = new window.google.maps.marker.AdvancedMarkerView({
-                    position,
-                    title: location.name
-                  });
+                if (advancedMarkersAvailable && window.google?.maps?.marker?.AdvancedMarkerElement) {
+                  const markerElement = document.createElement('div');
+                  markerElement.className = 'custom-marker';
                   
-                  return (
-                    <div 
-                      key={location.id}
-                      onClick={() => handleMarkerClick(location)}
-                      onMouseOver={() => setHoveredMarker(location)}
-                      onMouseOut={() => setHoveredMarker(null)}
-                    >
-                      {advancedMarkerView.position && (
-                        <div ref={el => el && advancedMarkerView.setMap(map)} />
-                      )}
+                  // Create marker content with votes and credits
+                  const shortText = location.content?.text?.substring(0, 25) + (location.content?.text?.length > 25 ? '...' : '');
+                  markerElement.innerHTML = `
+                    <div class="marker-content">
+                      <div class="marker-text">${shortText}</div>
+                      <div class="marker-stats">
+                        <span class="votes">⬆️ ${location.upvotes || 0}</span>
+                        ${location.credits ? `<span class="credits">✨ ${location.credits}</span>` : ''}
+                      </div>
                     </div>
-                  );
+                  `;
+
+                  const advancedMarker = new window.google.maps.marker.AdvancedMarkerElement({
+                    map,
+                    position,
+                    content: markerElement,
+                    title: location.content?.text || 'Location'
+                  });
+
+                  // Add event listeners
+                  advancedMarker.addListener('click', () => handleMarkerClick(location));
+                  advancedMarker.addListener('mouseover', () => setHoveredMarker(location));
+                  advancedMarker.addListener('mouseout', () => setHoveredMarker(null));
+
+                  return null;
                 }
 
-                // Fallback to regular marker
                 return (
                   <Marker
                     key={location.id}
                     position={position}
+                    title={location.content?.text}
                     onClick={() => handleMarkerClick(location)}
                     onMouseOver={() => setHoveredMarker(location)}
                     onMouseOut={() => setHoveredMarker(null)}
