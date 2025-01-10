@@ -249,4 +249,58 @@ router.get('/user-locations/:userId', authenticateToken, adminAuth, async (req, 
   }
 });
 
+// Add this new route to handle media deletion
+router.delete('/locations/:locationId/media/:mediaIndex', authenticateToken, adminAuth, async (req, res) => {
+  try {
+    const { locationId, mediaIndex } = req.params;
+    console.log('Deleting media:', { locationId, mediaIndex });
+
+    const location = await Location.findByPk(locationId);
+    
+    if (!location) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    // Get current content
+    const content = location.content || {};
+    const mediaUrls = content.mediaUrls || [];
+    const mediaTypes = content.mediaTypes || [];
+
+    // Validate media index
+    if (mediaIndex >= mediaUrls.length) {
+      return res.status(400).json({ error: 'Invalid media index' });
+    }
+
+    // Remove the media from arrays
+    const updatedMediaUrls = mediaUrls.filter((_, index) => index !== parseInt(mediaIndex));
+    const updatedMediaTypes = mediaTypes.filter((_, index) => index !== parseInt(mediaIndex));
+
+    // Update location with new content
+    const updatedContent = {
+      ...content,
+      mediaUrls: updatedMediaUrls,
+      mediaTypes: updatedMediaTypes
+    };
+
+    location.content = updatedContent;
+    await location.save();
+
+    console.log('Media deleted successfully');
+    
+    // Return updated location
+    const updatedLocation = await Location.findByPk(locationId, {
+      include: [{
+        model: User,
+        as: 'creator',
+        attributes: ['email', 'profile']
+      }]
+    });
+
+    res.json(updatedLocation);
+  } catch (error) {
+    console.error('Error deleting media:', error);
+    res.status(500).json({ error: 'Failed to delete media' });
+  }
+});
+
 module.exports = router; 

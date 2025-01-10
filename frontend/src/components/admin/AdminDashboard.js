@@ -67,42 +67,33 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
+  const handleSearch = async (type, query) => {
     try {
-      console.log('Starting search:', { type: searchType, query: searchQuery });
+      console.log('Starting search:', { type, query });
       const token = localStorage.getItem('token');
-      const searchUrl = `${BACKEND_URL}/api/admin/search?type=${searchType}&query=${encodeURIComponent(searchQuery)}`;
+      const searchUrl = `${BACKEND_URL}/api/admin/search?type=${type}&query=${query}`;
+      
       console.log('Search URL:', searchUrl);
-
+      
       const response = await fetch(searchUrl, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-
+      
       console.log('Search response status:', response.status);
-
+      
       if (!response.ok) {
         throw new Error('Search failed');
       }
-
+      
       const results = await response.json();
-      console.log('Search results:', {
-        count: results.length,
-        firstResult: results[0],
-        mediaUrls: results[0]?.content?.mediaUrls,
-        mediaTypes: results[0]?.content?.mediaTypes
-      });
-
+      console.log('Search results:', results);
       setSearchResults(results);
     } catch (error) {
       console.error('Search error:', error);
-      setError('Search failed: ' + error.message);
+      setSearchResults([]);
+      alert('Search failed');
     }
   };
 
@@ -185,18 +176,25 @@ const AdminDashboard = () => {
 
   const startEditing = (location) => {
     console.log('Starting edit for location:', location);
-    console.log('Current selectedUserId:', selectedUserId);
+    const currentText = location.content?.text || '';
+    console.log('Setting initial edit text:', currentText);
+    setEditText(currentText);
     setEditingLocation(location);
-    setEditText(location.content?.text || '');
   };
 
   const handleEditLocation = async (location) => {
     try {
       console.log('Editing location:', location);
+      
+      if (!editText.trim()) {
+        alert('Location text cannot be empty');
+        return;
+      }
+      
       const token = localStorage.getItem('token');
       
       const updatedContent = {
-        text: editText,
+        text: editText.trim(),
         mediaUrls: location.content?.mediaUrls || [],
         mediaTypes: location.content?.mediaTypes || [],
         isAnonymous: location.content?.isAnonymous || false
@@ -224,10 +222,16 @@ const AdminDashboard = () => {
 
       console.log('Location updated successfully:', data);
       
-      if (selectedUserId) {
+      // Update the search results directly if we're in location search view
+      if (searchType === 'locations') {
+        setSearchResults(prevResults => 
+          prevResults.map(result => 
+            result.id === location.id ? data : result
+          )
+        );
+      } else if (selectedUserId) {
+        // Only fetch user locations if we're in user search view
         await fetchUserLocations(selectedUserId);
-      } else {
-        console.warn('No selectedUserId available for refresh');
       }
       
       setEditingLocation(null);
@@ -346,6 +350,34 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteMedia = async (locationId, mediaIndex) => {
+    try {
+      console.log('Deleting media:', { locationId, mediaIndex });
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${BACKEND_URL}/api/admin/locations/${locationId}/media/${mediaIndex}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete media');
+      }
+
+      console.log('Media deleted successfully');
+      
+      // Refresh the locations to show updated media
+      if (selectedUserId) {
+        await fetchUserLocations(selectedUserId);
+      }
+    } catch (error) {
+      console.error('Error deleting media:', error);
+      alert(`Failed to delete media: ${error.message}`);
+    }
+  };
+
   const renderLocationItem = (location) => (
     <div key={location.id} className="location-item">
       <div className="location-content">
@@ -361,11 +393,15 @@ const AdminDashboard = () => {
               <button 
                 onClick={() => handleEditLocation(location)}
                 className="save-button"
+                disabled={!editText.trim()}
               >
                 💾 Save
               </button>
               <button 
-                onClick={handleCancelEdit}
+                onClick={() => {
+                  setEditingLocation(null);
+                  setEditText('');
+                }}
                 className="cancel-button"
               >
                 ❌ Cancel
@@ -383,6 +419,15 @@ const AdminDashboard = () => {
                   const fullUrl = `${BACKEND_URL}/${url}`;
                   return (
                     <div key={index} className="media-item">
+                      <div className="media-delete-button">
+                        <button
+                          onClick={() => handleDeleteMedia(location.id, index)}
+                          className="delete-media-button"
+                          title="Delete media"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                       {location.content.mediaTypes[index]?.startsWith('image') ? (
                         failedImages.has(fullUrl) ? (
                           <div className="placeholder-image">
@@ -410,9 +455,10 @@ const AdminDashboard = () => {
             )}
 
             <div className="location-stats">
-              <span>👍 {location.upvotes || 0}</span>
-              <span>👎 {location.downvotes || 0}</span>
-              <span>📍 Status: {location.verificationStatus}</span>
+              <span title="Upvotes">👍 {location.upvotes || 0}</span>
+              <span title="Downvotes">👎 {location.downvotes || 0}</span>
+              <span title="Status">📍 {location.verificationStatus}</span>
+              <span title="Creator">👤 {location.creator?.email}</span>
             </div>
           </>
         )}
@@ -422,6 +468,7 @@ const AdminDashboard = () => {
           onClick={() => startEditing(location)}
           className="edit-button"
           disabled={editingLocation !== null}
+          title="Edit location"
         >
           ✏️ Edit
         </button>
@@ -429,6 +476,7 @@ const AdminDashboard = () => {
           onClick={() => handleDeleteLocation(location.id)}
           className="delete-button"
           disabled={editingLocation !== null}
+          title="Delete location"
         >
           🗑️ Delete
         </button>
@@ -450,6 +498,13 @@ const AdminDashboard = () => {
     console.log('Selected User ID:', selectedUserId);
     console.log('Editing Location:', editingLocation);
   }, [selectedUserId, editingLocation]);
+
+  // Add this effect to monitor state changes
+  useEffect(() => {
+    if (searchType === 'locations') {
+      console.log('Current search results:', searchResults);
+    }
+  }, [searchResults, searchType]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
@@ -480,7 +535,7 @@ const AdminDashboard = () => {
           placeholder={`Search ${searchType}...`}
           className="search-input"
         />
-        <button onClick={handleSearch} className="search-button">
+        <button onClick={() => handleSearch(searchType, searchQuery)} className="search-button">
           Search
         </button>
       </div>
@@ -523,63 +578,9 @@ const AdminDashboard = () => {
                         </div>
                       )}
                     </div>
-                    {!result.isAdmin && (
-                      <button 
-                        onClick={() => handleDeleteUser(result.id)}
-                        className="delete-button"
-                      >
-                        Delete
-                      </button>
-                    )}
                   </div>
                 ) : (
-                  <>
-                    <strong>{result.content?.text}</strong>
-                    <small>Created by: {result.creator?.email}</small>
-                    {result.content?.mediaUrls && result.content.mediaUrls.length > 0 && (
-                      <div className="media-preview">
-                        {result.content.mediaUrls.map((url, index) => {
-                          const fullUrl = `${BACKEND_URL}/${url}`;
-                          return (
-                            <div key={index} className="media-item">
-                              {result.content.mediaTypes[index]?.startsWith('image') ? (
-                                failedImages.has(fullUrl) ? (
-                                  <div className="placeholder-image">
-                                    <span>Image not available</span>
-                                  </div>
-                                ) : (
-                                  <img 
-                                    src={fullUrl}
-                                    alt={`Location media ${index + 1}`}
-                                    onError={() => handleImageError(fullUrl)}
-                                  />
-                                )
-                              ) : (
-                                <video controls>
-                                  <source src={fullUrl} type={result.content.mediaTypes[index]} />
-                                  Your browser does not support the video tag.
-                                </video>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <div className="result-actions">
-                      <button 
-                        onClick={() => handleEditLocation(result)}
-                        className="edit-button"
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteLocation(result.id)}
-                        className="delete-button"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </>
+                  renderLocationItem(result)
                 )}
               </div>
             ))}
