@@ -100,11 +100,11 @@ router.delete('/users/:userId', authenticateToken, adminAuth, async (req, res) =
 router.get('/search', authenticateToken, adminAuth, async (req, res) => {
   try {
     const { query, type } = req.query;
-    let locations = [];
+    let results = [];
 
     switch (type) {
       case 'locations':
-        locations = await Location.findAll({
+        results = await Location.findAll({
           where: {
             [Op.or]: [
               Sequelize.literal(`CAST("content"->>'text' AS TEXT) ILIKE '%${query}%'`)
@@ -119,44 +119,37 @@ router.get('/search', authenticateToken, adminAuth, async (req, res) => {
         });
         break;
 
-      case 'flagged':
-        locations = await Location.findAll({
+      case 'users':
+        results = await User.findAll({
           where: {
             [Op.or]: [
-              { verificationStatus: 'flagged' },
-              { totalPoints: { [Op.lt]: -5 } }
+              { email: { [Op.iLike]: `%${query}%` } },
+              Sequelize.literal(`CAST("profile"->>'name' AS TEXT) ILIKE '%${query}%'`)
             ]
           },
-          include: [{
-            model: User,
-            as: 'creator',
-            attributes: ['email', 'profile']
-          }],
-          order: [['createdAt', 'DESC']]
-        });
-        break;
-
-      case 'recent':
-        locations = await Location.findAll({
-          where: {
-            createdAt: {
-              [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000)
-            }
-          },
-          include: [{
-            model: User,
-            as: 'creator',
-            attributes: ['email', 'profile']
-          }],
+          attributes: [
+            'id',
+            'email',
+            'profile',
+            'isAdmin',
+            'credits',
+            'createdAt',
+            [
+              sequelize.literal(`(
+                SELECT COALESCE(COUNT(*), 0)
+                FROM "Locations"
+                WHERE "Locations"."creatorId" = "User"."id"
+              )`),
+              'locationCount'
+            ]
+          ],
           order: [['createdAt', 'DESC']]
         });
         break;
     }
 
-    // Add debug logging
-    console.log('Search results:', locations);
-    
-    res.json(locations);
+    console.log('Search results:', results);
+    res.json(results);
   } catch (error) {
     console.error('Backend search error:', error);
     res.status(500).json({ error: error.message || 'Error performing search' });
