@@ -437,7 +437,11 @@ const getUserFromStorage = () => {
 };
 
 function App() {
+  // 1. States first
   const [user, setUser] = useState(null);
+  const [isUserComplete, setIsUserComplete] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [locationData, setLocationData] = useState([]);
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -445,6 +449,37 @@ function App() {
     name: ''
   });
 
+  // 2. Define fetchLocations using useCallback
+  const fetchLocations = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/locations?profile=false`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+
+      const data = await response.json();
+      setLocationData(data);
+    } catch (err) {
+      console.error('Error fetching locations:', err);
+      setLocationData([]);
+    }
+  }, []); // Empty deps array if no dependencies needed
+
+  // 3. Now we can use fetchLocations in our effects
+  useEffect(() => {
+    if (user) {
+      console.log('Fetching locations for user:', user);
+      fetchLocations();
+    }
+  }, [user, fetchLocations]);
+
+  // 2. All useEffect hooks together
   useEffect(() => {
     if (!user) {
       // Set background image for login page
@@ -463,7 +498,6 @@ function App() {
   const [error, setError] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
-  const [locationData, setLocationData] = useState([]);
   const [routerPath, setRouterPath] = useState('/');
   const [submitting, setSubmitting] = useState(false);
   const [contentForm, setContentForm] = useState({
@@ -486,13 +520,6 @@ function App() {
     height: "100vh",
     width: "100%"
   };
-
-  // Fetch locations when user changes
-  useEffect(() => {
-    if (user) {
-      fetchLocations();
-    }
-  }, [user]);
 
   useEffect(() => {
     const verifyToken = async () => {
@@ -699,52 +726,6 @@ function App() {
     }
   };
 
-  const fetchLocations = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/locations?profile=false`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch locations');
-      }
-
-      const data = await response.json();
-      console.log('Raw location data details:', data.map(inspectLocation));
-      
-      // Validate location data
-      const validLocations = data.filter(loc => {
-        const isValid = 
-          loc?.location?.coordinates?.length === 2 &&
-          typeof loc.location.coordinates[0] === 'number' &&
-          typeof loc.location.coordinates[1] === 'number';
-        
-        if (!isValid) {
-          console.warn('Invalid location:', inspectLocation(loc));
-        }
-        return isValid;
-      });
-
-      console.log('Valid locations:', validLocations.length);
-      console.log('Valid location details:', validLocations.map(inspectLocation));
-      setLocationData(validLocations);
-    } catch (err) {
-      console.error('Error fetching locations:', err);
-      setLocationData([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      console.log('Fetching locations for user:', user);
-      fetchLocations();
-    }
-  }, [user, fetchLocations]);
-
   useEffect(() => {
     console.log('LocationData updated:', locationData);
     console.log('LocationData type:', Array.isArray(locationData) ? 'array' : typeof locationData);
@@ -880,27 +861,70 @@ function App() {
     }
   };
 
-  // After successful login, we should:
+  // 3. Login success handler
   const handleLoginSuccess = async (response) => {
+    console.log('🚀 Login successful, setting initial data...'); // Debug log
     const { token, user } = response;
+    
     localStorage.setItem('token', token);
+    setUser(user);
+    setIsUserComplete(false);
     
-    // Add this new fetch to get complete user data
-    try {
-      const fullUserResponse = await fetch(`${API_URL}/api/users/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const fullUserData = await fullUserResponse.json();
-      setUser(fullUserData); // This will include isAdmin status
-    } catch (error) {
-      console.error('Error fetching complete user data:', error);
-    }
-    
-    // Then fetch locations
     await fetchLocations();
   };
+
+  // Add this useEffect to monitor user state changes
+  useEffect(() => {
+    console.log('👤 Current user state:', user); // Debug log
+  }, [user]);
+
+  // User data completion effect
+  useEffect(() => {
+    let isMounted = true;
+
+    const completeUserData = async () => {
+      if (!user || user.isAdmin || isUserComplete) {
+        return;
+      }
+
+      console.log('🔄 Completing user data...'); // Debug log
+      setIsLoadingUser(true);
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(`${API_URL}/api/users/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch complete user data');
+        
+        const fullUserData = await response.json();
+        console.log('✅ Complete user data:', fullUserData); // Debug log
+        
+        if (isMounted) {
+          setUser(fullUserData);
+          localStorage.setItem('user', JSON.stringify(fullUserData));
+          setIsUserComplete(true);
+        }
+      } catch (error) {
+        console.error('❌ Error completing user data:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingUser(false);
+        }
+      }
+    };
+
+    completeUserData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, isUserComplete]);
 
   // Only render the map when user is logged in
   if (!user) {
