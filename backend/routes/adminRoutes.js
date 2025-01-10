@@ -159,42 +159,42 @@ router.get('/search', authenticateToken, adminAuth, async (req, res) => {
 // Add this route for deleting locations
 router.delete('/locations/:locationId', authenticateToken, adminAuth, async (req, res) => {
   try {
-    const location = await Location.findByPk(req.params.locationId);
+    const { locationId } = req.params;
+    
+    const location = await Location.findByPk(locationId);
     
     if (!location) {
       return res.status(404).json({ error: 'Location not found' });
     }
 
     await location.destroy();
+    
     res.json({ message: 'Location deleted successfully' });
   } catch (error) {
     console.error('Error deleting location:', error);
-    res.status(500).json({ error: 'Error deleting location' });
+    res.status(500).json({ error: 'Failed to delete location' });
   }
 });
 
 // Add this new route alongside your existing routes
 router.put('/locations/:locationId', authenticateToken, adminAuth, async (req, res) => {
   try {
-    const location = await Location.findByPk(req.params.locationId);
+    const { locationId } = req.params;
+    const { content } = req.body;
+
+    const location = await Location.findByPk(locationId);
     
     if (!location) {
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    const updatedContent = {
-      ...location.content,
-      text: req.body.text
-    };
+    location.content = content;
+    await location.save();
 
-    await location.update({
-      content: updatedContent
-    });
-
-    res.json({ message: 'Location updated successfully', location });
+    res.json(location);
   } catch (error) {
     console.error('Error updating location:', error);
-    res.status(500).json({ error: 'Error updating location' });
+    res.status(500).json({ error: 'Failed to update location' });
   }
 });
 
