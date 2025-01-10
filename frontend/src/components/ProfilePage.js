@@ -5,8 +5,8 @@ import { jwtDecode } from 'jwt-decode';
 import LocationDetails from './LocationDetails';
 import api from '../services/api';
 import BadgeDisplay from './BadgeDisplay';
-import ProfilePicture from './ProfilePage/ProfilePicture';
 import ProfileHeader from './ProfilePage/ProfileHeader';
+import ProfilePicture from './ProfilePage/ProfilePicture';
 
 const AdminBadge = () => (
   <div style={{
@@ -679,10 +679,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
       <ProfileHeader 
         userData={userData}
+        setUserData={setUserData}
         API_URL={API_URL}
         navigate={navigate}
       />
-      
+
       <BadgeDisplay 
         badges={userData?.badges || []} 
         credits={userData?.credits || 0} 
