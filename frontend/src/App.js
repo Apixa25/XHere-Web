@@ -1086,7 +1086,8 @@ function App() {
                         ${location.creator?.profile?.pictureUrl ? 
                           `<img 
                             src="${API_URL}/${location.creator.profile.pictureUrl}" 
-                            class="marker-profile-pic" 
+                            class="marker-profile-pic"
+                            style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"
                             alt="Creator"
                           />` : 
                           '<div class="marker-profile-placeholder">👤</div>'
