@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import './AdminDashboard.css';
@@ -183,39 +183,64 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleEditLocation = async (location) => {
-    const newText = prompt('Edit location text:', location.content?.text);
-    if (newText === null) return; // User cancelled
+  const startEditing = (location) => {
+    console.log('Starting edit for location:', location);
+    console.log('Current selectedUserId:', selectedUserId);
+    setEditingLocation(location);
+    setEditText(location.content?.text || '');
+  };
 
+  const handleEditLocation = async (location) => {
     try {
+      console.log('Editing location:', location);
       const token = localStorage.getItem('token');
+      
+      const updatedContent = {
+        text: editText,
+        mediaUrls: location.content?.mediaUrls || [],
+        mediaTypes: location.content?.mediaTypes || [],
+        isAnonymous: location.content?.isAnonymous || false
+      };
+
+      console.log('Sending update with content:', updatedContent);
+
       const response = await fetch(`${BACKEND_URL}/api/admin/locations/${location.id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          text: newText
+          content: updatedContent,
+          location: location.location
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to update location');
+        throw new Error(data.error || 'Failed to update location');
       }
 
-      // Update the location in search results
-      setSearchResults(prevResults => 
-        prevResults.map(result => 
-          result.id === location.id 
-            ? { ...result, content: { ...result.content, text: newText } }
-            : result
-        )
-      );
-    } catch (err) {
-      console.error('Edit location error:', err);
-      setError('Failed to edit location');
+      console.log('Location updated successfully:', data);
+      
+      if (selectedUserId) {
+        await fetchUserLocations(selectedUserId);
+      } else {
+        console.warn('No selectedUserId available for refresh');
+      }
+      
+      setEditingLocation(null);
+      setEditText('');
+    } catch (error) {
+      console.error('Error updating location:', error);
+      alert(`Failed to update location: ${error.message}`);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLocation(null);
+    setEditText('');
   };
 
   const renderMediaPreview = (mediaUrls, mediaTypes) => {
@@ -255,16 +280,18 @@ const AdminDashboard = () => {
     );
   };
 
-  const handleImageError = (url) => {
-    if (!failedImages.has(url)) {
-      console.log(`First-time image load error for ${url}`);
-      setFailedImages(prev => new Set([...prev, url]));
-    }
-    return '/placeholder-image.png';
+  const handleImageError = (imageUrl) => {
+    setFailedImages(prev => new Set(prev).add(imageUrl));
   };
 
-  const fetchUserLocations = async (userId) => {
+  const fetchUserLocations = useCallback(async (userId) => {
+    if (!userId) {
+      console.log('No userId provided to fetchUserLocations');
+      return;
+    }
+
     try {
+      console.log('Fetching locations for user:', userId);
       setLoadingLocations(true);
       const token = localStorage.getItem('token');
       const response = await fetch(`${BACKEND_URL}/api/admin/user-locations/${userId}`, {
@@ -279,14 +306,14 @@ const AdminDashboard = () => {
 
       const data = await response.json();
       setUserLocations(data);
-      setSelectedUserId(selectedUserId === userId ? null : userId); // Toggle view
+      setSelectedUserId(userId);
     } catch (error) {
       console.error('Error fetching user locations:', error);
       alert('Failed to fetch user locations');
     } finally {
       setLoadingLocations(false);
     }
-  };
+  }, []);
 
   const handleSaveEdit = async () => {
     try {
@@ -318,6 +345,111 @@ const AdminDashboard = () => {
       alert('Failed to update location');
     }
   };
+
+  const renderLocationItem = (location) => (
+    <div key={location.id} className="location-item">
+      <div className="location-content">
+        {editingLocation?.id === location.id ? (
+          <div className="edit-form">
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="edit-textarea"
+              placeholder="Enter location text..."
+            />
+            <div className="edit-actions">
+              <button 
+                onClick={() => handleEditLocation(location)}
+                className="save-button"
+              >
+                💾 Save
+              </button>
+              <button 
+                onClick={handleCancelEdit}
+                className="cancel-button"
+              >
+                ❌ Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <strong>{location.content?.text}</strong>
+            <small>Created: {new Date(location.createdAt).toLocaleDateString()}</small>
+            
+            {location.content?.mediaUrls && location.content.mediaUrls.length > 0 && (
+              <div className="media-preview">
+                {location.content.mediaUrls.map((url, index) => {
+                  const fullUrl = `${BACKEND_URL}/${url}`;
+                  return (
+                    <div key={index} className="media-item">
+                      {location.content.mediaTypes[index]?.startsWith('image') ? (
+                        failedImages.has(fullUrl) ? (
+                          <div className="placeholder-image">
+                            <span>📷 Image not available</span>
+                          </div>
+                        ) : (
+                          <img 
+                            src={fullUrl}
+                            alt={`Location media ${index + 1}`}
+                            onError={() => handleImageError(fullUrl)}
+                          />
+                        )
+                      ) : (
+                        <div className="video-container">
+                          <video controls>
+                            <source src={fullUrl} type={location.content.mediaTypes[index]} />
+                            🎥 Your browser does not support the video tag.
+                          </video>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="location-stats">
+              <span>👍 {location.upvotes || 0}</span>
+              <span>👎 {location.downvotes || 0}</span>
+              <span>📍 Status: {location.verificationStatus}</span>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="location-actions">
+        <button 
+          onClick={() => startEditing(location)}
+          className="edit-button"
+          disabled={editingLocation !== null}
+        >
+          ✏️ Edit
+        </button>
+        <button 
+          onClick={() => handleDeleteLocation(location.id)}
+          className="delete-button"
+          disabled={editingLocation !== null}
+        >
+          🗑️ Delete
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderUserLocations = useMemo(() => {
+    return userLocations.map(location => renderLocationItem(location));
+  }, [userLocations, editingLocation, editText]);
+
+  const handleUserSelect = async (userId) => {
+    console.log('Selecting user:', userId);
+    setSelectedUserId(userId);
+    await fetchUserLocations(userId);
+  };
+
+  useEffect(() => {
+    console.log('Selected User ID:', selectedUserId);
+    console.log('Editing Location:', editingLocation);
+  }, [selectedUserId, editingLocation]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
@@ -371,7 +503,7 @@ const AdminDashboard = () => {
                         <span>{result.isAdmin ? '👑 Admin' : 'User'}</span>
                       </div>
                       <button 
-                        onClick={() => fetchUserLocations(result.id)}
+                        onClick={() => handleUserSelect(result.id)}
                         className="view-locations-button"
                       >
                         {selectedUserId === result.id ? 'Hide Locations' : 'View Locations'}
@@ -383,61 +515,7 @@ const AdminDashboard = () => {
                             <div className="loading">Loading locations...</div>
                           ) : (
                             userLocations.length > 0 ? (
-                              userLocations.map(location => (
-                                <div key={location.id} className="location-item">
-                                  <div className="location-content">
-                                    {editingLocation?.id === location.id ? (
-                                      <div className="edit-form">
-                                        <textarea
-                                          value={editText}
-                                          onChange={(e) => setEditText(e.target.value)}
-                                          className="edit-textarea"
-                                        />
-                                        <div className="edit-actions">
-                                          <button 
-                                            onClick={handleSaveEdit}
-                                            className="save-button"
-                                          >
-                                            Save
-                                          </button>
-                                          <button 
-                                            onClick={() => setEditingLocation(null)}
-                                            className="cancel-button"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <strong>{location.content?.text}</strong>
-                                        <small>Created: {new Date(location.createdAt).toLocaleDateString()}</small>
-                                        <div className="location-stats">
-                                          <span>👍 {location.upvotes || 0}</span>
-                                          <span>👎 {location.downvotes || 0}</span>
-                                          <span>Status: {location.verificationStatus}</span>
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                  <div className="location-actions">
-                                    <button 
-                                      onClick={() => handleEditLocation(location)}
-                                      className="edit-button"
-                                      disabled={editingLocation !== null}
-                                    >
-                                      ✏️ Edit
-                                    </button>
-                                    <button 
-                                      onClick={() => handleDeleteLocation(location.id)}
-                                      className="delete-button"
-                                      disabled={editingLocation !== null}
-                                    >
-                                      🗑️ Delete
-                                    </button>
-                                  </div>
-                                </div>
-                              ))
+                              userLocations.map(location => renderLocationItem(location))
                             ) : (
                               <div className="no-locations">No locations found for this user</div>
                             )
