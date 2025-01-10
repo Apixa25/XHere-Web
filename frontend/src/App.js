@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef, createContext } from '
 import { 
   GoogleMap, 
   LoadScript, 
-  Marker, 
+  Marker,
   InfoWindow,
   useLoadScript 
 } from '@react-google-maps/api';
@@ -18,9 +18,8 @@ import ProfilePage from './components/ProfilePage';
 import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
-import { AdvancedMarker } from './components/Map/AdvancedMarker';
 
-const LIBRARIES = ['places'];
+const LIBRARIES = ['places', 'marker'];
 
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
@@ -51,10 +50,16 @@ console.log('Map Configuration:', {
   apiKey: !!process.env.REACT_APP_GOOGLE_MAPS_API_KEY
 });
 
+console.log('Advanced Marker Status:', {
+  isAvailable: typeof AdvancedMarkerElement !== 'undefined',
+  mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
+});
+
 function GoogleMapsProvider({ children }) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries: LIBRARIES,
+    mapIds: [process.env.REACT_APP_GOOGLE_MAPS_MAP_ID]
   });
 
   if (loadError) {
@@ -456,6 +461,11 @@ const getUserFromStorage = () => {
   return null;
 };
 
+// Add this helper function at the top of your component
+const isAdvancedMarkerAvailable = () => {
+  return window.google?.maps?.marker?.AdvancedMarkerElement !== undefined;
+};
+
 function App() {
   // 1. States first
   const [user, setUser] = useState(null);
@@ -535,6 +545,7 @@ function App() {
   const [mapsError, setMapsError] = useState(null);
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [newBadges, setNewBadges] = useState([]);
+  const [advancedMarkersAvailable, setAdvancedMarkersAvailable] = useState(false);
 
   const mapStyles = {
     height: "100vh",
@@ -752,8 +763,23 @@ function App() {
   }, [locationData]);
 
   const handleMapLoad = (mapInstance) => {
-    console.log('Map loaded successfully');
+    console.log('Map loaded, checking advanced markers:', {
+      hasMarkerLibrary: !!window.google?.maps?.marker,
+      hasAdvancedMarker: !!window.google?.maps?.marker?.AdvancedMarkerElement,
+      mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
+    });
+    
     setMap(mapInstance);
+    
+    // Force advanced markers after a short delay
+    setTimeout(() => {
+      if (window.google?.maps?.marker?.AdvancedMarkerElement) {
+        setAdvancedMarkersAvailable(true);
+        console.log('Advanced markers enabled');
+      } else {
+        console.warn('Advanced markers not available');
+      }
+    }, 1000);
   };
 
   const handleMapUnmount = () => {
@@ -947,6 +973,24 @@ function App() {
     };
   }, [user, isUserComplete]);
 
+  // Add this useEffect to check for Advanced Markers after map loads
+  useEffect(() => {
+    const checkAdvancedMarkers = () => {
+      const hasAdvancedMarkers = window.google?.maps?.marker?.AdvancedMarkerElement;
+      console.log('Advanced Markers Check:', {
+        available: !!hasAdvancedMarkers,
+        mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID,
+        googleMaps: !!window.google?.maps,
+        marker: !!window.google?.maps?.marker
+      });
+      setAdvancedMarkersAvailable(!!hasAdvancedMarkers);
+    };
+
+    if (map) {
+      checkAdvancedMarkers();
+    }
+  }, [map]);
+
   // Only render the map when user is logged in
   if (!user) {
     return renderAuthForm();
@@ -1010,10 +1054,7 @@ function App() {
               zoom={13}
               center={center}
               onClick={handleMapClick}
-              onLoad={(map) => {
-                console.log('Map loaded successfully with ID:', MAPS_ID);
-                map.setCenter(defaultCenter);
-              }}
+              onLoad={handleMapLoad}
               onUnmount={handleMapUnmount}
               options={{
                 disableDefaultUI: true,
@@ -1021,64 +1062,46 @@ function App() {
                 mapTypeControl: false,
                 fullscreenControl: false,
                 streetViewControl: false,
-                mapId: MAPS_ID
+                mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID,
+                useAdvancedMarkers: true,
+                useStaticMap: false
               }}
             >
               {locationData.map((location) => {
-                console.log('Marker rendering details:', {
-                  forceAdvanced: FORCE_ADVANCED_MARKER,
-                  envVar: process.env.REACT_APP_USE_ADVANCED_MARKER,
-                  location: location.id,
-                  coordinates: [
-                    Number(location.location?.coordinates?.[1]),
-                    Number(location.location?.coordinates?.[0])
-                  ]
-                });
-                
+                const position = {
+                  lat: Number(location.location?.coordinates?.[1]),
+                  lng: Number(location.location?.coordinates?.[0])
+                };
+
+                if (advancedMarkersAvailable && window.google?.maps?.marker?.AdvancedMarkerView) {
+                  const advancedMarkerView = new window.google.maps.marker.AdvancedMarkerView({
+                    position,
+                    title: location.name
+                  });
+                  
+                  return (
+                    <div 
+                      key={location.id}
+                      onClick={() => handleMarkerClick(location)}
+                      onMouseOver={() => setHoveredMarker(location)}
+                      onMouseOut={() => setHoveredMarker(null)}
+                    >
+                      {advancedMarkerView.position && (
+                        <div ref={el => el && advancedMarkerView.setMap(map)} />
+                      )}
+                    </div>
+                  );
+                }
+
+                // Fallback to regular marker
                 return (
-                  <React.Fragment key={location.id}>
-                    {FORCE_ADVANCED_MARKER ? (
-                      <AdvancedMarker
-                        position={{
-                          lat: Number(location.location?.coordinates?.[1]),
-                          lng: Number(location.location?.coordinates?.[0])
-                        }}
-                        onClick={() => handleMarkerClick(location)}
-                        onMouseOver={() => setHoveredMarker(location)}
-                        onMouseOut={() => setHoveredMarker(null)}
-                      />
-                    ) : (
-                      <Marker
-                        position={{
-                          lat: Number(location.location?.coordinates?.[1]),
-                          lng: Number(location.location?.coordinates?.[0])
-                        }}
-                        onClick={() => handleMarkerClick(location)}
-                        onMouseOver={() => setHoveredMarker(location)}
-                        onMouseOut={() => setHoveredMarker(null)}
-                      />
-                    )}
-                    {hoveredMarker?.id === location.id && (
-                      <InfoWindow
-                        position={{
-                          lat: Number(location.location?.coordinates?.[1]),
-                          lng: Number(location.location?.coordinates?.[0])
-                        }}
-                        options={{
-                          pixelOffset: new window.google.maps.Size(0, -40),
-                          disableAutoPan: true
-                        }}
-                      >
-                        <div style={{
-                          padding: '8px',
-                          maxWidth: '200px',
-                          fontSize: '14px'
-                        }}>
-                          {location.content.text}
-                        </div>
-                      </InfoWindow>
-                    )}
-                  </React.Fragment>
+                  <Marker
+                    key={location.id}
+                    position={position}
+                    onClick={() => handleMarkerClick(location)}
+                    onMouseOver={() => setHoveredMarker(location)}
+                    onMouseOut={() => setHoveredMarker(null)}
+                  />
                 );
               })}
 
@@ -1142,6 +1165,11 @@ function App() {
   })));
 
   console.log('Rendering markers for locations:', locationData.map(inspectLocation));
+
+  console.log('Advanced Marker Status:', {
+    isAvailable: isAdvancedMarkerAvailable(),
+    mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
+  });
 
   return (
     <ErrorBoundary>
