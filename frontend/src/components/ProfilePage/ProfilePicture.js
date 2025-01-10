@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 const ProfilePicture = ({ currentPicture, onUpdate }) => {
-  const [previewUrl, setPreviewUrl] = useState(currentPicture);
   const [loading, setLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(currentPicture);
 
   const resizeImage = (file) => {
     return new Promise((resolve) => {
@@ -12,9 +12,7 @@ const ProfilePicture = ({ currentPicture, onUpdate }) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          
-          // Set fixed dimensions for profile picture
-          const TARGET_SIZE = 150; // Profile pictures will be 150x150
+          const TARGET_SIZE = 150;
           
           canvas.width = TARGET_SIZE;
           canvas.height = TARGET_SIZE;
@@ -35,7 +33,6 @@ const ProfilePicture = ({ currentPicture, onUpdate }) => {
             sourceHeight = img.width;
           }
           
-          // Draw image centered and cropped to square
           ctx.drawImage(
             img,
             sourceX, sourceY,
@@ -49,7 +46,7 @@ const ProfilePicture = ({ currentPicture, onUpdate }) => {
               type: 'image/jpeg',
               lastModified: Date.now()
             }));
-          }, 'image/jpeg', 0.85); // Slightly higher quality for profile pics
+          }, 'image/jpeg', 0.85);
         };
         img.src = e.target.result;
       };
@@ -57,34 +54,28 @@ const ProfilePicture = ({ currentPicture, onUpdate }) => {
     });
   };
 
-  const handleFileSelect = async (e) => {
-    const file = e.target.files[0];
+  const handleFileSelect = async (event) => {
+    const file = event.target.files[0];
     if (!file) return;
 
-    // Preview original image immediately
-    const reader = new FileReader();
-    reader.onloadend = () => setPreviewUrl(reader.result);
-    reader.readAsDataURL(file);
-
-    // Upload resized version
-    setLoading(true);
     try {
-      const resizedFile = await resizeImage(file);
+      setLoading(true);
+      const resizedImage = await resizeImage(file);
+      
       const formData = new FormData();
-      formData.append('profilePicture', resizedFile);
+      formData.append('profilePicture', resizedImage);
 
-      const response = await fetch(`${API_URL}/api/users/profile-picture`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/profile-picture`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
 
       if (!response.ok) throw new Error('Upload failed');
-      
+
       const data = await response.json();
-      onUpdate(`${API_URL}/${data.pictureUrl}`);
+      setPreviewUrl(data.pictureUrl);
+      onUpdate(data.pictureUrl);
     } catch (error) {
       console.error('Profile picture upload failed:', error);
     } finally {
@@ -93,31 +84,31 @@ const ProfilePicture = ({ currentPicture, onUpdate }) => {
   };
 
   return (
-    <div className="profile-picture-container">
-      <div className="profile-picture-wrapper">
+    <div className="profile-picture-inline">
+      <div className="profile-picture-wrapper-inline">
         {previewUrl ? (
-          <img 
-            src={previewUrl} 
-            alt="Profile" 
-            className="profile-picture"
+          <img
+            src={previewUrl}
+            alt="Profile"
+            className="profile-picture-inline"
           />
         ) : (
-          <div className="profile-picture-placeholder">
+          <div className="profile-picture-placeholder-inline">
             👤
           </div>
         )}
         {loading && <div className="loading-overlay">Uploading...</div>}
+        <label htmlFor="profile-picture-input" className="change-picture-button">
+          Change Picture
+        </label>
       </div>
-      
-      <label className="upload-button">
-        {currentPicture ? 'Change Picture' : 'Add Picture'}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          style={{ display: 'none' }}
-        />
-      </label>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+        id="profile-picture-input"
+      />
     </div>
   );
 };
