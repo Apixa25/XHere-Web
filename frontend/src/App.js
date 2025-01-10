@@ -18,6 +18,7 @@ import ProfilePage from './components/ProfilePage';
 import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
+import { AdvancedMarker } from './components/Map/AdvancedMarker';
 
 const LIBRARIES = ['places'];
 
@@ -30,6 +31,25 @@ const defaultCenter = {
   lat: 41.7555,
   lng: -124.2025
 };
+
+const FORCE_ADVANCED_MARKER = true; // Temporary override for testing
+
+console.log('Environment Variables:', {
+  useAdvancedMarker: process.env.REACT_APP_USE_ADVANCED_MARKER,
+  isTrue: process.env.REACT_APP_USE_ADVANCED_MARKER === 'true',
+  typeOf: typeof process.env.REACT_APP_USE_ADVANCED_MARKER,
+  rawValue: process.env.REACT_APP_USE_ADVANCED_MARKER
+});
+
+const USE_ADVANCED_MARKER = String(process.env.REACT_APP_USE_ADVANCED_MARKER).toLowerCase() === 'true';
+
+const MAPS_ID = process.env.REACT_APP_GOOGLE_MAPS_MAP_ID;
+
+console.log('Map Configuration:', {
+  mapId: MAPS_ID,
+  hasMapId: !!MAPS_ID,
+  apiKey: !!process.env.REACT_APP_GOOGLE_MAPS_API_KEY
+});
 
 function GoogleMapsProvider({ children }) {
   const { isLoaded, loadError } = useLoadScript({
@@ -809,6 +829,7 @@ function App() {
             onChange={(e) => setFormData({...formData, password: e.target.value})}
             required
             placeholder="Enter your password"
+            autoComplete="current-password"
           />
         </div>
         <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
@@ -990,7 +1011,7 @@ function App() {
               center={center}
               onClick={handleMapClick}
               onLoad={(map) => {
-                console.log('Map loaded successfully');
+                console.log('Map loaded successfully with ID:', MAPS_ID);
                 map.setCenter(defaultCenter);
               }}
               onUnmount={handleMapUnmount}
@@ -999,42 +1020,67 @@ function App() {
                 clickableIcons: false,
                 mapTypeControl: false,
                 fullscreenControl: false,
-                streetViewControl: false
+                streetViewControl: false,
+                mapId: MAPS_ID
               }}
             >
-              {locationData.map((location) => (
-                <React.Fragment key={location.id}>
-                  <Marker
-                    position={{
-                      lat: Number(location.location?.coordinates?.[1]),
-                      lng: Number(location.location?.coordinates?.[0])
-                    }}
-                    onClick={() => handleMarkerClick(location)}
-                    onMouseOver={() => setHoveredMarker(location)}
-                    onMouseOut={() => setHoveredMarker(null)}
-                  />
-                  {hoveredMarker?.id === location.id && (
-                    <InfoWindow
-                      position={{
-                        lat: Number(location.location?.coordinates?.[1]),
-                        lng: Number(location.location?.coordinates?.[0])
-                      }}
-                      options={{
-                        pixelOffset: new window.google.maps.Size(0, -40),
-                        disableAutoPan: true
-                      }}
-                    >
-                      <div style={{
-                        padding: '8px',
-                        maxWidth: '200px',
-                        fontSize: '14px'
-                      }}>
-                        {location.content.text}
-                      </div>
-                    </InfoWindow>
-                  )}
-                </React.Fragment>
-              ))}
+              {locationData.map((location) => {
+                console.log('Marker rendering details:', {
+                  forceAdvanced: FORCE_ADVANCED_MARKER,
+                  envVar: process.env.REACT_APP_USE_ADVANCED_MARKER,
+                  location: location.id,
+                  coordinates: [
+                    Number(location.location?.coordinates?.[1]),
+                    Number(location.location?.coordinates?.[0])
+                  ]
+                });
+                
+                return (
+                  <React.Fragment key={location.id}>
+                    {FORCE_ADVANCED_MARKER ? (
+                      <AdvancedMarker
+                        position={{
+                          lat: Number(location.location?.coordinates?.[1]),
+                          lng: Number(location.location?.coordinates?.[0])
+                        }}
+                        onClick={() => handleMarkerClick(location)}
+                        onMouseOver={() => setHoveredMarker(location)}
+                        onMouseOut={() => setHoveredMarker(null)}
+                      />
+                    ) : (
+                      <Marker
+                        position={{
+                          lat: Number(location.location?.coordinates?.[1]),
+                          lng: Number(location.location?.coordinates?.[0])
+                        }}
+                        onClick={() => handleMarkerClick(location)}
+                        onMouseOver={() => setHoveredMarker(location)}
+                        onMouseOut={() => setHoveredMarker(null)}
+                      />
+                    )}
+                    {hoveredMarker?.id === location.id && (
+                      <InfoWindow
+                        position={{
+                          lat: Number(location.location?.coordinates?.[1]),
+                          lng: Number(location.location?.coordinates?.[0])
+                        }}
+                        options={{
+                          pixelOffset: new window.google.maps.Size(0, -40),
+                          disableAutoPan: true
+                        }}
+                      >
+                        <div style={{
+                          padding: '8px',
+                          maxWidth: '200px',
+                          fontSize: '14px'
+                        }}>
+                          {location.content.text}
+                        </div>
+                      </InfoWindow>
+                    )}
+                  </React.Fragment>
+                );
+              })}
 
               {/* Single InfoWindow component */}
               {(selectedLocation || selectedMarker) && (
