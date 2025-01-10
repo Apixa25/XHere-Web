@@ -182,19 +182,48 @@ router.put('/locations/:locationId', authenticateToken, adminAuth, async (req, r
     const { locationId } = req.params;
     const { content } = req.body;
 
+    console.log('Updating location:', locationId);
+    console.log('Received content:', content);
+
     const location = await Location.findByPk(locationId);
     
     if (!location) {
+      console.log('Location not found:', locationId);
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    location.content = content;
-    await location.save();
+    // Ensure we preserve the existing location data structure
+    const updatedLocation = {
+      content: {
+        text: content.text,
+        mediaUrls: content.mediaUrls || location.content?.mediaUrls || [],
+        mediaTypes: content.mediaTypes || location.content?.mediaTypes || [],
+        isAnonymous: content.isAnonymous || location.content?.isAnonymous || false
+      }
+    };
 
-    res.json(location);
+    console.log('Saving updated location:', updatedLocation);
+
+    // Update the location
+    await location.update(updatedLocation);
+
+    // Fetch the fresh location data with associations
+    const refreshedLocation = await Location.findByPk(locationId, {
+      include: [{
+        model: User,
+        as: 'creator',
+        attributes: ['email', 'profile']
+      }]
+    });
+
+    console.log('Location updated successfully');
+    res.json(refreshedLocation);
   } catch (error) {
     console.error('Error updating location:', error);
-    res.status(500).json({ error: 'Failed to update location' });
+    res.status(500).json({ 
+      error: 'Failed to update location', 
+      details: error.message 
+    });
   }
 });
 
