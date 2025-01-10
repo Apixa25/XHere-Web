@@ -786,6 +786,7 @@ function App() {
         prevLocations.filter(loc => loc.id !== locationId)
       );
       setSelectedMarker(null);
+      await fetchLocations();
     } catch (error) {
       console.error('Error deleting location:', error);
       // Optionally show error to user
@@ -877,6 +878,28 @@ function App() {
       console.error('Google login error:', error);
       alert('Failed to login with Google');
     }
+  };
+
+  // After successful login, we should:
+  const handleLoginSuccess = async (response) => {
+    const { token, user } = response;
+    localStorage.setItem('token', token);
+    
+    // Add this new fetch to get complete user data
+    try {
+      const fullUserResponse = await fetch(`${API_URL}/api/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const fullUserData = await fullUserResponse.json();
+      setUser(fullUserData); // This will include isAdmin status
+    } catch (error) {
+      console.error('Error fetching complete user data:', error);
+    }
+    
+    // Then fetch locations
+    await fetchLocations();
   };
 
   // Only render the map when user is logged in
