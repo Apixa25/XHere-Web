@@ -1,16 +1,23 @@
 .custom-marker {
-  background: white;
-  border-radius: 8px;
-  padding: 8px 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  border: 2px solid #4285f4;
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 120px;
   position: relative;
 }
 
-.custom-marker:after {
+.marker-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border: 2px solid #4285f4;
+}
+
+/* Keep the pointer arrow styles */
+.marker-content:after {
   content: '';
   position: absolute;
   bottom: -10px;
@@ -23,7 +30,7 @@
   border-top: 10px solid #4285f4;
 }
 
-.custom-marker:before {
+.marker-content:before {
   content: '';
   position: absolute;
   bottom: -7px;
@@ -40,17 +47,6 @@
 .custom-marker:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-}
-
-.marker-content {
-  background: white;
-  padding: 4px 8px;
-  border-radius: 16px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 200px;
 }
 
 .marker-text {
@@ -108,15 +104,20 @@
   50% { transform: translateY(-20px); }
 }
 
-.marker-profile-pic {
-  width: 24px !important;
-  height: 24px !important;
-  border-radius: 50% !important;
-  object-fit: cover !important;
-  border: 2px solid white !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
-  min-width: 24px !important;
-  max-width: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
+.marker-content img.marker-profile-pic {
+  width: 45px !important;
+  height: 45px !important;
+  transform: scale(1.15);
+  transform-origin: center;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* For the placeholder when no profile pic */
+.marker-content .marker-profile-placeholder {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  font-size: 16px;
 }

@@ -1082,18 +1082,15 @@ function App() {
                   
                   markerElement.innerHTML = `
                     <div class="marker-content">
-                      <div class="marker-header">
-                        ${location.creator?.profile?.pictureUrl ? 
-                          `<img 
-                            src="${API_URL}/${location.creator.profile.pictureUrl}" 
-                            class="marker-profile-pic"
-                            style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;"
-                            alt="Creator"
-                          />` : 
-                          '<div class="marker-profile-placeholder">👤</div>'
-                        }
-                        <div class="marker-text">${shortText}</div>
-                      </div>
+                      ${location.creator?.profile?.pictureUrl ? 
+                        `<img 
+                          src="${API_URL}/${location.creator.profile.pictureUrl}" 
+                          class="marker-profile-pic"
+                          alt="Creator"
+                        />` : 
+                        '<div class="marker-profile-placeholder">👤</div>'
+                      }
+                      <div class="marker-text">${shortText}</div>
                       <div class="marker-stats">
                         <span class="votes">⬆️ ${location.upvotes || 0}</span>
                         ${location.credits ? `<span class="credits">✨ ${location.credits}</span>` : ''}
