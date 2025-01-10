@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import LocationDetails from './LocationDetails';
 import api from '../services/api';
 import BadgeDisplay from './BadgeDisplay';
+import ProfilePicture from './ProfilePage/ProfilePicture';
 
 const AdminBadge = () => (
   <div style={{
@@ -675,30 +676,26 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
   return (
     <div className="profile-container">
-      <div style={{
-        backgroundColor: '#f5f5f5',
-        padding: '20px',
-        borderRadius: '8px',
-        marginBottom: '20px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h2 style={{ margin: '0' }}>
-          Welcome, {userData?.profile?.name || userData?.email || 'User'}
-          {userData?.isAdmin && <AdminBadge />}
-        </h2>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
+      <div className="profile-header">
+        <div className="profile-info">
+          <ProfilePicture 
+            currentPicture={`${API_URL}/${userData?.profile?.pictureUrl}`}
+            onUpdate={(pictureUrl) => {
+              setUserData(prev => ({
+                ...prev,
+                profile: {
+                  ...prev.profile,
+                  pictureUrl
+                }
+              }));
+            }}
+          />
+          <h2 className="user-name">
+            {userData?.profile?.name || userData?.email || 'User'}
+            {userData?.isAdmin && <AdminBadge />}
+          </h2>
+        </div>
+        <button onClick={() => navigate('/')} className="back-button">
           Back to Map
         </button>
       </div>
