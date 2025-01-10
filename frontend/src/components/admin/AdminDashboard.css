@@ -365,4 +365,61 @@ th[onClick]:hover {
   padding: 20px;
   color: #666;
   font-style: italic;
+}
+
+.edit-form {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.save-button {
+  padding: 5px 15px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.save-button:hover {
+  background-color: #45a049;
+}
+
+.cancel-button {
+  padding: 5px 15px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background-color: #da190b;
+}
+
+.location-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.location-actions button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 } 

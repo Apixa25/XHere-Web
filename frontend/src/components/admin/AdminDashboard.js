@@ -19,6 +19,8 @@ const AdminDashboard = () => {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [userLocations, setUserLocations] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(null);
+  const [editText, setEditText] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -286,6 +288,37 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSaveEdit = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/admin/locations/${editingLocation.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          content: {
+            ...editingLocation.content,
+            text: editText
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update location');
+      }
+
+      // Refresh the user's locations
+      await fetchUserLocations(selectedUserId);
+      setEditingLocation(null);
+      setEditText('');
+    } catch (error) {
+      console.error('Error updating location:', error);
+      alert('Failed to update location');
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
 
@@ -353,26 +386,54 @@ const AdminDashboard = () => {
                               userLocations.map(location => (
                                 <div key={location.id} className="location-item">
                                   <div className="location-content">
-                                    <strong>{location.content?.text}</strong>
-                                    <small>Created: {new Date(location.createdAt).toLocaleDateString()}</small>
-                                    <div className="location-stats">
-                                      <span>👍 {location.upvotes || 0}</span>
-                                      <span>👎 {location.downvotes || 0}</span>
-                                      <span>Status: {location.verificationStatus}</span>
-                                    </div>
+                                    {editingLocation?.id === location.id ? (
+                                      <div className="edit-form">
+                                        <textarea
+                                          value={editText}
+                                          onChange={(e) => setEditText(e.target.value)}
+                                          className="edit-textarea"
+                                        />
+                                        <div className="edit-actions">
+                                          <button 
+                                            onClick={handleSaveEdit}
+                                            className="save-button"
+                                          >
+                                            Save
+                                          </button>
+                                          <button 
+                                            onClick={() => setEditingLocation(null)}
+                                            className="cancel-button"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <strong>{location.content?.text}</strong>
+                                        <small>Created: {new Date(location.createdAt).toLocaleDateString()}</small>
+                                        <div className="location-stats">
+                                          <span>👍 {location.upvotes || 0}</span>
+                                          <span>👎 {location.downvotes || 0}</span>
+                                          <span>Status: {location.verificationStatus}</span>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                   <div className="location-actions">
                                     <button 
                                       onClick={() => handleEditLocation(location)}
                                       className="edit-button"
+                                      disabled={editingLocation !== null}
                                     >
-                                      Edit
+                                      ✏️ Edit
                                     </button>
                                     <button 
                                       onClick={() => handleDeleteLocation(location.id)}
                                       className="delete-button"
+                                      disabled={editingLocation !== null}
                                     >
-                                      Delete
+                                      🗑️ Delete
                                     </button>
                                   </div>
                                 </div>
