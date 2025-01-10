@@ -18,6 +18,7 @@ import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
 import './styles/markers.css';
+import PROFILE_TYPES from './constants/profileTypes';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1081,14 +1082,12 @@ function App() {
                     (location.content?.text?.length > 25 ? '...' : '');
                   
                   markerElement.innerHTML = `
-                    <div class="marker-content">
-                      ${location.creator?.profile?.pictureUrl ? 
-                        `<img 
-                          src="${API_URL}/${location.creator.profile.pictureUrl}" 
-                          class="marker-profile-pic"
-                          alt="Creator"
-                        />` : 
-                        '<div class="marker-profile-placeholder">👤</div>'
+                    <div class="marker-content" ${location.content?.isAnonymous ? 'data-anonymous="true"' : ''}>
+                      ${getProfileImage(location) 
+                        ? `<img class="marker-profile-pic ${location.content?.isAnonymous ? 'anonymous' : ''}" 
+                               src="${getProfileImage(location)}" 
+                               alt="${location.content?.isAnonymous ? 'Anonymous User' : 'Profile'}" />` 
+                        : '<div class="marker-profile-placeholder">👤</div>'
                       }
                       <div class="marker-text">${shortText}</div>
                       <div class="marker-stats">
@@ -1249,3 +1248,12 @@ export default function AppWithErrorBoundary() {
     </ErrorBoundary>
   );
 }
+
+const getProfileImage = (location) => {
+  if (location.content?.isAnonymous) {
+    return '/images/anonymous-profile.jpg';
+  }
+  return location.creator?.profile?.pictureUrl 
+    ? `${API_URL}/${location.creator.profile.pictureUrl}`
+    : null;
+};
