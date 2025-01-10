@@ -198,4 +198,26 @@ router.put('/locations/:locationId', authenticateToken, adminAuth, async (req, r
   }
 });
 
+// Add this new route to get user locations
+router.get('/user-locations/:userId', authenticateToken, adminAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const locations = await Location.findAll({
+      where: { creatorId: userId },
+      order: [['createdAt', 'DESC']],
+      include: [{
+        model: User,
+        as: 'creator',
+        attributes: ['email', 'profile']
+      }]
+    });
+
+    res.json(locations);
+  } catch (error) {
+    console.error('Error fetching user locations:', error);
+    res.status(500).json({ error: 'Failed to fetch user locations' });
+  }
+});
+
 module.exports = router; 

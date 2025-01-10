@@ -16,6 +16,9 @@ const AdminDashboard = () => {
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const [failedImages, setFailedImages] = useState(new Set());
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [userLocations, setUserLocations] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -258,6 +261,31 @@ const AdminDashboard = () => {
     return '/placeholder-image.png';
   };
 
+  const fetchUserLocations = async (userId) => {
+    try {
+      setLoadingLocations(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/admin/user-locations/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user locations');
+      }
+
+      const data = await response.json();
+      setUserLocations(data);
+      setSelectedUserId(selectedUserId === userId ? null : userId); // Toggle view
+    } catch (error) {
+      console.error('Error fetching user locations:', error);
+      alert('Failed to fetch user locations');
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
 
@@ -309,6 +337,52 @@ const AdminDashboard = () => {
                         <span>Locations: {result.locationCount}</span>
                         <span>{result.isAdmin ? '👑 Admin' : 'User'}</span>
                       </div>
+                      <button 
+                        onClick={() => fetchUserLocations(result.id)}
+                        className="view-locations-button"
+                      >
+                        {selectedUserId === result.id ? 'Hide Locations' : 'View Locations'}
+                      </button>
+                      
+                      {selectedUserId === result.id && (
+                        <div className="user-locations">
+                          {loadingLocations ? (
+                            <div className="loading">Loading locations...</div>
+                          ) : (
+                            userLocations.length > 0 ? (
+                              userLocations.map(location => (
+                                <div key={location.id} className="location-item">
+                                  <div className="location-content">
+                                    <strong>{location.content?.text}</strong>
+                                    <small>Created: {new Date(location.createdAt).toLocaleDateString()}</small>
+                                    <div className="location-stats">
+                                      <span>👍 {location.upvotes || 0}</span>
+                                      <span>👎 {location.downvotes || 0}</span>
+                                      <span>Status: {location.verificationStatus}</span>
+                                    </div>
+                                  </div>
+                                  <div className="location-actions">
+                                    <button 
+                                      onClick={() => handleEditLocation(location)}
+                                      className="edit-button"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeleteLocation(location.id)}
+                                      className="delete-button"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="no-locations">No locations found for this user</div>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                     {!result.isAdmin && (
                       <button 
