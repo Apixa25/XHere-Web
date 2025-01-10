@@ -6,6 +6,7 @@ import LocationDetails from './LocationDetails';
 import api from '../services/api';
 import BadgeDisplay from './BadgeDisplay';
 import ProfilePicture from './ProfilePage/ProfilePicture';
+import ProfileHeader from './ProfilePage/ProfileHeader';
 
 const AdminBadge = () => (
   <div style={{
@@ -675,30 +676,17 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   }
 
   return (
-    <div className="profile-container">
-      <div className="profile-header">
-        <div className="profile-info">
-          <ProfilePicture 
-            currentPicture={`${API_URL}/${userData?.profile?.pictureUrl}`}
-            onUpdate={(pictureUrl) => {
-              setUserData(prev => ({
-                ...prev,
-                profile: {
-                  ...prev.profile,
-                  pictureUrl
-                }
-              }));
-            }}
-          />
-          <h2 className="user-name">
-            {userData?.profile?.name || userData?.email || 'User'}
-            {userData?.isAdmin && <AdminBadge />}
-          </h2>
-        </div>
-        <button onClick={() => navigate('/')} className="back-button">
-          Back to Map
-        </button>
-      </div>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+      <ProfileHeader 
+        userData={userData}
+        API_URL={API_URL}
+        navigate={navigate}
+      />
+      
+      <BadgeDisplay 
+        badges={userData?.badges || []} 
+        credits={userData?.credits || 0} 
+      />
 
       <div style={{
         backgroundColor: '#f5f5f5',
@@ -748,11 +736,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           </div>
         </div>
       </div>
-
-      <BadgeDisplay 
-        badges={userData?.badges || []} 
-        credits={userData?.credits || 0} 
-      />
 
       <h3>{userData?.isAdmin ? 'All Locations' : 'Your Locations'}</h3>
       {loading ? (
