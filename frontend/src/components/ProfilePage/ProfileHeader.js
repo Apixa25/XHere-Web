@@ -1,23 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ProfilePicture from './ProfilePicture';
 
 const ProfileHeader = ({ userData, setUserData, API_URL, navigate }) => {
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    // Update preview URL when userData changes
+    if (userData?.profile?.pictureUrl) {
+      setPreviewUrl(`${API_URL}/${userData.profile.pictureUrl}`);
+    }
+  }, [userData, API_URL]);
+
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
+    console.log('🖼️ File selected:', file);
+    
+    // Show immediate preview
+    if (file) {
+      const tempUrl = URL.createObjectURL(file);
+      setPreviewUrl(tempUrl);
+    }
+    
     if (file && userData?.profile) {
       try {
         const formData = new FormData();
         formData.append('profilePicture', file);
+        const token = localStorage.getItem('token');
+        
+        console.log('🔑 Token:', token);
+        console.log('📤 Attempting upload to:', `${API_URL}/api/users/profile-picture`);
         
         const response = await fetch(`${API_URL}/api/users/profile-picture`, {
           method: 'POST',
           body: formData,
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
 
+        console.log('📡 Response status:', response.status);
+        const responseText = await response.text();
+        console.log('📝 Response body:', responseText);
+
         if (response.ok) {
-          const data = await response.json();
+          const data = JSON.parse(responseText);
+          console.log('✅ Upload successful, received data:', data);
+          
           if (data.pictureUrl) {
+            // Update the preview with the new server URL
+            setPreviewUrl(`${API_URL}/${data.pictureUrl}`);
+            
             setUserData(prev => ({
               ...prev,
               profile: {
@@ -28,7 +61,9 @@ const ProfileHeader = ({ userData, setUserData, API_URL, navigate }) => {
           }
         }
       } catch (error) {
-        console.error('Error uploading profile picture:', error);
+        // If error, revert to previous image
+        setPreviewUrl(`${API_URL}/${userData?.profile?.pictureUrl}`);
+        console.error('❌ Error in upload process:', error);
       }
     }
   };
@@ -60,7 +95,7 @@ const ProfileHeader = ({ userData, setUserData, API_URL, navigate }) => {
           height: '80px'
         }}> 
           <img 
-            src={`${API_URL}/${userData?.profile?.pictureUrl}`}
+            src={previewUrl || `${API_URL}/${userData?.profile?.pictureUrl}`}
             alt="Profile"
             style={{
               width: '100%',
