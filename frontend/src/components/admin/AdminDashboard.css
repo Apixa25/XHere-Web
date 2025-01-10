@@ -267,4 +267,31 @@ th[onClick]:hover {
 
 .edit-button:hover {
   background-color: #1976D2;
+}
+
+.user-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.user-stats {
+  display: flex;
+  gap: 15px;
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 5px;
+}
+
+.user-stats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 } 

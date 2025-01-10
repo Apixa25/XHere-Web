@@ -300,10 +300,25 @@ const AdminDashboard = () => {
             {searchResults.map(result => (
               <div key={result.id} className="result-item">
                 {searchType === 'users' ? (
-                  <>
-                    <strong>{result.email}</strong>
-                    <small>{result.profile?.name}</small>
-                  </>
+                  <div className="user-result">
+                    <div className="user-info">
+                      <strong>{result.email}</strong>
+                      <small>{result.profile?.name || 'No name set'}</small>
+                      <div className="user-stats">
+                        <span>Credits: {result.credits}</span>
+                        <span>Locations: {result.locationCount}</span>
+                        <span>{result.isAdmin ? '👑 Admin' : 'User'}</span>
+                      </div>
+                    </div>
+                    {!result.isAdmin && (
+                      <button 
+                        onClick={() => handleDeleteUser(result.id)}
+                        className="delete-button"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <strong>{result.content?.text}</strong>
@@ -337,23 +352,21 @@ const AdminDashboard = () => {
                         })}
                       </div>
                     )}
+                    <div className="result-actions">
+                      <button 
+                        onClick={() => handleEditLocation(result)}
+                        className="edit-button"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteLocation(result.id)}
+                        className="delete-button"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </>
-                )}
-                {searchType === 'locations' && (
-                  <div className="result-actions">
-                    <button 
-                      onClick={() => handleEditLocation(result)}
-                      className="edit-button"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteLocation(result.id)}
-                      className="delete-button"
-                    >
-                      Delete
-                    </button>
-                  </div>
                 )}
               </div>
             ))}
