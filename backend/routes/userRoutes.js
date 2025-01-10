@@ -5,8 +5,38 @@ const jwt = require('jsonwebtoken');
 const { authenticateToken } = require('../middleware/auth');
 const User = require('../models/User');
 const Location = require('../models/Location');
-const upload = require('../middleware/upload');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { checkAndAwardBadges } = require('../utils/badgeChecker');
+
+// Configure multer for all uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = 'uploads/profile-pictures';
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `profile-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    cb(new Error('Invalid file type'));
+    return;
+  }
+  cb(null, true);
+};
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter
+});
 
 // User registration
 router.post('/register', async (req, res) => {
@@ -304,5 +334,30 @@ router.get('/profile', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error fetching profile' });
   }
 });
+
+// Add this new route to handle profile picture uploads
+router.post('/profile-picture', 
+  authenticateToken, 
+  upload.single('profilePicture'), 
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const user = await User.findByPk(req.user.userId);
+      user.profile = {
+        ...user.profile,
+        pictureUrl: req.file.path.replace(/\\/g, '/')
+      };
+      await user.save();
+
+      res.json({ pictureUrl: user.profile.pictureUrl });
+    } catch (error) {
+      console.error('Profile picture upload error:', error);
+      res.status(500).json({ error: 'Failed to update profile picture' });
+    }
+  }
+);
 
 module.exports = router; 
