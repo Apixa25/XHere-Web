@@ -2,13 +2,21 @@
 
 ## AI Response Format Requirements
 IMPORTANT: 
-1. End every response with:
+1. Track conversation metrics at the end of every response:
 ```
 ---
-Current conversation total: [total characters including this response]
-Approximate total tokens: [total characters ÷ 4] ([show calculation])
+Conversation Statistics:
+Messages in this chat: [current message number]
+Total characters: [running total of all characters]
+Estimated total tokens: [total characters ÷ 4] ([show calculation])
 ```
-2. Use emojis frequently to enhance engagement and maintain high energy 🎯
+
+2. Maintain running totals throughout the conversation:
+   - Increment message count with each response
+   - Add new response characters to running total
+   - Update token estimation accordingly
+
+3. Use emojis frequently to enhance engagement and maintain high energy 🎯
 
 ## Project Essence
 - Location-based social platform
