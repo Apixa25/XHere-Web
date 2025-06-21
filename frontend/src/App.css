@@ -37,16 +37,27 @@
   }
 }
 
+/*
+  Override Google Maps InfoWindow default styles
+  to allow for custom styling and size.
+*/
+.gm-style-iw-c {
+  padding: 0 !important;
+  text-align: center !important;
+}
+
 /* Location Info Window Styles */
 .marker-info-window {
-  max-width: 420px; /* Increased max-width for better layout */
-  max-height: 60vh; /* Set a max-height relative to viewport height */
-  overflow-y: auto; /* Allow vertical scrolling for long content */
+  display: inline-block;
+  max-width: 350px;
   padding: 12px;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .marker-info-window h3 {
@@ -100,6 +111,20 @@
   display: flex;
   flex-direction: column; /* Stack media vertically */
   gap: 10px;
+}
+
+.location-image {
+  max-width: 300px;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+.location-video {
+  max-width: 300px;
+  height: auto;
+  border-radius: 8px;
+  display: block;
 }
 
 .media-gallery img,

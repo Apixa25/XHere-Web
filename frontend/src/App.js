@@ -3,7 +3,7 @@ import {
   GoogleMap, 
   LoadScript, 
   Marker,
-  InfoWindow,
+  InfoWindowF,
   useLoadScript 
 } from '@react-google-maps/api';
 import api from './services/api';
@@ -737,23 +737,68 @@ function App() {
               })}
               
               {selectedLocation && (
-                <InfoWindow
+                <InfoWindowF
                   position={selectedLocation}
                   onCloseClick={() => {
                     setSelectedLocation(null);
                   }}
                 >
-                  {/* Form for new location */}
-                </InfoWindow>
+                  <div className="location-form">
+                    <h3>Create a new location</h3>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleLocationSubmit({
+                          ...contentForm,
+                          lat: selectedLocation.lat,
+                          lng: selectedLocation.lng,
+                        });
+                      }}
+                    >
+                      <textarea
+                        placeholder="Add a description"
+                        value={contentForm.text}
+                        onChange={(e) =>
+                          setContentForm({ ...contentForm, text: e.target.value })
+                        }
+                        required
+                      />
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(e) =>
+                          setContentForm({ ...contentForm, media: [...e.target.files] })
+                        }
+                      />
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={contentForm.isAnonymous}
+                          onChange={(e) =>
+                            setContentForm({
+                              ...contentForm,
+                              isAnonymous: e.target.checked,
+                            })
+                          }
+                        />
+                        Post Anonymously
+                      </label>
+                      <button type="submit" disabled={submitting}>
+                        {submitting ? 'Submitting...' : 'Create Location'}
+                      </button>
+                    </form>
+                  </div>
+                </InfoWindowF>
               )}
 
               {selectedMarker && (
-                <InfoWindow
+                <InfoWindowF
                   position={{
                     lat: selectedMarker.location.coordinates[1],
                     lng: selectedMarker.location.coordinates[0],
                   }}
                   onCloseClick={() => setSelectedMarker(null)}
+                  options={{ pixelOffset: new window.google.maps.Size(0, -30) }}
                 >
                   <div className="marker-info-window">
                     <div className="marker-header">
@@ -793,14 +838,14 @@ function App() {
                           const fullUrl = `${API_URL}/${url.replace(/\\/g, '/')}`;
                           if (mediaType && mediaType.startsWith('video/')) {
                             return (
-                              <video key={index} controls>
+                              <video key={index} controls className="location-video">
                                 <source src={fullUrl} type={mediaType} />
                                 Your browser does not support the video tag.
                               </video>
                             );
                           } else {
                             return (
-                              <img key={index} src={fullUrl} alt="Location content" />
+                              <img key={index} src={fullUrl} alt="Location content" className="location-image" />
                             );
                           }
                         })}
@@ -816,7 +861,7 @@ function App() {
                       </button>
                     )}
                   </div>
-                </InfoWindow>
+                </InfoWindowF>
               )}
             </GoogleMap>
           </div>
