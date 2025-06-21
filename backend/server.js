@@ -21,7 +21,7 @@ const app = express();
 
 // CORS middleware
 app.use(cors({
-  origin: ['http://localhost:3001', 'https://xhere-api.herokuapp.com'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://10.0.2.2:3000', 'https://xhere-api.herokuapp.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

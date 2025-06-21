@@ -1,0 +1,728 @@
+/* AppMobile.css - Mobile-specific styles for XHere Android App */
+
+/* ===== 1. Mobile-first responsive design ===== */
+:root {
+  --primary-color: #4CAF50;
+  --secondary-color: #2196F3;
+  --danger-color: #f44336;
+  --warning-color: #FFA726;
+  --success-color: #4CAF50;
+  --text-color: #333;
+  --text-light: #666;
+  --background-color: #f5f5f5;
+  --card-background: #ffffff;
+  --border-color: #e0e0e0;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --border-radius: 8px;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  overscroll-behavior-y: contain; /* Prevents pull-to-refresh */
+}
+
+.mobile-app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== 2. Touch-friendly buttons and form elements ===== */
+button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius);
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  font-size: var(--font-size-md);
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  touch-action: manipulation;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-md);
+  background-color: white;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+}
+
+/* ===== 3. Bottom navigation bar ===== */
+.mobile-bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  height: 60px;
+}
+
+.nav-button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xs);
+  background-color: transparent;
+  color: var(--text-light);
+  font-size: var(--font-size-sm);
+  border-radius: 0;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-button.active {
+  color: var(--primary-color);
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.nav-button.logout {
+  color: var(--danger-color);
+}
+
+/* ===== 4. Mobile-optimized authentication forms ===== */
+.mobile-auth-page {
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+}
+
+.mobile-auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.mobile-auth-form {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--spacing-lg);
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+}
+
+.mobile-form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.mobile-input {
+  padding: 14px;
+  font-size: var(--font-size-md);
+}
+
+.mobile-auth-button {
+  width: 100%;
+  padding: 14px;
+  margin-top: var(--spacing-md);
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--border-radius);
+}
+
+.mobile-switch-button {
+  width: 100%;
+  padding: 14px;
+  margin-top: var(--spacing-md);
+  background-color: transparent;
+  color: var(--text-light);
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+/* ===== 5. Map container adjustments for mobile ===== */
+.mobile-map-container {
+  flex: 1;
+  position: relative;
+  height: calc(100vh - 60px); /* Subtract bottom nav height */
+  width: 100%;
+  z-index: 1;
+}
+
+/* Google Maps overrides for mobile */
+.gm-style-iw {
+  max-width: 90vw !important;
+  width: 90vw !important;
+}
+
+.gm-style-iw-d {
+  max-width: 100% !important;
+  max-height: none !important;
+  overflow: auto !important;
+}
+
+/* ===== 6. Floating action buttons ===== */
+.mobile-fab-container {
+  position: absolute;
+  bottom: 80px; /* Above bottom nav */
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  z-index: 10;
+}
+
+.mobile-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  font-size: 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mobile-fab:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+.location-fab {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* ===== 7. Media preview and gallery components ===== */
+.mobile-form {
+  padding: var(--spacing-sm);
+  width: 100%;
+}
+
+.mobile-textarea {
+  min-height: 100px;
+  resize: none;
+  padding: 12px;
+  font-size: var(--font-size-md);
+}
+
+.mobile-media-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.mobile-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: 10px;
+  font-size: var(--font-size-sm);
+}
+
+.camera-button {
+  background-color: var(--secondary-color);
+}
+
+.video-button {
+  background-color: #9C27B0; /* Purple */
+}
+
+.media-preview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.media-thumbnail {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: #eee;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  color: white;
+  font-size: 24px;
+}
+
+.remove-media {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.mobile-media-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-md) 0;
+}
+
+.mobile-image {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: var(--border-radius);
+}
+
+.mobile-video {
+  width: 100%;
+  max-height: 200px;
+  border-radius: var(--border-radius);
+}
+
+/* ===== 8. Status badges and responsive text ===== */
+.mobile-marker-info {
+  padding: var(--spacing-xs);
+}
+
+.mobile-marker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+
+.poster-info {
+  flex: 1;
+}
+
+.poster-name {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  color: var(--text-light);
+}
+
+.post-date {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-light);
+}
+
+.marker-stats {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.credits-badge {
+  background-color: var(--success-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+}
+
+.points-badge {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: var(--font-size-sm);
+  color: white;
+}
+
+.status-badge.verified {
+  background-color: var(--secondary-color);
+}
+
+.status-badge.pending {
+  background-color: var(--warning-color);
+}
+
+.marker-text {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-md);
+  word-break: break-word;
+}
+
+/* ===== 9. Improved accessibility and contrast ===== */
+.mobile-options {
+  margin-bottom: var(--spacing-md);
+}
+
+.mobile-option {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.mobile-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-right: var(--spacing-sm);
+}
+
+.delete-options {
+  display: flex;
+  align-items: center;
+  margin-left: var(--spacing-md);
+}
+
+.time-input {
+  width: 60px;
+  margin-right: var(--spacing-xs);
+}
+
+.unit-select {
+  width: auto;
+  margin-bottom: 0;
+}
+
+.mobile-credits-section {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background-color: #f9f9f9;
+  border-radius: var(--border-radius);
+}
+
+.credits-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.credits-input-container {
+  margin-top: var(--spacing-sm);
+  padding-left: var(--spacing-lg);
+}
+
+.credits-balance {
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+}
+
+.credits-input-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.credits-input {
+  width: 80px;
+}
+
+.mobile-submit-button {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+}
+
+.mobile-submit-button.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.mobile-delete-button {
+  width: 100%;
+  padding: 12px;
+  margin-top: var(--spacing-md);
+  background-color: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+}
+
+/* ===== 10. Animation and transition effects ===== */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.pulse {
+  animation: pulse 0.6s ease-in-out;
+}
+
+.bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+
+.mobile-marker {
+  transition: transform 0.2s;
+}
+
+.mobile-marker:active {
+  transform: scale(1.1);
+}
+
+/* Custom marker styling for mobile */
+.custom-marker {
+  cursor: pointer;
+  position: relative;
+}
+
+.marker-content {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  min-width: 120px;
+  max-width: 180px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.marker-profile-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 4px;
+  border: 2px solid var(--primary-color);
+}
+
+.marker-profile-pic.anonymous {
+  filter: blur(2px);
+  opacity: 0.7;
+}
+
+.marker-profile-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.marker-text {
+  font-size: 12px;
+  margin: 4px 0;
+  max-height: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.marker-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* Error boundary styling */
+.mobile-error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.mobile-reload-button {
+  margin-top: var(--spacing-md);
+  padding: 12px 24px;
+  background-color: var(--primary-color);
+}
+
+/* Loading and error states */
+.loading-container, .error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 2000;
+}
+
+.loading-container::after {
+  content: "";
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container {
+  color: var(--danger-color);
+  font-weight: bold;
+}
+
+/* Profile container */
+.mobile-profile-container {
+  padding: var(--spacing-md);
+  padding-bottom: 70px; /* Space for bottom nav */
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* Admin container */
+.mobile-admin-container {
+  padding: var(--spacing-md);
+  padding-bottom: 70px; /* Space for bottom nav */
+  overflow-y: auto;
+  height: 100%;
+}
+
+.mobile-unauthorized {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 60px);
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.mobile-back-button {
+  margin-top: var(--spacing-md);
+  background-color: var(--secondary-color);
+}
+
+/* Responsive adjustments */
+@media (max-height: 600px) {
+  .mobile-bottom-nav {
+    height: 50px;
+  }
+  
+  .mobile-map-container {
+    height: calc(100vh - 50px);
+  }
+  
+  .nav-button {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  :root {
+    --font-size-sm: 0.75rem;
+    --font-size-md: 0.875rem;
+    --font-size-lg: 1rem;
+    --font-size-xl: 1.25rem;
+  }
+  
+  .mobile-fab {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+  
+  .media-preview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

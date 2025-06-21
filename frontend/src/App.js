@@ -25,7 +25,65 @@ const LIBRARIES = ['places', 'marker'];
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const getApiUrl = () => {
+  // Check if we're running in a mobile environment
+  if (window.Capacitor) {
+    // For Android emulator
+    if (window.Capacitor.getPlatform() === 'android') {
+      // Replace this with your actual IP address
+      const localIp = '192.168.1.1'; // Replace with your actual IP
+      return `http://${localIp}:3000`;
+    }
+    // For iOS simulator
+    if (window.Capacitor.getPlatform() === 'ios') {
+      return 'http://localhost:3000';
+    }
+  }
+  // For web environment
+  return process.env.REACT_APP_API_URL || 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl();
+
+// Add a fetch wrapper with retry logic and better error handling
+const fetchWithRetry = async (url, options = {}, maxRetries = 3) => {
+  let lastError = null;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      console.log(`Attempt ${i + 1} of ${maxRetries} to connect to ${url}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        console.log(`Successfully connected to ${url}`);
+        return response;
+      }
+      
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Request failed');
+      
+    } catch (error) {
+      console.log(`Attempt ${i + 1} failed:`, error.message);
+      lastError = error;
+      
+      if (i < maxRetries - 1) {
+        console.log(`Waiting 1 second before retry...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  }
+  
+  throw lastError || new Error('All connection attempts failed');
+};
 
 const defaultCenter = {
   lat: 41.7555,
@@ -60,7 +118,7 @@ function GoogleMapsProvider({ children }) {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries: LIBRARIES,
-    mapIds: [process.env.REACT_APP_GOOGLE_MAPS_MAP_ID]
+    mapIds: ['51948ac5ec373e9c']
   });
 
   if (loadError) {
@@ -547,6 +605,8 @@ function App() {
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [newBadges, setNewBadges] = useState([]);
   const [advancedMarkersAvailable, setAdvancedMarkersAvailable] = useState(false);
+  const markersRef = useRef([]);
+  const mapRef = useRef(null);
 
   const mapStyles = {
     height: "100vh",
@@ -588,7 +648,6 @@ function App() {
     try {
       const endpoint = isRegistering ? 'auth/register' : 'auth/login';
       
-      // Create the appropriate request body based on the endpoint
       const requestBody = isRegistering 
         ? { 
             email: formData.email,
@@ -605,29 +664,34 @@ function App() {
         password: '[REDACTED]'
       });
 
-      console.log('Making request to:', `${API_URL}/api/${endpoint}`);
+      console.log('Current environment:', {
+        isCapacitor: !!window.Capacitor,
+        platform: window.Capacitor?.getPlatform(),
+        apiUrl: API_URL,
+        userAgent: navigator.userAgent
+      });
 
-      const response = await fetch(`${API_URL}/api/${endpoint}`, {
+      const response = await fetchWithRetry(`${API_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(requestBody)
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Authentication failed');
+      }
+
       const data = await response.json();
       console.log('Server response:', data);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      // Store the token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       
-      // Clear form after successful auth
       setFormData({
         email: '',
         password: '',
@@ -636,7 +700,23 @@ function App() {
       
     } catch (error) {
       console.error('Auth error:', error);
-      alert(error.message || 'Authentication failed');
+      console.error('Connection details:', {
+        apiUrl: API_URL,
+        isCapacitor: !!window.Capacitor,
+        platform: window.Capacitor?.getPlatform(),
+        userAgent: navigator.userAgent
+      });
+      
+      let errorMessage = 'Authentication failed. ';
+      if (error.name === 'AbortError') {
+        errorMessage += 'Connection timed out. Please check if the server is running and accessible.';
+      } else if (error.message.includes('Failed to fetch')) {
+        errorMessage += 'Could not connect to the server. Please check your network connection and make sure the server is running.';
+      } else {
+        errorMessage += error.message;
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -764,33 +844,151 @@ function App() {
   }, [locationData]);
 
   const handleMapLoad = (mapInstance) => {
-    console.log('Map loaded, checking advanced markers:', {
-      hasMarkerLibrary: !!window.google?.maps?.marker,
-      hasAdvancedMarker: !!window.google?.maps?.marker?.AdvancedMarkerElement,
-      mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
-    });
-    
-    setMap(mapInstance);
-    
-    // Force advanced markers after a short delay
-    setTimeout(() => {
-      if (window.google?.maps?.marker?.AdvancedMarkerElement) {
-        setAdvancedMarkersAvailable(true);
-        console.log('Advanced markers enabled');
-      } else {
-        console.warn('Advanced markers not available');
-      }
-    }, 1000);
-  };
-
-  const handleMapUnmount = () => {
     try {
-      console.log('Map unmounting');
-      setMap(null);
+      console.log('Map loaded successfully');
+      mapRef.current = mapInstance;
+      setMap(mapInstance);
     } catch (error) {
-      console.error('Error unmounting map:', error);
+      console.error('Error loading map:', error);
     }
   };
+
+  const handleMapUnmount = useCallback(() => {
+    console.log('Map unmounting, cleaning up markers');
+    if (markersRef.current) {
+      markersRef.current.forEach(({ marker, listeners }) => {
+        try {
+          // Remove all event listeners
+          listeners.forEach(cleanup => {
+            try {
+              cleanup();
+            } catch (e) {
+              console.warn('Error cleaning up listener:', e);
+            }
+          });
+
+          // Remove marker from map
+          if (marker && marker.map) {
+            marker.map = null;
+          }
+        } catch (error) {
+          console.warn('Error during marker cleanup:', error);
+        }
+      });
+      markersRef.current = [];
+    }
+  }, []);
+
+  const renderContent = useCallback(() => {
+    if (!map || !window.google?.maps?.marker?.AdvancedMarkerElement) {
+      console.log('Map or AdvancedMarkerElement not ready');
+      return null;
+    }
+
+    // Clear existing markers before creating new ones
+    handleMapUnmount();
+
+    return locationData.map((location) => {
+      try {
+        const position = {
+          lat: Number(location.location?.coordinates?.[1]),
+          lng: Number(location.location?.coordinates?.[0])
+        };
+
+        if (!position.lat || !position.lng) {
+          console.warn('Invalid position for location:', location.id);
+          return null;
+        }
+
+        console.log('Creating advanced marker for location:', location.id);
+        const markerElement = document.createElement('div');
+        markerElement.className = 'custom-marker';
+        
+        const shortText = location.content?.text?.substring(0, 25) + 
+          (location.content?.text?.length > 25 ? '...' : '');
+        
+        markerElement.innerHTML = `
+          <div class="marker-content" ${location.content?.isAnonymous ? 'data-anonymous="true"' : ''}>
+            ${getProfileImage(location) 
+              ? `<img class="marker-profile-pic ${location.content?.isAnonymous ? 'anonymous' : ''}" 
+                     src="${getProfileImage(location)}" 
+                     alt="${location.content?.isAnonymous ? 'Anonymous User' : 'Profile'}" />` 
+              : '<div class="marker-profile-placeholder">👤</div>'
+            }
+            <div class="marker-text">${shortText}</div>
+            <div class="marker-stats">
+              <span class="votes">⬆️ ${location.upvotes || 0}</span>
+              ${location.credits ? `<span class="credits">✨ ${location.credits}</span>` : ''}
+            </div>
+          </div>
+        `;
+
+        const advancedMarker = new window.google.maps.marker.AdvancedMarkerElement({
+          map,
+          position,
+          content: markerElement,
+          title: location.content?.text || 'Location'
+        });
+
+        // Store listeners in an array for cleanup
+        const listeners = [];
+
+        // Add hover animation
+        const mouseEnterListener = () => {
+          markerElement.classList.add('pulse');
+        };
+        const mouseLeaveListener = () => {
+          markerElement.classList.remove('pulse');
+          void markerElement.offsetWidth; // Reset animation
+        };
+        const clickListener = () => {
+          markerElement.classList.add('bounce');
+          setTimeout(() => {
+            markerElement.classList.remove('bounce');
+          }, 1000);
+        };
+
+        markerElement.addEventListener('mouseenter', mouseEnterListener);
+        markerElement.addEventListener('mouseleave', mouseLeaveListener);
+        markerElement.addEventListener('gmp-click', clickListener);
+
+        listeners.push(
+          () => markerElement.removeEventListener('mouseenter', mouseEnterListener),
+          () => markerElement.removeEventListener('mouseleave', mouseLeaveListener),
+          () => markerElement.removeEventListener('gmp-click', clickListener)
+        );
+
+        const clickHandler = () => handleMarkerClick(location);
+        const mouseOverHandler = () => setHoveredMarker(location);
+        const mouseOutHandler = () => setHoveredMarker(null);
+
+        advancedMarker.addListener('gmp-click', clickHandler);
+        advancedMarker.addListener('mouseover', mouseOverHandler);
+        advancedMarker.addListener('mouseout', mouseOutHandler);
+
+        listeners.push(
+          () => window.google.maps.event.clearInstanceListeners(advancedMarker, 'gmp-click'),
+          () => window.google.maps.event.clearInstanceListeners(advancedMarker, 'mouseover'),
+          () => window.google.maps.event.clearInstanceListeners(advancedMarker, 'mouseout')
+        );
+
+        // Store marker and listeners for cleanup
+        markersRef.current.push({ marker: advancedMarker, listeners });
+
+        return null; // We're handling the marker directly, no need to return anything
+      } catch (error) {
+        console.error('Error creating marker:', error);
+        return null;
+      }
+    });
+  }, [map, locationData, handleMarkerClick, setHoveredMarker, handleMapUnmount]);
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      handleMapUnmount();
+    };
+  }, [handleMapUnmount]);
 
   const handleDeleteLocation = async (locationId) => {
     try {
@@ -824,56 +1022,52 @@ function App() {
 
   const renderAuthForm = () => (
     <div className="auth-container">
-      <h2>{isRegistering ? 'Register' : 'Login'}</h2>
-      <form onSubmit={handleAuth}>
-        {isRegistering && (
-          <div>
-            <label>Name:</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              required={isRegistering}
-              placeholder="Enter your name"
-            />
-          </div>
-        )}
-        <div>
-          <label>Email:</label>
+      <div className="auth-box">
+        <h2>{isRegistering ? 'Register' : 'Login'}</h2>
+        <form onSubmit={handleAuth}>
           <input
             type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({...formData, email: e.target.value})}
             required
             placeholder="Enter your email"
+            className="mobile-input"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            autoComplete="email"
           />
-        </div>
-        <div>
-          <label>Password:</label>
           <input
             type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({...formData, password: e.target.value})}
             required
             placeholder="Enter your password"
-            autoComplete="current-password"
+            className="mobile-input"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            autoComplete={isRegistering ? "current-password" : "new-password"}
           />
-        </div>
-        <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
+          {isRegistering && (
+            <input
+              type="text"
+              required
+              placeholder="Enter your name"
+              className="mobile-input"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              autoComplete="name"
+            />
+          )}
+          <button type="submit" className="mobile-button">
+            {isRegistering ? 'Register' : 'Login'}
+          </button>
+        </form>
         <button 
-          type="button" 
           onClick={() => {
             setIsRegistering(!isRegistering);
             setFormData({ email: '', password: '', name: '' });
           }}
-          style={{
-            backgroundColor: '#6c757d',
-            marginTop: '10px'
-          }}
+          className="mobile-button secondary"
         >
           {isRegistering ? 'Switch to Login' : 'Switch to Register'}
         </button>
-      </form>
+      </div>
     </div>
   );
 
@@ -992,6 +1186,31 @@ function App() {
     }
   }, [map]);
 
+  const setupStatusBar = async () => {
+    try {
+      if (window.Capacitor?.getPlatform() !== 'web') {
+        const { StatusBar } = await import('@capacitor/status-bar');
+        await StatusBar.setBackgroundColor({ color: '#ffffff' });
+      }
+    } catch (error) {
+      console.log('Status bar setup skipped in web mode');
+    }
+  };
+
+  const checkLocationPermission = async () => {
+    try {
+      if (window.Capacitor?.getPlatform() !== 'web') {
+        const { Geolocation } = await import('@capacitor/geolocation');
+        const permissionStatus = await Geolocation.requestPermissions();
+        return permissionStatus.location === 'granted';
+      }
+      return true; // Web browsers handle location permissions differently
+    } catch (error) {
+      console.log('Location permission check skipped in web mode');
+      return true;
+    }
+  };
+
   // Only render the map when user is logged in
   if (!user) {
     return renderAuthForm();
@@ -1063,83 +1282,12 @@ function App() {
                 mapTypeControl: false,
                 fullscreenControl: false,
                 streetViewControl: false,
-                mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID,
+                mapId: 'd90da36315b1554f',
                 useAdvancedMarkers: true,
                 useStaticMap: false
               }}
             >
-              {locationData.map((location) => {
-                const position = {
-                  lat: Number(location.location?.coordinates?.[1]),
-                  lng: Number(location.location?.coordinates?.[0])
-                };
-
-                if (advancedMarkersAvailable && window.google?.maps?.marker?.AdvancedMarkerElement) {
-                  const markerElement = document.createElement('div');
-                  markerElement.className = 'custom-marker';
-                  
-                  const shortText = location.content?.text?.substring(0, 25) + 
-                    (location.content?.text?.length > 25 ? '...' : '');
-                  
-                  markerElement.innerHTML = `
-                    <div class="marker-content" ${location.content?.isAnonymous ? 'data-anonymous="true"' : ''}>
-                      ${getProfileImage(location) 
-                        ? `<img class="marker-profile-pic ${location.content?.isAnonymous ? 'anonymous' : ''}" 
-                               src="${getProfileImage(location)}" 
-                               alt="${location.content?.isAnonymous ? 'Anonymous User' : 'Profile'}" />` 
-                        : '<div class="marker-profile-placeholder">👤</div>'
-                      }
-                      <div class="marker-text">${shortText}</div>
-                      <div class="marker-stats">
-                        <span class="votes">⬆️ ${location.upvotes || 0}</span>
-                        ${location.credits ? `<span class="credits">✨ ${location.credits}</span>` : ''}
-                      </div>
-                    </div>
-                  `;
-
-                  // Add hover animation
-                  markerElement.addEventListener('mouseenter', () => {
-                    markerElement.classList.add('pulse');
-                  });
-                  
-                  markerElement.addEventListener('mouseleave', () => {
-                    markerElement.classList.remove('pulse');
-                    void markerElement.offsetWidth; // Reset animation
-                  });
-                  
-                  // Add click animation
-                  markerElement.addEventListener('click', () => {
-                    markerElement.classList.add('bounce');
-                    setTimeout(() => {
-                      markerElement.classList.remove('bounce');
-                    }, 1000);
-                  });
-
-                  const advancedMarker = new window.google.maps.marker.AdvancedMarkerElement({
-                    map,
-                    position,
-                    content: markerElement,
-                    title: location.content?.text || 'Location'
-                  });
-
-                  advancedMarker.addListener('click', () => handleMarkerClick(location));
-                  advancedMarker.addListener('mouseover', () => setHoveredMarker(location));
-                  advancedMarker.addListener('mouseout', () => setHoveredMarker(null));
-
-                  return null;
-                }
-
-                return (
-                  <Marker
-                    key={location.id}
-                    position={position}
-                    title={location.content?.text}
-                    onClick={() => handleMarkerClick(location)}
-                    onMouseOver={() => setHoveredMarker(location)}
-                    onMouseOut={() => setHoveredMarker(null)}
-                  />
-                );
-              })}
+              {renderContent()}
 
               {/* Single InfoWindow component */}
               {(selectedLocation || selectedMarker) && (
