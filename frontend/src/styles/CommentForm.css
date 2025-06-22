@@ -1,0 +1,238 @@
+.comment-form {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-bottom: 20px;
+  border: 1px solid #e1e5e9;
+}
+
+.comment-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.comment-form-header h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cancel-button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #7f8c8d;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.cancel-button:hover {
+  background-color: #f8f9fa;
+  color: #e74c3c;
+}
+
+.comment-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.comment-textarea:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.comment-textarea::placeholder {
+  color: #95a5a6;
+}
+
+.comment-form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 15px 0;
+  padding: 10px 0;
+}
+
+.anonymous-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.anonymous-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3498db;
+}
+
+.character-count {
+  font-size: 12px;
+  color: #95a5a6;
+  font-weight: 500;
+}
+
+.media-upload-section {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #cbd5e0;
+}
+
+.media-upload-label {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #3498db;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.media-upload-label:hover {
+  background: #2980b9;
+}
+
+.media-input {
+  display: none;
+}
+
+.media-preview {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.media-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e1e5e9;
+}
+
+.media-name {
+  font-size: 13px;
+  color: #2c3e50;
+  flex: 1;
+  margin-right: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-media {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.remove-media:hover {
+  background: #c0392b;
+}
+
+.comment-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e1e5e9;
+}
+
+.submit-comment-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-comment-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.submit-comment-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .comment-form {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+
+  .comment-form-header h4 {
+    font-size: 15px;
+  }
+
+  .comment-textarea {
+    min-height: 80px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .comment-form-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .media-upload-section {
+    padding: 12px;
+  }
+
+  .media-upload-label {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+  }
+
+  .submit-comment-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+  }
+} 

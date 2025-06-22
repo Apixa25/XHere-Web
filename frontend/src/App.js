@@ -22,6 +22,7 @@ import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
 import LocationForm from './components/LocationForm';
+import CommentSection from './components/CommentSection';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -959,6 +960,19 @@ function App() {
                         Delete Location
                       </button>
                     )}
+
+                    {/* Comment Section */}
+                    <CommentSection
+                      locationId={selectedMarker.id}
+                      user={user}
+                      onNewBadges={(newBadges) => {
+                        // Handle new badges from comments
+                        if (newBadges && newBadges.length > 0) {
+                          // You can add badge notification logic here
+                          console.log('New badges from comments:', newBadges);
+                        }
+                      }}
+                    />
                   </div>
                 </OverlayView>
               )}

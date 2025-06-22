@@ -79,4 +79,16 @@ const Location = sequelize.define('Location', {
   }
 });
 
+// Define associations
+Location.associate = (models) => {
+  Location.hasMany(models.LocationComment, {
+    foreignKey: 'locationId',
+    as: 'comments'
+  });
+  Location.belongsTo(models.User, {
+    foreignKey: 'creatorId',
+    as: 'creator'
+  });
+};
+
 module.exports = Location; 
