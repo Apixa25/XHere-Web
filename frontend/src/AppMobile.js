@@ -633,6 +633,8 @@ function AppMobile() {
   const [selectedLocationType, setSelectedLocationType] = useState('all');
   const timerIntervals = useRef({});
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
+  const isUpdatingMarkers = useRef(false);
+  const isUpdatingCenter = useRef(false);
 
   // Get device info
   useEffect(() => {
@@ -701,6 +703,12 @@ function AppMobile() {
       url.searchParams.append('lat', center.lat.toString());
       url.searchParams.append('lng', center.lng.toString());
       url.searchParams.append('radius', '5'); // 5 mile radius
+      
+      // Don't fetch if we're currently updating markers or center
+      if (isUpdatingMarkers.current || isUpdatingCenter.current) {
+        console.log('🔄 Skipping location fetch - markers or center update in progress');
+        return;
+      }
       
       setIsFetchingLocations(true);
       
@@ -955,6 +963,12 @@ function AppMobile() {
     // Add throttled bounds change listener to prevent runaway API calls
     let boundsChangeTimeout = null;
     const boundsChangeListener = mapInstance.addListener('bounds_changed', () => {
+      // Don't trigger if we're currently updating the center programmatically
+      if (isUpdatingCenter.current) {
+        console.log('🔄 Skipping bounds change - center update in progress');
+        return;
+      }
+
       // Clear any existing timeout
       if (boundsChangeTimeout) {
         clearTimeout(boundsChangeTimeout);
@@ -972,7 +986,12 @@ function AppMobile() {
         
         if (latDiff > 0.007 || lngDiff > 0.007) {
           console.log('🗺️ Map center changed significantly, updating location fetch');
+          isUpdatingCenter.current = true;
           setCenter({ lat: newLat, lng: newLng });
+          // Reset the flag after a short delay
+          setTimeout(() => {
+            isUpdatingCenter.current = false;
+          }, 500);
         }
       }, 1000); // 1 second throttle
     });

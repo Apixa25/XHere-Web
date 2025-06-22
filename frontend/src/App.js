@@ -185,6 +185,8 @@ function App() {
   const [selectedLocationType, setSelectedLocationType] = useState('all');
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
   const currentFetchController = useRef(null);
+  const isUpdatingMarkers = useRef(false);
+  const isUpdatingCenter = useRef(false);
 
   const mapStyles = {
     height: "100vh",
@@ -409,6 +411,12 @@ function App() {
         console.log('🗺️ No token available, skipping location fetch');
         return;
       }
+
+      // Don't fetch if we're currently updating markers or center
+      if (isUpdatingMarkers.current || isUpdatingCenter.current) {
+        console.log('🔄 Skipping location fetch - markers or center update in progress');
+        return;
+      }
       
       // Cancel any existing request
       if (currentFetchController.current) {
@@ -490,6 +498,12 @@ function App() {
       // Add throttled bounds change listener to prevent runaway API calls
       let boundsChangeTimeout = null;
       const boundsChangeListener = mapInstance.addListener('bounds_changed', () => {
+        // Don't trigger if we're currently updating the center programmatically
+        if (isUpdatingCenter.current) {
+          console.log('🔄 Skipping bounds change - center update in progress');
+          return;
+        }
+
         // Clear any existing timeout
         if (boundsChangeTimeout) {
           clearTimeout(boundsChangeTimeout);
@@ -507,7 +521,12 @@ function App() {
           
           if (latDiff > 0.007 || lngDiff > 0.007) {
             console.log('🗺️ Map center changed significantly, updating location fetch');
+            isUpdatingCenter.current = true;
             setCenter({ lat: newLat, lng: newLng });
+            // Reset the flag after a short delay
+            setTimeout(() => {
+              isUpdatingCenter.current = false;
+            }, 500);
           }
         }, 1000); // 1 second throttle
       });
@@ -542,6 +561,14 @@ function App() {
     if (!map || !locationData.length || !window.google?.maps?.marker?.AdvancedMarkerElement) {
       return;
     }
+
+    // Prevent marker recreation during info window operations
+    if (isUpdatingMarkers.current) {
+      console.log('🔄 Skipping marker recreation - currently updating markers');
+      return;
+    }
+
+    isUpdatingMarkers.current = true;
 
     // Clear previous markers
     advancedMarkerRefs.current.forEach(({ marker }) => {
@@ -638,7 +665,12 @@ function App() {
 
       advancedMarkerRefs.current.push({ marker: advancedMarker, listeners });
     });
-  }, [locationData, handleMarkerClick, setHoveredMarker]);
+
+    // Reset the flag after a short delay to allow for any pending operations
+    setTimeout(() => {
+      isUpdatingMarkers.current = false;
+    }, 100);
+  }, [map, locationData.length]); // Only depend on map and locationData length, not the full array
 
   // Add missing functions
   const handleDeleteLocation = async (locationId) => {
