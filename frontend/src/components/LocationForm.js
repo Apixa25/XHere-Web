@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../styles/LocationForm.css';
 
-const LocationForm = ({ position, onSubmit, submitting }) => {
+const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
   const [text, setText] = useState('');
   const [media, setMedia] = useState([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -27,6 +27,7 @@ const LocationForm = ({ position, onSubmit, submitting }) => {
 
   return (
     <div className="location-form">
+      <button onClick={onClose} className="close-button">&times;</button>
       <h3>Create a new location</h3>
       <form onSubmit={handleSubmit}>
         <textarea

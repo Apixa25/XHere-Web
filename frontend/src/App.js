@@ -706,6 +706,7 @@ function App() {
                 mapId: MAPS_ID,
                 disableDefaultUI: true,
                 clickableIcons: false,
+                gestureHandling: 'greedy',
               }}
             >
               {locationData.map((location) => {
@@ -725,14 +726,16 @@ function App() {
                   onCloseClick={() => {
                     setSelectedLocation(null);
                   }}
+                  options={{
+                    pixelOffset: new window.google.maps.Size(0, -30)
+                  }}
                 >
-                  <div className="location-form marker-info-window">
-                    <LocationForm
-                      position={selectedLocation}
-                      onSubmit={handleLocationSubmit}
-                      submitting={submitting}
-                    />
-                  </div>
+                  <LocationForm
+                    position={selectedLocation}
+                    onSubmit={handleLocationSubmit}
+                    submitting={submitting}
+                    onClose={() => setSelectedLocation(null)}
+                  />
                 </InfoWindowF>
               )}
 
@@ -745,7 +748,8 @@ function App() {
                   onCloseClick={() => setSelectedMarker(null)}
                   options={{ pixelOffset: new window.google.maps.Size(0, -30) }}
                 >
-                  <div className="marker-info-window">
+                  <div className="location-details-content">
+                    <button onClick={() => setSelectedMarker(null)} className="close-button">&times;</button>
                     <div className="marker-header">
                       <div className="poster-info">
                         <p className="poster-name">
