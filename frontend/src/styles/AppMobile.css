@@ -614,6 +614,15 @@ label {
   color: var(--text-light);
 }
 
+.marker-stats .timer {
+  font-size: 11px;
+  color: #d9534f;
+  font-weight: bold;
+  background-color: #f2f2f2;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
 /* Error boundary styling */
 .mobile-error-boundary {
   display: flex;
