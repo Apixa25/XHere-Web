@@ -500,6 +500,8 @@ function AppMobile() {
     
     return () => {
       backButtonHandler.remove();
+      // Cleanup timers on component unmount
+      Object.values(timerIntervals.current).forEach(clearInterval);
     };
   }, []);
 
@@ -537,6 +539,7 @@ function AppMobile() {
   const [activeTab, setActiveTab] = useState('map');
   const [locationPermission, setLocationPermission] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState(null);
+  const timerIntervals = useRef({});
 
   // Get device info
   useEffect(() => {
@@ -1096,6 +1099,10 @@ function AppMobile() {
   const renderContent = () => {
     switch (activeTab) {
       case 'map':
+        // Clear all existing timers before re-rendering markers
+        Object.values(timerIntervals.current).forEach(clearInterval);
+        timerIntervals.current = {};
+
         return (
           <div className="mobile-map-container">
             <GoogleMap
@@ -1144,6 +1151,7 @@ function AppMobile() {
                         <div class="marker-stats">
                           <span class="votes">⬆️ ${location.upvotes || 0}</span>
                           ${location.credits ? `<span class="credits">✨ ${location.credits}</span>` : ''}
+                          ${location.deleteAt ? `<span class="timer" id="timer-${location.id}"></span>` : ''}
                         </div>
                       </div>
                     `;
@@ -1162,6 +1170,34 @@ function AppMobile() {
                       content: markerElement,
                       title: location.content?.text || 'Location'
                     });
+
+                    if (location.deleteAt) {
+                      const timerElement = markerElement.querySelector(`#timer-${location.id}`);
+                      if (timerElement) {
+                        const intervalId = setInterval(() => {
+                          const deleteDate = new Date(location.deleteAt);
+                          const now = new Date();
+                          const timeLeft = Math.round((deleteDate.getTime() - now.getTime()) / 1000);
+
+                          if (timeLeft <= 0) {
+                            timerElement.innerText = 'Expired';
+                            clearInterval(intervalId);
+                          } else {
+                            const hours = Math.floor(timeLeft / 3600);
+                            const minutes = Math.floor((timeLeft % 3600) / 60);
+                            const seconds = timeLeft % 60;
+                            
+                            let timeString = '';
+                            if (hours > 0) {
+                              timeString += `${hours.toString().padStart(2, '0')}:`;
+                            }
+                            timeString += `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                            timerElement.innerText = `⏳ ${timeString}`;
+                          }
+                        }, 1000);
+                        timerIntervals.current[location.id] = intervalId;
+                      }
+                    }
 
                     advancedMarker.addListener('click', () => handleMarkerClick(location));
 

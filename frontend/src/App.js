@@ -180,6 +180,7 @@ function App() {
   const markersRef = useRef([]);
   const mapRef = useRef(null);
   const advancedMarkerRefs = useRef([]);
+  const timerIntervals = useRef({});
 
   const mapStyles = {
     height: "100vh",
@@ -432,6 +433,7 @@ function App() {
     });
     advancedMarkerRefs.current = [];
     setMap(null);
+    Object.values(timerIntervals.current).forEach(clearInterval);
   }, []);
 
   useEffect(() => {
@@ -444,6 +446,8 @@ function App() {
       marker.map = null; // Remove marker from map
     });
     advancedMarkerRefs.current = [];
+    Object.values(timerIntervals.current).forEach(clearInterval);
+    timerIntervals.current = {};
 
     console.log('Creating advanced markers for locations:', locationData.length);
 
@@ -475,6 +479,7 @@ function App() {
           <div class="marker-stats">
             <span class="votes">⬆️ ${location.upvotes || 0}</span>
             ${location.credits ? `<span class="credits">✨ ${location.credits}</span>` : ''}
+            ${location.deleteAt ? `<span class="timer" id="timer-${location.id}"></span>` : ''}
           </div>
         </div>
       `;
@@ -485,6 +490,34 @@ function App() {
         content: markerElement,
         title: location.content?.text || 'Location'
       });
+
+      if (location.deleteAt) {
+        const timerElement = markerElement.querySelector(`#timer-${location.id}`);
+        if (timerElement) {
+          const intervalId = setInterval(() => {
+            const deleteDate = new Date(location.deleteAt);
+            const now = new Date();
+            const timeLeft = Math.round((deleteDate.getTime() - now.getTime()) / 1000);
+
+            if (timeLeft <= 0) {
+              timerElement.innerText = 'Expired';
+              clearInterval(intervalId);
+            } else {
+              const hours = Math.floor(timeLeft / 3600);
+              const minutes = Math.floor((timeLeft % 3600) / 60);
+              const seconds = timeLeft % 60;
+              
+              let timeString = '';
+              if (hours > 0) {
+                timeString += `${hours.toString().padStart(2, '0')}:`;
+              }
+              timeString += `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+              timerElement.innerText = `⏳ ${timeString}`;
+            }
+          }, 1000);
+          timerIntervals.current[location.id] = intervalId;
+        }
+      }
 
       const clickListener = advancedMarker.addListener('gmp-click', () => {
         handleMarkerClick(location);
@@ -504,6 +537,7 @@ function App() {
         listeners.forEach(listener => listener.remove());
         marker.map = null;
       });
+      Object.values(timerIntervals.current).forEach(clearInterval);
     };
   }, [map, locationData]);
 

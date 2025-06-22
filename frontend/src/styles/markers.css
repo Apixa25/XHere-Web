@@ -121,3 +121,17 @@
   min-height: 30px !important;
   font-size: 16px;
 }
+
+.marker-content[data-anonymous="true"] {
+  opacity: 0.9;
+}
+
+.marker-stats .timer {
+  font-size: 12px;
+  color: #d9534f;
+  font-weight: bold;
+  background-color: #f2f2f2;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
