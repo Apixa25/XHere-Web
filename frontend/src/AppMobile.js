@@ -335,7 +335,7 @@ function LocationInfoWindow({
                 }}
               />
               <label htmlFor="assignCredits">
-                Assign XHere credits
+                Place Crypto (Avail: {user?.credits ?? 0})
               </label>
             </div>
 

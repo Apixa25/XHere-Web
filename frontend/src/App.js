@@ -769,6 +769,7 @@ function App() {
                       onSubmit={handleLocationSubmit}
                       submitting={submitting}
                       onClose={() => setSelectedLocation(null)}
+                      user={user}
                     />
                   </div>
                 </OverlayView>
