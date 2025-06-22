@@ -1,0 +1,61 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: xhere-database
+    postgres:
+      version: "15"
+
+  # Backend Web Service
+  - type: web
+    name: xhere-backend
+    env: node
+    repo: https://github.com/Apixa25/XHere-Web
+    rootDir: ./backend
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    healthCheckPath: "/api/health"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: xhere-database
+          property: connectionString
+      # You will need to add the following secrets in the Render dashboard
+      # after the service is created.
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+
+  # Frontend Static Site
+  - type: static
+    name: xhere-frontend
+    repo: https://github.com/Apixa25/XHere-Web
+    rootDir: ./frontend
+    buildCommand: "npm install && npm run build"
+    publishDir: ./build
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: xhere-backend
+          property: url
+      # You will need to add the following secrets in the Render dashboard
+      # after the service is created.
+      - key: REACT_APP_GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: REACT_APP_GOOGLE_CLIENT_ID
+        sync: false
+      - key: REACT_APP_GOOGLE_MAPS_MAP_ID
+        sync: false
+      - key: REACT_APP_USE_ADVANCED_MARKER
+        value: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html 
