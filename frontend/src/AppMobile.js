@@ -21,6 +21,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
+import CommentSection from './components/CommentSection';
 
 // Import Capacitor plugins
 import { Geolocation, PermissionStatus } from '@capacitor/geolocation';
@@ -470,10 +471,12 @@ function LocationInfoWindow({
                 {new Date(selectedMarker.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <div className="marker-stats">
-              <div className="location-type-badge">
-                {LOCATION_TYPES[selectedMarker.locationType]?.icon || '📍'} {LOCATION_TYPES[selectedMarker.locationType]?.label || 'General'}
-              </div>
+          </div>
+          <div className="location-badges-container">
+            <div className="location-type-badge">
+              {LOCATION_TYPES[selectedMarker.locationType]?.icon || '📍'} {LOCATION_TYPES[selectedMarker.locationType]?.label || 'General'}
+            </div>
+            <div className="marker-stats-right">
               {selectedMarker.credits > 0 && (
                 <div className="credits-badge">
                   💎 {selectedMarker.credits}
@@ -482,7 +485,6 @@ function LocationInfoWindow({
               <div className="points-badge">
                 {selectedMarker.upvotes - selectedMarker.downvotes} pts
               </div>
-              {getStatusBadge()}
             </div>
           </div>
 
@@ -521,6 +523,19 @@ function LocationInfoWindow({
               })}
             </div>
           )}
+
+          {/* Comment Section for Mobile */}
+          <CommentSection
+            locationId={selectedMarker.id}
+            user={user}
+            onNewBadges={(newBadges) => {
+              // You can add badge notification logic here for mobile
+              if (newBadges && newBadges.length > 0) {
+                console.log('New badges from comments (mobile):', newBadges);
+              }
+            }}
+          />
+
           {user && (user.isAdmin || (selectedMarker.creator && user.userId === selectedMarker.creator._id)) && (
             <button
               onClick={() => handleDeleteLocation(selectedMarker.id)}

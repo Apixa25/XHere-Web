@@ -869,3 +869,26 @@ label {
   color: white;
   border-color: #007bff;
 }
+
+.mobile-marker-info .comment-section {
+  margin-top: 15px;
+}
+
+.mobile-marker-info .location-badges-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.mobile-marker-info .marker-stats-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-delete-button {
+  background-color: #dc3545; /* Red for delete */
+}

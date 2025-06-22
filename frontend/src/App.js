@@ -313,6 +313,8 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    // Navigate to auth page after logout
+    window.location.href = '/auth';
   };
 
   const handleVoteUpdate = async (updatedLocation) => {
@@ -713,6 +715,9 @@ function App() {
     setIsUserComplete(false);
     
     await fetchLocations();
+    
+    // Navigate to home page after successful login
+    window.location.href = '/';
   };
 
   // Monitor user state changes
@@ -910,9 +915,15 @@ function App() {
                         </p>
                       </div>
                       <div className="marker-stats">
-                        <div className="location-type-badge">
-                          {LOCATION_TYPES[selectedMarker.locationType]?.icon || '📍'} {LOCATION_TYPES[selectedMarker.locationType]?.label || 'General'}
-                        </div>
+                        {/* This will be empty, badges are moved below */}
+                      </div>
+                    </div>
+
+                    <div className="location-badges-container">
+                      <div className="location-type-badge">
+                        {LOCATION_TYPES[selectedMarker.locationType]?.icon || '📍'} {LOCATION_TYPES[selectedMarker.locationType]?.label || 'General'}
+                      </div>
+                      <div className="marker-stats-right">
                         {selectedMarker.credits > 0 && (
                           <div className="credits-badge">
                             💎 {selectedMarker.credits}

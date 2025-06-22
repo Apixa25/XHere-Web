@@ -485,3 +485,22 @@
   border-color: #007bff;
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
+
+.location-details-content .location-badges-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.location-badges-container .location-type-badge {
+  flex-shrink: 0;
+}
+
+.location-badges-container .marker-stats-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
