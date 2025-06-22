@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import '../styles/LocationForm.css';
 import LOCATION_TYPES from '../constants/locationTypes';
 
-const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
+const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
   const [text, setText] = useState('');
   const [media, setMedia] = useState([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -107,7 +107,9 @@ const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
             </div>
           )}
           <div className="credit-options">
-            <label>Credit Amount (Crypto)</label>
+            <label>
+              Place Crypto (Avail: {user?.credits ?? 0})
+            </label>
             <input
               type="number"
               min="0"
