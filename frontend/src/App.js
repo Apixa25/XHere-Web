@@ -20,6 +20,7 @@ import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
 import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
+import LocationForm from './components/LocationForm';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -168,14 +169,6 @@ function App() {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [routerPath, setRouterPath] = useState('/');
   const [submitting, setSubmitting] = useState(false);
-  const [contentForm, setContentForm] = useState({
-    text: '',
-    media: [],
-    isAnonymous: false,
-    autoDelete: false,
-    deleteTime: 0,
-    deleteUnit: 'minutes'
-  });
 
   const [map, setMap] = useState(null);
   const [center, setCenter] = useState(defaultCenter);
@@ -388,16 +381,6 @@ function App() {
 
       const response = await api.addLocation(data);
       console.log('Location created successfully:', response);
-      
-      // Reset form
-      setContentForm({
-        text: '',
-        media: [],
-        isAnonymous: false,
-        autoDelete: false,
-        deleteTime: 0,
-        deleteUnit: 'minutes'
-      });
       
       setSelectedLocation(null);
       await fetchLocations();
@@ -743,50 +726,12 @@ function App() {
                     setSelectedLocation(null);
                   }}
                 >
-                  <div className="location-form">
-                    <h3>Create a new location</h3>
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleLocationSubmit({
-                          ...contentForm,
-                          lat: selectedLocation.lat,
-                          lng: selectedLocation.lng,
-                        });
-                      }}
-                    >
-                      <textarea
-                        placeholder="Add a description"
-                        value={contentForm.text}
-                        onChange={(e) =>
-                          setContentForm({ ...contentForm, text: e.target.value })
-                        }
-                        required
-                      />
-                      <input
-                        type="file"
-                        multiple
-                        onChange={(e) =>
-                          setContentForm({ ...contentForm, media: [...e.target.files] })
-                        }
-                      />
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={contentForm.isAnonymous}
-                          onChange={(e) =>
-                            setContentForm({
-                              ...contentForm,
-                              isAnonymous: e.target.checked,
-                            })
-                          }
-                        />
-                        Post Anonymously
-                      </label>
-                      <button type="submit" disabled={submitting}>
-                        {submitting ? 'Submitting...' : 'Create Location'}
-                      </button>
-                    </form>
+                  <div className="location-form marker-info-window">
+                    <LocationForm
+                      position={selectedLocation}
+                      onSubmit={handleLocationSubmit}
+                      submitting={submitting}
+                    />
                   </div>
                 </InfoWindowF>
               )}
