@@ -10,6 +10,11 @@ const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
   const [deleteUnit, setDeleteUnit] = useState('minutes');
   const [creditAmount, setCreditAmount] = useState(0);
 
+  const handleCloseClick = (e) => {
+    e.stopPropagation();
+    onClose();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
@@ -27,7 +32,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
 
   return (
     <div className="location-form">
-      <button onClick={onClose} className="close-button">&times;</button>
+      <button onClick={handleCloseClick} className="close-button">&times;</button>
       <h3>Create a new location</h3>
       <form onSubmit={handleSubmit}>
         <textarea
