@@ -13,15 +13,39 @@ const { authenticateToken } = require('./middleware/auth');
 const fs = require('fs');
 const { scheduleCleanup } = require('./scripts/cleanupExpiredLocations');
 
+// Debug logging for environment
+console.log('🚀 Server Starting...');
+console.log('Environment:', process.env.NODE_ENV || 'development');
+console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('NODE_ENV')));
+
 // Import models
 const User = require('./models/User');
 const Location = require('./models/Location');
 
 const app = express();
 
-// CORS middleware
+// CORS middleware - Updated for production
+const allowedOrigins = [
+  'http://localhost:3000', 
+  'http://localhost:3001', 
+  'http://10.0.2.2:3000', 
+  'https://xhere-api.herokuapp.com',
+  'https://xhere.world',
+  'https://www.xhere.world',
+  'https://api.xhere.world'
+];
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://10.0.2.2:3000', 'https://xhere-api.herokuapp.com'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -39,6 +63,30 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Health check endpoint for production monitoring
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection
+    await sequelize.authenticate();
+    
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0'
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      error: error.message
+    });
+  }
+});
 
 // Initialize database
 initializeDatabase()
