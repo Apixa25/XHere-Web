@@ -3,7 +3,7 @@ import {
   GoogleMap, 
   LoadScript, 
   Marker,
-  InfoWindowF,
+  OverlayView,
   useLoadScript 
 } from '@react-google-maps/api';
 import api from './services/api';
@@ -721,34 +721,30 @@ function App() {
               })}
               
               {selectedLocation && (
-                <InfoWindowF
+                <OverlayView
                   position={selectedLocation}
-                  onCloseClick={() => {
-                    setSelectedLocation(null);
-                  }}
-                  options={{
-                    pixelOffset: new window.google.maps.Size(0, -30)
-                  }}
+                  mapPaneName={OverlayView.FLOAT_PANE}
                 >
-                  <LocationForm
-                    position={selectedLocation}
-                    onSubmit={handleLocationSubmit}
-                    submitting={submitting}
-                    onClose={() => setSelectedLocation(null)}
-                  />
-                </InfoWindowF>
+                  <div className="custom-info-window">
+                    <LocationForm
+                      position={selectedLocation}
+                      onSubmit={handleLocationSubmit}
+                      submitting={submitting}
+                      onClose={() => setSelectedLocation(null)}
+                    />
+                  </div>
+                </OverlayView>
               )}
 
               {selectedMarker && (
-                <InfoWindowF
+                <OverlayView
                   position={{
                     lat: selectedMarker.location.coordinates[1],
                     lng: selectedMarker.location.coordinates[0],
                   }}
-                  onCloseClick={() => setSelectedMarker(null)}
-                  options={{ pixelOffset: new window.google.maps.Size(0, -30) }}
+                  mapPaneName={OverlayView.FLOAT_PANE}
                 >
-                  <div className="location-details-content">
+                  <div className="custom-info-window location-details-content">
                     <button onClick={() => setSelectedMarker(null)} className="close-button">&times;</button>
                     <div className="marker-header">
                       <div className="poster-info">
@@ -810,7 +806,7 @@ function App() {
                       </button>
                     )}
                   </div>
-                </InfoWindowF>
+                </OverlayView>
               )}
             </GoogleMap>
           </div>

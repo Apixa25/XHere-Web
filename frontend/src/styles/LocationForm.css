@@ -65,33 +65,28 @@
 }
 
 .location-form {
-  /* Styling is now handled by the parent Google Maps InfoWindow */
-  position: relative;
-  width: 320px;
+  /* This component is flexible and fills the container it's given. */
+  width: 280px; /* Set a fixed width to control the InfoWindow size */
   box-sizing: border-box;
   font-family: 'Arial', sans-serif;
+  position: relative; /* Needed for the close button positioning */
 }
 
 .close-button {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  background: #f1f1f1;
+  top: 8px;
+  right: 8px;
+  background: transparent;
   border: none;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  font-size: 20px;
-  line-height: 30px;
-  text-align: center;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0;
   cursor: pointer;
+  color: #888;
   font-weight: bold;
-  color: #555;
-  transition: background-color 0.2s, color 0.2s;
 }
 
 .close-button:hover {
-  background: #e0e0e0;
   color: #000;
 }
 
