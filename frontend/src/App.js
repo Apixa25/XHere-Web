@@ -725,7 +725,12 @@ function App() {
                   position={selectedLocation}
                   mapPaneName={OverlayView.FLOAT_PANE}
                 >
-                  <div className="custom-info-window">
+                  <div
+                    className="custom-info-window"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                  >
                     <LocationForm
                       position={selectedLocation}
                       onSubmit={handleLocationSubmit}
@@ -744,8 +749,19 @@ function App() {
                   }}
                   mapPaneName={OverlayView.FLOAT_PANE}
                 >
-                  <div className="custom-info-window location-details-content">
-                    <button onClick={() => setSelectedMarker(null)} className="close-button">&times;</button>
+                  <div
+                    className="custom-info-window location-details-content"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMarker(null);
+                      }}
+                      className="close-button"
+                    >&times;</button>
                     <div className="marker-header">
                       <div className="poster-info">
                         <p className="poster-name">
