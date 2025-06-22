@@ -13,7 +13,7 @@ const config = {
     logging: console.log
   },
   production: {
-    url: process.env.DATABASE_URL,
+    url: process.env.POSTGRES_URL,
     dialect: 'postgres',
     dialectOptions: {
       ssl: {
