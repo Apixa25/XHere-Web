@@ -20,6 +20,11 @@ const Location = sequelize.define('Location', {
       isAnonymous: false
     }
   },
+  locationType: {
+    type: DataTypes.ENUM('general', 'yard_sale', 'crime', 'point_of_interest'),
+    defaultValue: 'general',
+    allowNull: false
+  },
   creatorId: {
     type: DataTypes.UUID,
     allowNull: false,

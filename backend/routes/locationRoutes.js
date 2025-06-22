@@ -28,6 +28,15 @@ router.get('/', authenticateToken, async (req, res) => {
       }
       // Admin users will see all locations in their profile
     }
+
+    // Filter by location type if specified
+    if (req.query.locationType && req.query.locationType !== 'all') {
+      if (!query.where) {
+        query.where = {};
+      }
+      query.where.locationType = req.query.locationType;
+    }
+
     // For map page requests, no filtering - everyone sees all locations
 
     const locations = await Location.findAll(query);
@@ -72,7 +81,8 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       isAnonymous, 
       autoDelete, 
       deleteTime, 
-      deleteUnit 
+      deleteUnit,
+      locationType 
     } = req.body;
 
     // Calculate deleteAt time if autoDelete is enabled
@@ -108,6 +118,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
         coordinates: [parseFloat(longitude), parseFloat(latitude)]
       },
       content,
+      locationType: locationType || 'general',
       creatorId: req.user.userId,
       autoDelete: autoDelete === 'true',
       deleteAt,

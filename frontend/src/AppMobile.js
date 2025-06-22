@@ -20,6 +20,7 @@ import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
 import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
+import LOCATION_TYPES from './constants/locationTypes';
 
 // Import Capacitor plugins
 import { Geolocation, PermissionStatus } from '@capacitor/geolocation';
@@ -203,6 +204,22 @@ function LocationInfoWindow({
             className="mobile-textarea"
           />
           
+          <div className="mobile-location-type-selector">
+            <label htmlFor="locationType">Location Type:</label>
+            <select
+              id="locationType"
+              value={contentForm.locationType}
+              onChange={e => setContentForm({ ...contentForm, locationType: e.target.value })}
+              className="mobile-select"
+            >
+              {Object.entries(LOCATION_TYPES).map(([key, type]) => (
+                <option key={key} value={key}>
+                  {type.icon} {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
           <div className="mobile-media-buttons">
             <button 
               type="button" 
@@ -384,6 +401,9 @@ function LocationInfoWindow({
               </p>
             </div>
             <div className="marker-stats">
+              <div className="location-type-badge">
+                {LOCATION_TYPES[selectedMarker.locationType]?.icon || '📍'} {LOCATION_TYPES[selectedMarker.locationType]?.label || 'General'}
+              </div>
               {selectedMarker.credits > 0 && (
                 <div className="credits-badge">
                   💎 {selectedMarker.credits}
@@ -527,7 +547,8 @@ function AppMobile() {
     isAnonymous: false,
     autoDelete: false,
     deleteTime: 0,
-    deleteUnit: 'minutes'
+    deleteUnit: 'minutes',
+    locationType: 'general'
   });
   const [map, setMap] = useState(null);
   const [center, setCenter] = useState(defaultCenter);
@@ -539,6 +560,7 @@ function AppMobile() {
   const [activeTab, setActiveTab] = useState('map');
   const [locationPermission, setLocationPermission] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState(null);
+  const [selectedLocationType, setSelectedLocationType] = useState('all');
   const timerIntervals = useRef({});
 
   // Get device info
@@ -598,7 +620,13 @@ function AppMobile() {
   const fetchLocations = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/locations?profile=false`, {
+      const url = new URL(`${API_URL}/api/locations`);
+      url.searchParams.append('profile', 'false');
+      if (selectedLocationType !== 'all') {
+        url.searchParams.append('locationType', selectedLocationType);
+      }
+      
+      const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -614,7 +642,7 @@ function AppMobile() {
       console.error('Error fetching locations:', err);
       setLocationData([]);
     }
-  }, []);
+  }, [selectedLocationType]);
 
   // Fetch locations when user is set
   useEffect(() => {
@@ -790,6 +818,7 @@ function AppMobile() {
         data.append('deleteUnit', formData.deleteUnit);
       }
       data.append('creditAmount', formData.creditAmount || 0);
+      data.append('locationType', formData.locationType || 'general');
       
       if (formData.media) {
         formData.media.forEach(file => {
@@ -806,7 +835,8 @@ function AppMobile() {
         isAnonymous: false,
         autoDelete: false,
         deleteTime: 0,
-        deleteUnit: 'minutes'
+        deleteUnit: 'minutes',
+        locationType: 'general'
       });
       
       setSelectedLocation(null);
@@ -1105,6 +1135,25 @@ function AppMobile() {
 
         return (
           <div className="mobile-map-container">
+            {/* Location Type Filter */}
+            <div className="mobile-location-filter">
+              <button 
+                className={`filter-button ${selectedLocationType === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectedLocationType('all')}
+              >
+                🌍 All
+              </button>
+              {Object.entries(LOCATION_TYPES).map(([key, type]) => (
+                <button 
+                  key={key}
+                  className={`filter-button ${selectedLocationType === key ? 'active' : ''}`}
+                  onClick={() => setSelectedLocationType(key)}
+                >
+                  {type.icon} {type.label}
+                </button>
+              ))}
+            </div>
+            
             <GoogleMap
               mapContainerStyle={mapStyles}
               zoom={13}
@@ -1141,6 +1190,9 @@ function AppMobile() {
                     
                     markerElement.innerHTML = `
                       <div class="marker-content" ${location.content?.isAnonymous ? 'data-anonymous="true"' : ''}>
+                        <div class="marker-type-icon">
+                          ${LOCATION_TYPES[location.locationType]?.icon || '📍'}
+                        </div>
                         ${getProfileImage(location) 
                           ? `<img class="marker-profile-pic ${location.content?.isAnonymous ? 'anonymous' : ''}" 
                                  src="${getProfileImage(location)}" 
