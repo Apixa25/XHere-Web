@@ -33,12 +33,12 @@ services:
         sync: false
 
   # Frontend Static Site
-  - type: static
+  - type: static site
     name: xhere-frontend
     repo: https://github.com/Apixa25/XHere-Web
     rootDir: ./frontend
     buildCommand: "npm install && npm run build"
-    publishDir: ./build
+    publishDir: build
     envVars:
       - key: REACT_APP_API_URL
         fromService:
