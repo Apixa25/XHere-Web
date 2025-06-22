@@ -37,38 +37,36 @@
   }
 }
 
-/*
-  InfoWindow Styling Solution:
-  Let the Google Maps InfoWindow be the styled container.
-*/
-.gm-style-iw-c {
-  /* This is the main container, give it the shadow and radius */
-  padding: 0 !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
-  background-color: transparent !important; /* The container itself is clear */
+/* All custom InfoWindow styling has been removed for a cleaner approach. */
+/* The size of the InfoWindow is now controlled by options in the React component. */
+
+.custom-info-window {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 7px 1px rgba(0,0,0,0.3);
+  margin-bottom: 12px; /* Space for the arrow */
 }
 
-.gm-style-iw-d {
-  /* This is the content wrapper, give it padding and a background */
-  overflow: hidden !important;
-  padding: 24px !important;
-  background-color: white !important;
+.custom-info-window::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
 }
 
-/* Hide the default Google Maps close button */
-.gm-style-iw-c > button, /* Old selector, keep for safety */
-.gm-ui-hover-effect { /* New, more specific selector for the close button */
-  display: none !important;
-}
-
-/* Our custom components no longer need to provide the "card" look */
 .location-details-content {
-  /* Styling is now handled by .gm-style-iw-c and .gm-style-iw-d */
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
+  width: 280px;
+  box-sizing: border-box;
 }
 
 /* Location Info Window Styles */
