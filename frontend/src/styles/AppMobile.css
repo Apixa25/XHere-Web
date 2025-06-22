@@ -195,6 +195,33 @@ label {
   z-index: 1;
 }
 
+/* Search Radius Indicator */
+.mobile-radius-indicator {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 8px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.radius-text {
+  color: var(--text-color);
+}
+
+.location-count {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
 /* Google Maps overrides for mobile */
 .gm-style-iw {
   max-width: 90vw !important;

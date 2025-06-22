@@ -9,6 +9,20 @@ import reportWebVitals from './reportWebVitals';
 const detectPlatform = () => {
   const isCapacitor = !!(window.Capacitor);
   const isNative = isCapacitor && !!(window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const userAgent = navigator.userAgent;
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+
+  // Add detailed debugging
+  console.log('🔍 Platform Detection Debug:', {
+    isCapacitor,
+    isNative,
+    userAgent: userAgent.substring(0, 100) + '...',
+    isMobileDevice,
+    windowLocation: window.location.href,
+    hasCapacitor: !!window.Capacitor,
+    capacitorPlatform: window.Capacitor?.getPlatform?.(),
+    isNativePlatform: window.Capacitor?.isNativePlatform?.()
+  });
 
   // Prioritize native environment
   if (isNative) {
@@ -17,7 +31,6 @@ const detectPlatform = () => {
   }
 
   // Check for mobile user agent
-  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   if (isMobileDevice) {
     console.log('🔍 Platform Detection: Mobile user agent detected.');
     return 'mobile-web';
@@ -39,6 +52,17 @@ const getAppComponent = () => {
   if (urlParams.get('forceMobile') === 'true') {
     console.log('📱 Force mobile mode enabled via URL parameter');
     return AppMobile;
+  }
+  
+  // Check localStorage for forced mode (for testing)
+  const forcedMode = localStorage.getItem('xhere-forced-mode');
+  if (forcedMode === 'mobile') {
+    console.log('📱 Force mobile mode enabled via localStorage');
+    return AppMobile;
+  }
+  if (forcedMode === 'web') {
+    console.log('🖥️ Force web mode enabled via localStorage');
+    return App;
   }
   
   const platform = detectPlatform();

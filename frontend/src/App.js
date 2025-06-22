@@ -183,6 +183,8 @@ function App() {
   const advancedMarkerRefs = useRef([]);
   const timerIntervals = useRef({});
   const [selectedLocationType, setSelectedLocationType] = useState('all');
+  const [isFetchingLocations, setIsFetchingLocations] = useState(false);
+  const currentFetchController = useRef(null);
 
   const mapStyles = {
     height: "100vh",
@@ -408,16 +410,32 @@ function App() {
         return;
       }
       
+      // Cancel any existing request
+      if (currentFetchController.current) {
+        currentFetchController.current.abort();
+      }
+      
+      // Create new abort controller for this request
+      currentFetchController.current = new AbortController();
+      
+      setIsFetchingLocations(true);
+      
       const url = new URL(`${API_URL}/api/locations`);
       url.searchParams.append('profile', 'false');
       if (selectedLocationType !== 'all') {
         url.searchParams.append('locationType', selectedLocationType);
       }
       
+      // Add geographic filtering parameters for map view
+      url.searchParams.append('lat', center.lat.toString());
+      url.searchParams.append('lng', center.lng.toString());
+      url.searchParams.append('radius', '5'); // 5 mile radius
+      
       const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: currentFetchController.current.signal
       });
       
       console.log('🗺️ Locations API response status:', response.status);
@@ -430,10 +448,17 @@ function App() {
       console.log('🗺️ Locations fetched successfully:', data.length, 'locations');
       setLocationData(data);
     } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('🗺️ Location fetch cancelled');
+        return;
+      }
       console.error('❌ Error fetching locations:', err);
       setLocationData([]);
+    } finally {
+      setIsFetchingLocations(false);
+      currentFetchController.current = null;
     }
-  }, [user, selectedLocationType]);
+  }, [user, selectedLocationType, center]);
 
   const inspectLocation = (loc) => {
     try {
@@ -461,6 +486,35 @@ function App() {
       console.log('Map loaded successfully');
       mapRef.current = mapInstance;
       setMap(mapInstance);
+      
+      // Add throttled bounds change listener to prevent runaway API calls
+      let boundsChangeTimeout = null;
+      const boundsChangeListener = mapInstance.addListener('bounds_changed', () => {
+        // Clear any existing timeout
+        if (boundsChangeTimeout) {
+          clearTimeout(boundsChangeTimeout);
+        }
+        
+        // Throttle the center update to prevent excessive API calls
+        boundsChangeTimeout = setTimeout(() => {
+          const newCenter = mapInstance.getCenter();
+          const newLat = newCenter.lat();
+          const newLng = newCenter.lng();
+          
+          // Only refetch if center changed by more than 0.5 miles (roughly 0.007 degrees)
+          const latDiff = Math.abs(newLat - center.lat);
+          const lngDiff = Math.abs(newLng - center.lng);
+          
+          if (latDiff > 0.007 || lngDiff > 0.007) {
+            console.log('🗺️ Map center changed significantly, updating location fetch');
+            setCenter({ lat: newLat, lng: newLng });
+          }
+        }, 1000); // 1 second throttle
+      });
+      
+      // Store the listener for cleanup
+      mapRef.current.boundsChangeListener = boundsChangeListener;
+      
     } catch (error) {
       console.error('Error loading map:', error);
     }
@@ -473,6 +527,13 @@ function App() {
       listeners.forEach(listener => listener.remove());
     });
     advancedMarkerRefs.current = [];
+    
+    // Clean up bounds change listener
+    if (mapRef.current?.boundsChangeListener) {
+      mapRef.current.boundsChangeListener.remove();
+      mapRef.current.boundsChangeListener = null;
+    }
+    
     setMap(null);
     Object.values(timerIntervals.current).forEach(clearInterval);
   }, []);
@@ -739,6 +800,15 @@ function App() {
           )}
           
           <div className="map-container">
+            {/* Search Radius Indicator */}
+            <div className="radius-indicator">
+              <span className="radius-text">
+                📍 Showing locations within 5 miles
+                {isFetchingLocations && <span style={{color: '#FFA726'}}> 🔄 Updating...</span>}
+              </span>
+              <span className="location-count">({locationData.length}/25 locations)</span>
+            </div>
+            
             <GoogleMap
               mapContainerStyle={mapStyles}
               center={center}

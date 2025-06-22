@@ -51,21 +51,91 @@ const USE_ADVANCED_MARKER = String(process.env.REACT_APP_USE_ADVANCED_MARKER).to
 const MAPS_ID = process.env.REACT_APP_GOOGLE_MAPS_MAP_ID;
 
 function GoogleMapsProvider({ children }) {
+  const [timeoutReached, setTimeoutReached] = useState(false);
+  const [bypassMaps, setBypassMaps] = useState(false);
+  
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries: LIBRARIES,
     mapIds: ['51948ac5ec373e9c']
   });
 
+  // Add timeout mechanism
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!isLoaded && !loadError) {
+        console.warn('⚠️ Google Maps loading timeout reached');
+        setTimeoutReached(true);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [isLoaded, loadError]);
+
+  // Add debugging
+  console.log('🗺️ GoogleMapsProvider Status:', {
+    isLoaded,
+    loadError: loadError?.message,
+    timeoutReached,
+    bypassMaps,
+    apiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? 'Present' : 'Missing',
+    apiKeyLength: process.env.REACT_APP_GOOGLE_MAPS_API_KEY?.length || 0,
+    clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'Present' : 'Missing',
+    libraries: LIBRARIES,
+    nodeEnv: process.env.NODE_ENV
+  });
+
+  // Temporary bypass for debugging
+  if (bypassMaps) {
+    console.log('🔄 Bypassing Google Maps for debugging');
+    return children;
+  }
+
   if (loadError) {
-    console.error('Error loading maps:', loadError);
-    return <div className="error-container">Error loading maps</div>;
+    console.error('❌ Error loading maps:', loadError);
+    // Instead of blocking the entire app, let's show a fallback
+    return (
+      <div className="error-container">
+        <h3>⚠️ Maps Loading Error</h3>
+        <p>Error: {loadError.message}</p>
+        <p>Please check your internet connection and try again.</p>
+        <button onClick={() => window.location.reload()}>🔄 Reload App</button>
+        <button onClick={() => setBypassMaps(true)} style={{marginLeft: '10px'}}>🚀 Continue Without Maps</button>
+        {/* Still render children so the app can function without maps */}
+        {children}
+      </div>
+    );
   }
 
-  if (!isLoaded) {
-    return <div className="loading-container">Loading maps...</div>;
+  if (!isLoaded && !timeoutReached) {
+    console.log('⏳ Google Maps still loading...');
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner">🗺️</div>
+        <p>Loading maps...</p>
+        {/* Add a timeout fallback */}
+        <div style={{marginTop: '10px'}}>
+          <button onClick={() => window.location.reload()}>🔄 Reload</button>
+          <button onClick={() => setBypassMaps(true)} style={{marginLeft: '10px'}}>🚀 Continue Without Maps</button>
+        </div>
+      </div>
+    );
   }
 
+  // If timeout reached, show a warning but continue
+  if (timeoutReached && !isLoaded) {
+    console.warn('⚠️ Proceeding without Google Maps due to timeout');
+    return (
+      <div style={{padding: '10px', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '5px', margin: '10px'}}>
+        <h4>⚠️ Maps Loading Slow</h4>
+        <p>Google Maps is taking longer than expected to load. The app will continue to function.</p>
+        <button onClick={() => setBypassMaps(true)}>🚀 Continue Without Maps</button>
+        {children}
+      </div>
+    );
+  }
+
+  console.log('✅ Google Maps loaded successfully!');
   return children;
 }
 
@@ -562,6 +632,7 @@ function AppMobile() {
   const [deviceInfo, setDeviceInfo] = useState(null);
   const [selectedLocationType, setSelectedLocationType] = useState('all');
   const timerIntervals = useRef({});
+  const [isFetchingLocations, setIsFetchingLocations] = useState(false);
 
   // Get device info
   useEffect(() => {
@@ -626,6 +697,13 @@ function AppMobile() {
         url.searchParams.append('locationType', selectedLocationType);
       }
       
+      // Add geographic filtering parameters for map view
+      url.searchParams.append('lat', center.lat.toString());
+      url.searchParams.append('lng', center.lng.toString());
+      url.searchParams.append('radius', '5'); // 5 mile radius
+      
+      setIsFetchingLocations(true);
+      
       const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -641,8 +719,10 @@ function AppMobile() {
     } catch (err) {
       console.error('Error fetching locations:', err);
       setLocationData([]);
+    } finally {
+      setIsFetchingLocations(false);
     }
-  }, [selectedLocationType]);
+  }, [selectedLocationType, center]);
 
   // Fetch locations when user is set
   useEffect(() => {
@@ -871,6 +951,31 @@ function AppMobile() {
   const handleMapLoad = (mapInstance) => {
     console.log('Map loaded, checking advanced markers');
     setMap(mapInstance);
+    
+    // Add throttled bounds change listener to prevent runaway API calls
+    let boundsChangeTimeout = null;
+    const boundsChangeListener = mapInstance.addListener('bounds_changed', () => {
+      // Clear any existing timeout
+      if (boundsChangeTimeout) {
+        clearTimeout(boundsChangeTimeout);
+      }
+      
+      // Throttle the center update to prevent excessive API calls
+      boundsChangeTimeout = setTimeout(() => {
+        const newCenter = mapInstance.getCenter();
+        const newLat = newCenter.lat();
+        const newLng = newCenter.lng();
+        
+        // Only refetch if center changed by more than 0.5 miles (roughly 0.007 degrees)
+        const latDiff = Math.abs(newLat - center.lat);
+        const lngDiff = Math.abs(newLng - center.lng);
+        
+        if (latDiff > 0.007 || lngDiff > 0.007) {
+          console.log('🗺️ Map center changed significantly, updating location fetch');
+          setCenter({ lat: newLat, lng: newLng });
+        }
+      }, 1000); // 1 second throttle
+    });
     
     setTimeout(() => {
       if (window.google?.maps?.marker?.AdvancedMarkerElement) {
@@ -1122,16 +1227,47 @@ function AppMobile() {
 
   // Only render the map when user is logged in
   if (!user) {
+    console.log('🔐 No user found, showing auth form');
     return renderAuthForm();
   }
 
+  console.log('🎯 User authenticated, rendering main app. Active tab:', activeTab);
+
   // Mobile-optimized UI based on active tab
   const renderContent = () => {
+    console.log('🎨 Rendering content for tab:', activeTab);
+    
     switch (activeTab) {
       case 'map':
+        console.log('🗺️ Rendering map tab');
         // Clear all existing timers before re-rendering markers
         Object.values(timerIntervals.current).forEach(clearInterval);
         timerIntervals.current = {};
+
+        // Check if Google Maps is available
+        if (!window.google?.maps) {
+          console.warn('⚠️ Google Maps not available, showing fallback');
+          return (
+            <div className="mobile-map-container">
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                padding: '20px',
+                textAlign: 'center'
+              }}>
+                <h3>🗺️ Map Unavailable</h3>
+                <p>Google Maps is currently loading or unavailable.</p>
+                <p>Found {locationData.length} locations in your area.</p>
+                <div style={{marginTop: '20px'}}>
+                  <button onClick={() => window.location.reload()}>🔄 Reload</button>
+                </div>
+              </div>
+            </div>
+          );
+        }
 
         return (
           <div className="mobile-map-container">
@@ -1152,6 +1288,15 @@ function AppMobile() {
                   {type.icon} {type.label}
                 </button>
               ))}
+            </div>
+            
+            {/* Search Radius Indicator */}
+            <div className="mobile-radius-indicator">
+              <span className="radius-text">
+                📍 Showing locations within 5 miles
+                {isFetchingLocations && <span style={{color: '#FFA726'}}> 🔄</span>}
+              </span>
+              <span className="location-count">({locationData.length}/25 locations)</span>
             </div>
             
             <GoogleMap
@@ -1356,6 +1501,7 @@ function AppMobile() {
       <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
         <GoogleMapsProvider>
           <div className="mobile-app-container">
+            {console.log('🏗️ Rendering main app container')}
             {/* Debug overlay - remove this in production */}
             {process.env.NODE_ENV === 'development' && (
               <div style={{
