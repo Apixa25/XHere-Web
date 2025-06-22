@@ -68,22 +68,26 @@ const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
         </div>
         
         <div className="form-options">
-          <label>
-            <input
-              type="checkbox"
-              checked={isAnonymous}
-              onChange={(e) => setIsAnonymous(e.target.checked)}
-            />
-            Post Anonymously
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={autoDelete}
-              onChange={(e) => setAutoDelete(e.target.checked)}
-            />
-            Set time to delete
-          </label>
+          <div className="checkbox-container">
+            <div className="checkbox-item">
+              <input
+                type="checkbox"
+                id="isAnonymous"
+                checked={isAnonymous}
+                onChange={(e) => setIsAnonymous(e.target.checked)}
+              />
+              <label htmlFor="isAnonymous">Post Anonymously</label>
+            </div>
+            <div className="checkbox-item">
+              <input
+                type="checkbox"
+                id="autoDelete"
+                checked={autoDelete}
+                onChange={(e) => setAutoDelete(e.target.checked)}
+              />
+              <label htmlFor="autoDelete">Set time to delete</label>
+            </div>
+          </div>
           {autoDelete && (
             <div className="auto-delete-options">
               <input

@@ -426,19 +426,29 @@ label {
 
 /* ===== 9. Improved accessibility and contrast ===== */
 .mobile-options {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
 }
 
 .mobile-option {
   display: flex;
   align-items: center;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 0;
+}
+
+.mobile-option label {
+  font-size: var(--font-size-lg);
+  color: var(--text-color);
+  flex: 1;
 }
 
 .mobile-option input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  margin-right: var(--spacing-sm);
+  width: 24px;
+  height: 24px;
+  margin-right: var(--spacing-md);
 }
 
 .delete-options {

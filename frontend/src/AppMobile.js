@@ -294,34 +294,34 @@ function LocationInfoWindow({
               <label htmlFor="autoDelete">
                 Auto-delete after
               </label>
-              {contentForm.autoDelete && (
-                <div className="delete-options">
-                  <input
-                    type="number"
-                    min="1"
-                    value={contentForm.deleteTime}
-                    onChange={e => setContentForm({
-                      ...contentForm,
-                      deleteTime: parseInt(e.target.value) || 0
-                    })}
-                    className="time-input"
-                  />
-                  <select
-                    value={contentForm.deleteUnit}
-                    onChange={e => setContentForm({
-                      ...contentForm,
-                      deleteUnit: e.target.value
-                    })}
-                    className="unit-select"
-                  >
-                    <option value="minutes">Minutes</option>
-                    <option value="hours">Hours</option>
-                    <option value="days">Days</option>
-                  </select>
-                </div>
-              )}
             </div>
           </div>
+          {contentForm.autoDelete && (
+            <div className="delete-options">
+              <input
+                type="number"
+                min="1"
+                value={contentForm.deleteTime}
+                onChange={e => setContentForm({
+                  ...contentForm,
+                  deleteTime: parseInt(e.target.value) || 0
+                })}
+                className="time-input"
+              />
+              <select
+                value={contentForm.deleteUnit}
+                onChange={e => setContentForm({
+                  ...contentForm,
+                  deleteUnit: e.target.value
+                })}
+                className="unit-select"
+              >
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
+            </div>
+          )}
           
           <div className="mobile-credits-section">
             <div className="credits-toggle">
