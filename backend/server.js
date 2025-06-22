@@ -1,4 +1,9 @@
 // server.js
+console.log('--- XHERE-WEB BACKEND START ---');
+console.log(`NODE_ENV is: ${process.env.NODE_ENV}`);
+console.log(`DATABASE_URL is set: ${!!process.env.DATABASE_URL}`);
+console.log('--- END OF DIAGNOSTIC ---');
+
 const express = require('express');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
