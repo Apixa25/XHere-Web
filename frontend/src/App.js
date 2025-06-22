@@ -20,6 +20,7 @@ import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
 import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
+import LOCATION_TYPES from './constants/locationTypes';
 import LocationForm from './components/LocationForm';
 
 const LIBRARIES = ['places', 'marker'];
@@ -181,6 +182,7 @@ function App() {
   const mapRef = useRef(null);
   const advancedMarkerRefs = useRef([]);
   const timerIntervals = useRef({});
+  const [selectedLocationType, setSelectedLocationType] = useState('all');
 
   const mapStyles = {
     height: "100vh",
@@ -371,8 +373,8 @@ function App() {
         data.append('deleteTime', formData.deleteTime);
         data.append('deleteUnit', formData.deleteUnit);
       }
-      // Add this line to include credits
       data.append('creditAmount', formData.creditAmount || 0);
+      data.append('locationType', formData.locationType || 'general');
       
       if (formData.media) {
         formData.media.forEach(file => {
@@ -393,6 +395,45 @@ function App() {
       setSubmitting(false);
     }
   };
+
+  // Fetch locations with location type filtering
+  const fetchLocations = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🗺️ Fetching locations - Token exists:', !!token);
+      console.log('🗺️ Fetching locations - User exists:', !!user);
+      
+      if (!token) {
+        console.log('🗺️ No token available, skipping location fetch');
+        return;
+      }
+      
+      const url = new URL(`${API_URL}/api/locations`);
+      url.searchParams.append('profile', 'false');
+      if (selectedLocationType !== 'all') {
+        url.searchParams.append('locationType', selectedLocationType);
+      }
+      
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('🗺️ Locations API response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+
+      const data = await response.json();
+      console.log('🗺️ Locations fetched successfully:', data.length, 'locations');
+      setLocationData(data);
+    } catch (err) {
+      console.error('❌ Error fetching locations:', err);
+      setLocationData([]);
+    }
+  }, [user, selectedLocationType]);
 
   const inspectLocation = (loc) => {
     try {
@@ -469,6 +510,9 @@ function App() {
       
       markerElement.innerHTML = `
         <div class="marker-content" ${location.content?.isAnonymous ? 'data-anonymous="true"' : ''}>
+          <div class="marker-type-icon">
+            ${LOCATION_TYPES[location.locationType]?.icon || '📍'}
+          </div>
           ${getProfileImage(location) 
             ? `<img class="marker-profile-pic ${location.content?.isAnonymous ? 'anonymous' : ''}" 
                    src="${getProfileImage(location)}" 
@@ -512,35 +556,30 @@ function App() {
                 timeString += `${hours.toString().padStart(2, '0')}:`;
               }
               timeString += `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-              timerElement.innerText = `⏳ ${timeString}`;
+              timerElement.innerText = timeString;
             }
           }, 1000);
           timerIntervals.current[location.id] = intervalId;
         }
       }
 
-      const clickListener = advancedMarker.addListener('gmp-click', () => {
-        handleMarkerClick(location);
-        markerElement.classList.add('bounce');
-        setTimeout(() => markerElement.classList.remove('bounce'), 1000);
-      });
-      
-      advancedMarkerRefs.current.push({
-        marker: advancedMarker,
-        listeners: [clickListener]
-      });
+      const listeners = [
+        advancedMarker.addListener('click', () => {
+          handleMarkerClick(location);
+        }),
+        advancedMarker.addListener('mouseover', () => {
+          setHoveredMarker(location);
+        }),
+        advancedMarker.addListener('mouseout', () => {
+          setHoveredMarker(null);
+        })
+      ];
+
+      advancedMarkerRefs.current.push({ marker: advancedMarker, listeners });
     });
+  }, [locationData, handleMarkerClick, setHoveredMarker]);
 
-    return () => {
-      // Cleanup when component unmounts or dependencies change
-      advancedMarkerRefs.current.forEach(({ marker, listeners }) => {
-        listeners.forEach(listener => listener.remove());
-        marker.map = null;
-      });
-      Object.values(timerIntervals.current).forEach(clearInterval);
-    };
-  }, [map, locationData]);
-
+  // Add missing functions
   const handleDeleteLocation = async (locationId) => {
     if (window.confirm('Are you sure you want to delete this location? This will also delete all of its content.')) {
       try {
@@ -559,7 +598,6 @@ function App() {
           throw new Error(errorData.error || 'Failed to delete location');
         }
 
-        // Update state only after successful deletion
         setLocationData(prevLocations => 
           prevLocations.filter(loc => loc.id !== locationId)
         );
@@ -567,14 +605,13 @@ function App() {
         await fetchLocations();
       } catch (error) {
         console.error('Error deleting location:', error);
-        // Optionally show error to user
         alert(error.message || 'Failed to delete location');
       }
     }
   };
 
   const handleLoginSuccess = async (response) => {
-    console.log('🚀 Login successful, setting initial data...'); // Debug log
+    console.log('🚀 Login successful, setting initial data...');
     const { token, user } = response;
     
     localStorage.setItem('token', token);
@@ -584,12 +621,12 @@ function App() {
     await fetchLocations();
   };
 
-  // Add this useEffect to monitor user state changes
+  // Monitor user state changes
   useEffect(() => {
-    console.log('👤 Current user state:', user); // Debug log
+    console.log('👤 Current user state:', user);
   }, [user]);
 
-  // User data completion effect
+  // Complete user data
   useEffect(() => {
     let isMounted = true;
 
@@ -598,7 +635,7 @@ function App() {
         return;
       }
 
-      console.log('🔄 Completing user data...'); // Debug log
+      console.log('🔄 Completing user data...');
       setIsLoadingUser(true);
       
       try {
@@ -614,7 +651,7 @@ function App() {
         if (!response.ok) throw new Error('Failed to fetch complete user data');
         
         const fullUserData = await response.json();
-        console.log('✅ Complete user data:', fullUserData); // Debug log
+        console.log('✅ Complete user data:', fullUserData);
         
         if (isMounted) {
           setUser(fullUserData);
@@ -637,7 +674,7 @@ function App() {
     };
   }, [user, isUserComplete]);
 
-  // Add this useEffect to check for Advanced Markers after map loads
+  // Check for Advanced Markers
   useEffect(() => {
     const checkAdvancedMarkers = () => {
       const hasAdvancedMarkers = window.google?.maps?.marker?.AdvancedMarkerElement;
@@ -655,62 +692,13 @@ function App() {
     }
   }, [map]);
 
-  const setupStatusBar = async () => {
-    try {
-      if (window.Capacitor?.getPlatform() !== 'web') {
-        const { StatusBar } = await import('@capacitor/status-bar');
-        await StatusBar.setBackgroundColor({ color: '#ffffff' });
-      }
-    } catch (error) {
-      console.log('Status bar setup skipped in web mode');
+  // Fetch locations when user is set
+  useEffect(() => {
+    if (user) {
+      console.log('Fetching locations for user:', user);
+      fetchLocations();
     }
-  };
-
-  const checkLocationPermission = async () => {
-    try {
-      if (window.Capacitor?.getPlatform() !== 'web') {
-        const { Geolocation } = await import('@capacitor/geolocation');
-        const permissionStatus = await Geolocation.requestPermissions();
-        return permissionStatus.location === 'granted';
-      }
-      return true; // Web browsers handle location permissions differently
-    } catch (error) {
-      console.log('Location permission check skipped in web mode');
-      return true;
-    }
-  };
-
-  const fetchLocations = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('🗺️ Fetching locations - Token exists:', !!token);
-      console.log('🗺️ Fetching locations - User exists:', !!user);
-      
-      if (!token) {
-        console.log('🗺️ No token available, skipping location fetch');
-        return;
-      }
-      
-      const response = await fetch(`${API_URL}/api/locations?profile=false`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('🗺️ Locations API response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch locations');
-      }
-
-      const data = await response.json();
-      console.log('🗺️ Locations fetched successfully:', data.length, 'locations');
-      setLocationData(data);
-    } catch (err) {
-      console.error('❌ Error fetching locations:', err);
-      setLocationData([]);
-    }
-  }, [user]);
+  }, [user, fetchLocations]);
 
   // Memoize the router so it doesn't re-create on every render
   const router = useMemo(() => createBrowserRouter([
@@ -728,6 +716,28 @@ function App() {
               <Link to="/auth">Login</Link>
             )}
           </nav>
+          
+          {/* Location Type Filter */}
+          {user && (
+            <div className="location-filter">
+              <button 
+                className={`filter-button ${selectedLocationType === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectedLocationType('all')}
+              >
+                🌍 All
+              </button>
+              {Object.entries(LOCATION_TYPES).map(([key, type]) => (
+                <button 
+                  key={key}
+                  className={`filter-button ${selectedLocationType === key ? 'active' : ''}`}
+                  onClick={() => setSelectedLocationType(key)}
+                >
+                  {type.icon} {type.label}
+                </button>
+              ))}
+            </div>
+          )}
+          
           <div className="map-container">
             <GoogleMap
               mapContainerStyle={mapStyles}
@@ -743,17 +753,6 @@ function App() {
                 gestureHandling: 'greedy',
               }}
             >
-              {locationData.map((location) => {
-                const position = {
-                  lat: Number(location.location?.coordinates?.[1]),
-                  lng: Number(location.location?.coordinates?.[0]),
-                };
-                if (!position.lat || !position.lng) return null;
-
-                // We will manage advanced markers inside useEffect
-                return null;
-              })}
-              
               {selectedLocation && (
                 <OverlayView
                   position={selectedLocation}
@@ -808,6 +807,9 @@ function App() {
                         </p>
                       </div>
                       <div className="marker-stats">
+                        <div className="location-type-badge">
+                          {LOCATION_TYPES[selectedMarker.locationType]?.icon || '📍'} {LOCATION_TYPES[selectedMarker.locationType]?.label || 'General'}
+                        </div>
                         {selectedMarker.credits > 0 && (
                           <div className="credits-badge">
                             💎 {selectedMarker.credits}
@@ -875,23 +877,9 @@ function App() {
       path: "/admin",
       element: user?.isAdmin ? <AdminDashboard /> : <Navigate to="/" />,
     },
-  ]), [user, center, locationData, selectedLocation, selectedMarker]); // Add dependencies
+  ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations]);
 
   console.log("Render App:", { selectedMarker: selectedMarker, selectedLocation, routerPath});
-
-  useEffect(() => {
-    console.log('Advanced Marker Status:', {
-      isAvailable: typeof AdvancedMarkerElement !== 'undefined',
-      mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      console.log('Fetching locations for user:', user);
-      fetchLocations();
-    }
-  }, [user, fetchLocations]);
 
   return (
     <ErrorBoundary>

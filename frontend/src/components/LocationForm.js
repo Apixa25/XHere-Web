@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/LocationForm.css';
+import LOCATION_TYPES from '../constants/locationTypes';
 
 const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
   const [text, setText] = useState('');
@@ -9,6 +10,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
   const [deleteTime, setDeleteTime] = useState(0);
   const [deleteUnit, setDeleteUnit] = useState('minutes');
   const [creditAmount, setCreditAmount] = useState(0);
+  const [locationType, setLocationType] = useState('general');
 
   const handleCloseClick = (e) => {
     e.stopPropagation();
@@ -27,6 +29,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
       deleteTime,
       deleteUnit,
       creditAmount,
+      locationType,
     });
   };
 
@@ -46,6 +49,24 @@ const LocationForm = ({ position, onSubmit, submitting, onClose }) => {
           multiple
           onChange={(e) => setMedia([...e.target.files])}
         />
+        
+        {/* Location Type Selector */}
+        <div className="form-group">
+          <label htmlFor="locationType">Location Type:</label>
+          <select
+            id="locationType"
+            value={locationType}
+            onChange={(e) => setLocationType(e.target.value)}
+            className="location-type-select"
+          >
+            {Object.entries(LOCATION_TYPES).map(([key, type]) => (
+              <option key={key} value={key}>
+                {type.icon} {type.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
         <div className="form-options">
           <label>
             <input

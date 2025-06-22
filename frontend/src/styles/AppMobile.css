@@ -735,3 +735,102 @@ label {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Location Type Filter */
+.mobile-location-filter {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.filter-button {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filter-button:hover {
+  background: #f0f0f0;
+}
+
+.filter-button.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Location Type Selector in Form */
+.mobile-location-type-selector {
+  margin: 10px 0;
+}
+
+.mobile-location-type-selector label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.mobile-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background: white;
+}
+
+/* Location Type Badge in Info Window */
+.location-type-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+/* Marker Type Icon */
+.marker-type-icon {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+/* Adjust marker content for type icon */
+.marker-content {
+  position: relative;
+  padding-top: 5px;
+}
+
+/* Mobile Map Container adjustments */
+.mobile-map-container {
+  position: relative;
+  height: calc(100vh - 80px); /* Account for bottom nav */
+  padding-top: 80px; /* Space for filter */
+}
