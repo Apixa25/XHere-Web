@@ -6,6 +6,8 @@ const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 const { checkAndAwardBadges } = require('../utils/badgeChecker');
+const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 
 // Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
@@ -16,7 +18,8 @@ router.get('/', authenticateToken, async (req, res) => {
         as: 'creator',
         attributes: ['email', 'profile', 'id']
       }],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit: 25 // Limit to 25 locations maximum
     };
 
     // For profile page requests, filter based on user type and userId
@@ -27,6 +30,8 @@ router.get('/', authenticateToken, async (req, res) => {
         };
       }
       // Admin users will see all locations in their profile
+      // Remove limit for profile page to show all user's locations
+      delete query.limit;
     }
 
     // Filter by location type if specified
@@ -37,11 +42,58 @@ router.get('/', authenticateToken, async (req, res) => {
       query.where.locationType = req.query.locationType;
     }
 
-    // For map page requests, no filtering - everyone sees all locations
+    // Geographic filtering for map view (only when not profile page)
+    if (req.query.profile !== 'true' && req.query.lat && req.query.lng) {
+      const centerLat = parseFloat(req.query.lat);
+      const centerLng = parseFloat(req.query.lng);
+      const radiusMiles = parseFloat(req.query.radius) || 5; // Default 5 mile radius
+      
+      // Convert miles to degrees (approximate)
+      // 1 degree of latitude ≈ 69 miles
+      // 1 degree of longitude ≈ 69 * cos(latitude) miles
+      const latRadius = radiusMiles / 69;
+      const lngRadius = radiusMiles / (69 * Math.cos(centerLat * Math.PI / 180));
+      
+      if (!query.where) {
+        query.where = {};
+      }
+      
+      // Add geographic bounds filtering
+      query.where = {
+        ...query.where,
+        location: {
+          [Op.and]: [
+            // Latitude bounds
+            sequelize.literal(`ST_Y(location::geometry) BETWEEN ${centerLat - latRadius} AND ${centerLat + latRadius}`),
+            // Longitude bounds  
+            sequelize.literal(`ST_X(location::geometry) BETWEEN ${centerLng - lngRadius} AND ${centerLng + lngRadius}`),
+            // Distance check (more precise than bounding box)
+            sequelize.literal(`ST_DWithin(location::geometry, ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326), ${radiusMiles * 1609.34})`)
+          ]
+        }
+      };
+      
+      // Add distance calculation for ordering by proximity
+      query.attributes = {
+        include: [
+          [
+            sequelize.literal(`ST_Distance(location::geometry, ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326))`),
+            'distance'
+          ]
+        ]
+      };
+      
+      // Order by distance first, then by creation date
+      query.order = [
+        ['distance', 'ASC'],
+        ['createdAt', 'DESC']
+      ];
+    }
 
     const locations = await Location.findAll(query);
     
     // Debug logs
+    console.log(`Fetched ${locations.length} locations within radius`);
     console.log("Location points check:");
     locations.forEach(location => {
       console.log(`Location ${location.id}: upvotes=${location.upvotes}, downvotes=${location.downvotes}, totalPoints=${location.totalPoints}`);
