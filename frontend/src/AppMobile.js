@@ -1273,30 +1273,29 @@ function AppMobile() {
           <div className="mobile-map-container">
             {/* Location Type Filter */}
             <div className="mobile-location-filter">
-              <button 
-                className={`filter-button ${selectedLocationType === 'all' ? 'active' : ''}`}
-                onClick={() => setSelectedLocationType('all')}
-              >
-                🌍 All
-              </button>
-              {Object.entries(LOCATION_TYPES).map(([key, type]) => (
+              <div className="filter-buttons">
                 <button 
-                  key={key}
-                  className={`filter-button ${selectedLocationType === key ? 'active' : ''}`}
-                  onClick={() => setSelectedLocationType(key)}
+                  className={`filter-button ${selectedLocationType === 'all' ? 'active' : ''}`}
+                  onClick={() => setSelectedLocationType('all')}
                 >
-                  {type.icon} {type.label}
+                  🌍 All
                 </button>
-              ))}
-            </div>
-            
-            {/* Search Radius Indicator */}
-            <div className="mobile-radius-indicator">
-              <span className="radius-text">
-                📍 Showing locations within 5 miles
-                {isFetchingLocations && <span style={{color: '#FFA726'}}> 🔄</span>}
-              </span>
-              <span className="location-count">({locationData.length}/25 locations)</span>
+                {Object.entries(LOCATION_TYPES).map(([key, type]) => (
+                  <button 
+                    key={key}
+                    className={`filter-button ${selectedLocationType === key ? 'active' : ''}`}
+                    onClick={() => setSelectedLocationType(key)}
+                  >
+                    {type.icon} {type.label}
+                  </button>
+                ))}
+              </div>
+              <div className="location-count-display">
+                <span className="count-text">
+                  📍 {locationData.length}/25 locations
+                  {isFetchingLocations && <span style={{color: '#FFA726'}}> 🔄</span>}
+                </span>
+              </div>
             </div>
             
             <GoogleMap
