@@ -13,11 +13,6 @@ const { authenticateToken } = require('./middleware/auth');
 const fs = require('fs');
 const { scheduleCleanup } = require('./scripts/cleanupExpiredLocations');
 
-// Debug logging for environment
-console.log('🚀 Server Starting...');
-console.log('Environment:', process.env.NODE_ENV || 'development');
-console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('NODE_ENV')));
-
 // Import models
 const User = require('./models/User');
 const Location = require('./models/Location');
