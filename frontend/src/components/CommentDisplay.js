@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getEnvironmentConfig } from '../config/environments';
 import '../styles/CommentDisplay.css';
 
 const CommentDisplay = ({ 
@@ -14,6 +15,10 @@ const CommentDisplay = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
   const [submitting, setSubmitting] = useState(false);
+
+  // Get the current environment configuration
+  const config = getEnvironmentConfig();
+  const API_URL = config.API_URL;
 
   const handleVote = async (voteType) => {
     try {
@@ -128,7 +133,7 @@ const CommentDisplay = ({
           <div className="comment-media">
             {comment.mediaUrls.map((url, index) => {
               const mediaType = comment.mediaTypes[index];
-              const fullUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/${url.replace(/\\/g, '/')}`;
+              const fullUrl = `${API_URL}/${url.replace(/\\/g, '/')}`;
               
               if (mediaType && mediaType.startsWith('video/')) {
                 return (

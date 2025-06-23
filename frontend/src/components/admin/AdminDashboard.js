@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { getEnvironmentConfig } from '../../config/environments';
 import './AdminDashboard.css';
-
-const BACKEND_URL = 'http://localhost:3000';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  
+  // Get the current environment configuration
+  const config = getEnvironmentConfig();
+  const BACKEND_URL = config.API_URL;
+  
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('locations');
@@ -30,7 +34,7 @@ const AdminDashboard = () => {
     console.log('Attempting to load users...');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/admin/users', {
+      const response = await fetch(`${BACKEND_URL}/api/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -124,7 +128,7 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/api/admin/users/${userId}`, {
+        const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -259,10 +263,10 @@ const AdminDashboard = () => {
             return (
               <img
                 key={index}
-                src={`http://localhost:3000/${url}`}
+                src={`${BACKEND_URL}/${url}`}
                 alt={`Location media ${index + 1}`}
                 className="media-thumbnail"
-                onClick={() => window.open(`http://localhost:3000/${url}`, '_blank')}
+                onClick={() => window.open(`${BACKEND_URL}/${url}`, '_blank')}
               />
             );
           } else if (mediaType?.startsWith('video/')) {
@@ -272,7 +276,7 @@ const AdminDashboard = () => {
                 controls
                 className="media-thumbnail"
               >
-                <source src={`http://localhost:3000/${url}`} type={mediaType} />
+                <source src={`${BACKEND_URL}/${url}`} type={mediaType} />
                 Your browser does not support the video tag.
               </video>
             );
