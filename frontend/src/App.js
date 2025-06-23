@@ -24,6 +24,14 @@ import LOCATION_TYPES from './constants/locationTypes';
 import LocationForm from './components/LocationForm';
 import CommentSection from './components/CommentSection';
 import { getEnvironmentConfig } from './config/environments';
+import { testBackendConnectivity, testRegistration } from './utils/backendTest';
+
+// Make test utilities available in browser console for debugging
+if (typeof window !== 'undefined') {
+  window.testBackendConnectivity = testBackendConnectivity;
+  window.testRegistration = testRegistration;
+  window.getEnvironmentConfig = getEnvironmentConfig;
+}
 
 const LIBRARIES = ['places', 'marker'];
 

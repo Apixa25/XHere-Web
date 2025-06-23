@@ -36,7 +36,9 @@ const allowedOrigins = [
   'https://xhere.world',
   'https://www.xhere.world',
   'https://api.xhere.world',
-  'https://xhere-web-front-end.onrender.com'
+  'https://xhere-web-front-end.onrender.com',
+  'https://xhere-api.onrender.com',
+  'https://xhere-web.onrender.com'
 ];
 
 app.use(cors({
@@ -44,9 +46,12 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
+    console.log('🌐 CORS request from origin:', origin);
+    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('❌ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -71,18 +76,27 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Health check endpoint for production monitoring
 app.get('/api/health', async (req, res) => {
   try {
+    console.log('🏥 Health check requested from:', req.get('Origin') || 'unknown origin');
+    
     // Test database connection
     await sequelize.authenticate();
     
-    res.json({
+    const healthData = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       database: 'connected',
       environment: process.env.NODE_ENV || 'development',
-      version: '1.0.0'
-    });
+      version: '1.0.0',
+      cors: {
+        allowedOrigins: allowedOrigins,
+        requestOrigin: req.get('Origin')
+      }
+    };
+    
+    console.log('✅ Health check response:', healthData);
+    res.json(healthData);
   } catch (error) {
-    console.error('Health check failed:', error);
+    console.error('❌ Health check failed:', error);
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),

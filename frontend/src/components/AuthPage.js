@@ -32,6 +32,7 @@ const AuthPage = ({ onLoginSuccess }) => {
 
     try {
       const endpoint = isRegistering ? 'auth/register' : 'auth/login';
+      const apiUrl = `${config.API_URL}/api/${endpoint}`;
       
       const requestBody = isRegistering 
         ? { 
@@ -44,12 +45,13 @@ const AuthPage = ({ onLoginSuccess }) => {
             password: formData.password 
           };
 
-      console.log(`Attempting ${isRegistering ? 'registration' : 'login'} with:`, {
+      console.log(`🚀 Attempting ${isRegistering ? 'registration' : 'login'} with:`, {
         ...requestBody,
         password: '[REDACTED]'
       });
+      console.log(`🔗 API URL: ${apiUrl}`);
 
-      const response = await fetch(`${config.API_URL}/api/${endpoint}`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,13 +60,24 @@ const AuthPage = ({ onLoginSuccess }) => {
         body: JSON.stringify(requestBody)
       });
 
+      console.log(`📡 Response status: ${response.status}`);
+      console.log(`📡 Response headers:`, Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Authentication failed');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          console.error('❌ Failed to parse error response as JSON:', jsonError);
+          const textResponse = await response.text();
+          console.error('📄 Raw response text:', textResponse);
+          throw new Error(`Server error (${response.status}): ${textResponse || 'No response body'}`);
+        }
+        throw new Error(errorData.error || `Server error (${response.status})`);
       }
 
       const data = await response.json();
-      console.log('Server response:', data);
+      console.log('✅ Server response:', data);
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -80,7 +93,7 @@ const AuthPage = ({ onLoginSuccess }) => {
       });
       
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('❌ Auth error:', error);
       setError(error.message || 'Authentication failed');
     } finally {
       setSubmitting(false);

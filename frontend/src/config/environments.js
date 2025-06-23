@@ -13,7 +13,7 @@ export const ENVIRONMENTS = {
   },
   
   production: {
-    API_URL: 'https://www.xhere.world',
+    API_URL: 'https://xhere-api.onrender.com',
     GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'your_prod_google_maps_api_key',
     GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your_prod_google_client_id',
     GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'your_prod_google_maps_map_id',
@@ -49,12 +49,19 @@ export const getCurrentEnvironment = () => {
     return 'staging';
   }
   
+  // Check for Render.com domains
+  if (hostname.includes('onrender.com')) {
+    return 'production';
+  }
+  
   return 'production';
 };
 
 // Get configuration for current environment
 export const getEnvironmentConfig = () => {
   const env = getCurrentEnvironment();
+  console.log('🌍 Current environment:', env);
+  console.log('🔗 API URL:', ENVIRONMENTS[env]?.API_URL);
   return ENVIRONMENTS[env] || ENVIRONMENTS.development;
 };
 

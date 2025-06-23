@@ -29,7 +29,23 @@ router.post('/register', async (req, res) => {
       profile: { name }
     });
 
-    res.status(201).json({ message: 'User created successfully' });
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Return the same format as login
+    res.status(201).json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.profile?.name,
+        credits: user.credits || 0
+      }
+    });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Server error' });
