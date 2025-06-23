@@ -27,7 +27,8 @@ const allowedOrigins = [
   'https://xhere-api.herokuapp.com',
   'https://xhere.world',
   'https://www.xhere.world',
-  'https://api.xhere.world'
+  'https://api.xhere.world',
+  'https://xhere-web-front-end.onrender.com'
 ];
 
 app.use(cors({
