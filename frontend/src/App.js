@@ -98,17 +98,18 @@ console.log('Environment Variables:', {
 
 const USE_ADVANCED_MARKER = String(process.env.REACT_APP_USE_ADVANCED_MARKER).toLowerCase() === 'true';
 
-const MAPS_ID = process.env.REACT_APP_GOOGLE_MAPS_MAP_ID;
+const MAPS_ID = config.GOOGLE_MAPS_MAP_ID;
 
 console.log('Map Configuration:', {
   mapId: MAPS_ID,
   hasMapId: !!MAPS_ID,
-  apiKey: !!process.env.REACT_APP_GOOGLE_MAPS_API_KEY
+  apiKey: !!config.GOOGLE_MAPS_API_KEY,
+  apiKeyLength: config.GOOGLE_MAPS_API_KEY?.length || 0
 });
 
 console.log('Advanced Marker Status:', {
   isAvailable: typeof AdvancedMarkerElement !== 'undefined',
-  mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID
+  mapId: config.GOOGLE_MAPS_MAP_ID
 });
 
 // Add this helper function before your App component
@@ -129,10 +130,12 @@ const getUserFromStorage = () => {
 };
 
 function GoogleMapsProvider({ children }) {
+  const config = getEnvironmentConfig();
+  
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: config.GOOGLE_MAPS_API_KEY,
     libraries: LIBRARIES,
-    mapIds: ['51948ac5ec373e9c']
+    mapIds: [config.GOOGLE_MAPS_MAP_ID || '51948ac5ec373e9c']
   });
 
   if (loadError) {
@@ -512,17 +515,23 @@ function App() {
           const newLng = newCenter.lng();
           
           // Only refetch if center changed by more than 0.5 miles (roughly 0.007 degrees)
-          const latDiff = Math.abs(newLat - center.lat);
-          const lngDiff = Math.abs(newLng - center.lng);
-          
-          if (latDiff > 0.007 || lngDiff > 0.007) {
-            console.log('🗺️ Map center changed significantly, updating location fetch');
-            isUpdatingCenter.current = true;
+          if (center && center.lat && center.lng) {
+            const latDiff = Math.abs(newLat - center.lat);
+            const lngDiff = Math.abs(newLng - center.lng);
+            
+            if (latDiff > 0.007 || lngDiff > 0.007) {
+              console.log('🗺️ Map center changed significantly, updating location fetch');
+              isUpdatingCenter.current = true;
+              setCenter({ lat: newLat, lng: newLng });
+              // Reset the flag after a short delay
+              setTimeout(() => {
+                isUpdatingCenter.current = false;
+              }, 500);
+            }
+          } else {
+            // If center is not set, just update it
+            console.log('🗺️ Setting initial map center');
             setCenter({ lat: newLat, lng: newLng });
-            // Reset the flag after a short delay
-            setTimeout(() => {
-              isUpdatingCenter.current = false;
-            }, 500);
           }
         }, 1000); // 1 second throttle
       });
@@ -772,7 +781,7 @@ function App() {
       const hasAdvancedMarkers = window.google?.maps?.marker?.AdvancedMarkerElement;
       console.log('Advanced Markers Check:', {
         available: !!hasAdvancedMarkers,
-        mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID,
+        mapId: config.GOOGLE_MAPS_MAP_ID,
         googleMaps: !!window.google?.maps,
         marker: !!window.google?.maps?.marker
       });

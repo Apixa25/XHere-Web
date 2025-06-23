@@ -14,9 +14,9 @@ export const ENVIRONMENTS = {
   
   production: {
     API_URL: 'https://xhere-web.onrender.com', // Updated to correct Render.com backend URL
-    GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'your_prod_google_maps_api_key',
+    GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'AIzaSyB41DRuKWmJtFuP6qQumSBCQRBkzqD0o_g', // Default API key for testing
     GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your_prod_google_client_id',
-    GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'your_prod_google_maps_map_id',
+    GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || '51948ac5ec373e9c',
     USE_ADVANCED_MARKER: true,
     DEBUG_MODE: false
   },
