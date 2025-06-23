@@ -27,7 +27,7 @@ const Location = require('./models/Location');
 
 const app = express();
 
-// CORS middleware - Updated for production
+// CORS middleware - Simplified and robust configuration
 const allowedOrigins = [
   'http://localhost:3000', 
   'http://localhost:3001', 
@@ -41,24 +41,42 @@ const allowedOrigins = [
   'https://xhere-web.onrender.com'
 ];
 
+// Simplified CORS configuration
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('🌐 CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
     
     console.log('🌐 CORS request from origin:', origin);
+    console.log('🌐 Allowed origins:', allowedOrigins);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('✅ CORS: Origin allowed');
       callback(null, true);
     } else {
-      console.log('❌ CORS blocked origin:', origin);
+      console.log('❌ CORS: Origin blocked:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
+
+// Add explicit OPTIONS handling for preflight requests
+app.options('*', cors());
 
 // Body parsing middleware
 app.use(express.json());
@@ -89,7 +107,8 @@ app.get('/api/health', async (req, res) => {
       version: '1.0.0',
       cors: {
         allowedOrigins: allowedOrigins,
-        requestOrigin: req.get('Origin')
+        requestOrigin: req.get('Origin'),
+        isAllowed: allowedOrigins.includes(req.get('Origin') || '')
       }
     };
     
@@ -104,6 +123,25 @@ app.get('/api/health', async (req, res) => {
       error: error.message
     });
   }
+});
+
+// CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
+  const origin = req.get('Origin');
+  console.log('🧪 CORS test requested from:', origin);
+  
+  res.json({
+    message: 'CORS test successful',
+    timestamp: new Date().toISOString(),
+    requestOrigin: origin,
+    allowedOrigins: allowedOrigins,
+    isAllowed: allowedOrigins.includes(origin || ''),
+    headers: {
+      'Access-Control-Allow-Origin': res.get('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Methods': res.get('Access-Control-Allow-Methods'),
+      'Access-Control-Allow-Headers': res.get('Access-Control-Allow-Headers')
+    }
+  });
 });
 
 // Initialize database

@@ -16,7 +16,12 @@ export const testBackendConnectivity = async () => {
     },
     {
       name: 'CORS Test',
-      url: `${baseUrl}/api/health`,
+      url: `${baseUrl}/api/cors-test`,
+      method: 'GET'
+    },
+    {
+      name: 'CORS Preflight Test',
+      url: `${baseUrl}/api/cors-test`,
       method: 'OPTIONS'
     }
   ];
@@ -25,6 +30,7 @@ export const testBackendConnectivity = async () => {
     try {
       console.log(`\n🔍 Testing: ${test.name}`);
       console.log(`📡 URL: ${test.url}`);
+      console.log(`📋 Method: ${test.method}`);
       
       const response = await fetch(test.url, {
         method: test.method,
@@ -103,4 +109,58 @@ export const testRegistration = async (testData = {
 if (typeof window !== 'undefined') {
   window.testBackendConnectivity = testBackendConnectivity;
   window.testRegistration = testRegistration;
+  window.getEnvironmentConfig = getEnvironmentConfig;
+  
+  // Add specific CORS debugging function
+  window.debugCORS = async () => {
+    const config = require('../config/environments').getEnvironmentConfig();
+    const baseUrl = config.API_URL;
+    
+    console.log('🔍 CORS Debug Test');
+    console.log('🌐 Current origin:', window.location.origin);
+    console.log('🔗 Target API:', baseUrl);
+    
+    // Test 1: Simple GET request
+    try {
+      console.log('\n🧪 Test 1: Simple GET request');
+      const response1 = await fetch(`${baseUrl}/api/cors-test`);
+      console.log('✅ GET request successful:', response1.status);
+      const data1 = await response1.json();
+      console.log('📄 Response:', data1);
+    } catch (error) {
+      console.error('❌ GET request failed:', error);
+    }
+    
+    // Test 2: OPTIONS preflight
+    try {
+      console.log('\n🧪 Test 2: OPTIONS preflight');
+      const response2 = await fetch(`${baseUrl}/api/cors-test`, {
+        method: 'OPTIONS',
+        headers: {
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'Content-Type, Authorization'
+        }
+      });
+      console.log('✅ OPTIONS request successful:', response2.status);
+      console.log('📋 OPTIONS headers:', Object.fromEntries(response2.headers.entries()));
+    } catch (error) {
+      console.error('❌ OPTIONS request failed:', error);
+    }
+    
+    // Test 3: POST request (like registration)
+    try {
+      console.log('\n🧪 Test 3: POST request (simulating registration)');
+      const response3 = await fetch(`${baseUrl}/api/cors-test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ test: 'data' })
+      });
+      console.log('✅ POST request successful:', response3.status);
+    } catch (error) {
+      console.error('❌ POST request failed:', error);
+    }
+  };
 } 
