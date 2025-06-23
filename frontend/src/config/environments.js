@@ -13,7 +13,7 @@ export const ENVIRONMENTS = {
   },
   
   production: {
-    API_URL: 'https://api.xhere.world',
+    API_URL: 'https://www.xhere.world',
     GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'your_prod_google_maps_api_key',
     GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your_prod_google_client_id',
     GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'your_prod_google_maps_map_id',
@@ -22,7 +22,7 @@ export const ENVIRONMENTS = {
   },
   
   staging: {
-    API_URL: 'https://staging-api.xhere.world',
+    API_URL: 'https://staging.xhere.world',
     GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'your_staging_google_maps_api_key',
     GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your_staging_google_client_id',
     GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'your_staging_google_maps_map_id',
