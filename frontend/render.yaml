@@ -1,0 +1,20 @@
+# Render Configuration for XHere Frontend
+# This ensures Yarn is used and environment variables are properly set
+
+services:
+  - type: web
+    name: xhere-frontend
+    env: static
+    buildCommand: yarn install && yarn build:prod
+    staticPublishPath: ./build
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REACT_APP_ENVIRONMENT
+        value: production
+      - key: REACT_APP_API_URL
+        value: https://api.xhere.world
+      # Add your Google API keys here in Render dashboard
+      # - key: REACT_APP_GOOGLE_MAPS_API_KEY
+      # - key: REACT_APP_GOOGLE_CLIENT_ID
+      # - key: REACT_APP_GOOGLE_MAPS_MAP_ID 
