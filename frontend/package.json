@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.26.2",
     "@capacitor/android": "^7.3.0",
     "@capacitor/app": "^7.0.1",
     "@capacitor/camera": "^7.0.1",
