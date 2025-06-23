@@ -1,8 +1,13 @@
-import { PRODUCTION_CONFIG } from '../config/production';
-
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? PRODUCTION_CONFIG.API_URL
+// Direct environment configuration
+const isProduction = process.env.NODE_ENV === 'production';
+const API_URL = isProduction 
+  ? 'https://your-backend-name.onrender.com' // TODO: Replace with your actual Render backend URL
   : 'http://localhost:3000';
+
+console.log('🚀 API Service initialized:');
+console.log('   Environment:', process.env.NODE_ENV);
+console.log('   API_URL:', API_URL);
+console.log('   Is Production:', isProduction);
 
 const handleResponse = async (response) => {
   if (!response.ok) {
