@@ -13,6 +13,14 @@ const { authenticateToken } = require('./middleware/auth');
 const fs = require('fs');
 const { scheduleCleanup } = require('./scripts/cleanupExpiredLocations');
 
+// Debug database configuration
+console.log('=== DATABASE DEBUG ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('Config:', JSON.stringify(config, null, 2));
+console.log('Sequelize config:', sequelize.config);
+console.log('=== END DEBUG ===');
+
 // Import models
 const User = require('./models/User');
 const Location = require('./models/Location');
