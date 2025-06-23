@@ -1,5 +1,7 @@
+import { PRODUCTION_CONFIG } from '../config/production';
+
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://xhere-api.herokuapp.com'
+  ? PRODUCTION_CONFIG.API_URL
   : 'http://localhost:3000';
 
 const handleResponse = async (response) => {
