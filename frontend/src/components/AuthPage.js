@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import backgroundImage from '../images/background.jpg';
+import { getEnvironmentConfig } from '../config/environments';
 
 const AuthPage = ({ onLoginSuccess }) => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -10,6 +11,9 @@ const AuthPage = ({ onLoginSuccess }) => {
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Get the current environment configuration
+  const config = getEnvironmentConfig();
 
   useEffect(() => {
     document.body.classList.add('auth-page');
@@ -45,7 +49,7 @@ const AuthPage = ({ onLoginSuccess }) => {
         password: '[REDACTED]'
       });
 
-      const response = await fetch('http://localhost:3000/api/' + endpoint, {
+      const response = await fetch(`${config.API_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

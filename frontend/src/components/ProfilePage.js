@@ -7,6 +7,8 @@ import api from '../services/api';
 import BadgeDisplay from './BadgeDisplay';
 import ProfileHeader from './ProfilePage/ProfileHeader';
 import ProfilePicture from './ProfilePage/ProfilePicture';
+import { getEnvironmentConfig } from '../config/environments';
+import '../styles/ProfilePage.css';
 
 const AdminBadge = () => (
   <div style={{
@@ -24,7 +26,7 @@ const AdminBadge = () => (
 );
 
 const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState({});
   const [userLocations, setUserLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +34,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
   const [mediaToDelete, setMediaToDelete] = useState([]);
   const navigate = useNavigate();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  
+  // Get the current environment configuration
+  const config = getEnvironmentConfig();
+  const API_URL = config.API_URL;
+  
   const token = localStorage.getItem('token');
 
   const fetchUserData = async () => {
@@ -219,7 +225,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         console.log('User ID:', user._id);
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+        const response = await fetch(`${API_URL}/api/locations/${locationId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -399,7 +405,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
     try {
       const decoded = jwtDecode(credentialResponse.credential);
       
-      const response = await fetch('http://localhost:3000/api/auth/google', {
+      const response = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
