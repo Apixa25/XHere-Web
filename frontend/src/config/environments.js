@@ -13,7 +13,7 @@ export const ENVIRONMENTS = {
   },
   
   production: {
-    API_URL: 'https://xhere-api.onrender.com',
+    API_URL: 'https://xhere-web.onrender.com', // Updated to correct Render.com backend URL
     GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'your_prod_google_maps_api_key',
     GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your_prod_google_client_id',
     GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'your_prod_google_maps_map_id',

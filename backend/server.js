@@ -78,6 +78,20 @@ app.use(cors({
 // Add explicit OPTIONS handling for preflight requests
 app.options('*', cors());
 
+// Simple root endpoint for testing
+app.get('/', (req, res) => {
+  console.log('🏠 Root endpoint hit from:', req.get('Origin') || 'unknown');
+  res.json({
+    message: 'XHere API is running!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    cors: {
+      allowedOrigins: allowedOrigins,
+      requestOrigin: req.get('Origin')
+    }
+  });
+});
+
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
