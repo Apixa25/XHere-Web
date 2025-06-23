@@ -3,7 +3,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const config = {
   API_URL: isProduction 
-    ? 'https://your-backend-name.onrender.com' // TODO: Replace with your actual Render backend URL
+    ? 'https://api.xhere.world'
     : 'http://localhost:3000',
   GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
   GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID,

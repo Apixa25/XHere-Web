@@ -23,31 +23,16 @@ import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
 import LocationForm from './components/LocationForm';
 import CommentSection from './components/CommentSection';
+import { getEnvironmentConfig } from './config/environments';
 
 const LIBRARIES = ['places', 'marker'];
 
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
 
-const getApiUrl = () => {
-  // Check if we're running in a mobile environment
-  if (window.Capacitor) {
-    // For Android emulator
-    if (window.Capacitor.getPlatform() === 'android') {
-      // Replace this with your actual IP address
-      const localIp = '192.168.1.1'; // Replace with your actual IP
-      return `http://${localIp}:3000`;
-    }
-    // For iOS simulator
-    if (window.Capacitor.getPlatform() === 'ios') {
-      return 'http://localhost:3000';
-    }
-  }
-  // For web environment
-  return process.env.REACT_APP_API_URL || 'http://localhost:3000';
-};
-
-const API_URL = getApiUrl();
+// Get the current environment configuration
+const config = getEnvironmentConfig();
+const API_URL = config.API_URL;
 
 // Add a fetch wrapper with retry logic and better error handling
 const fetchWithRetry = async (url, options = {}, maxRetries = 3) => {
@@ -202,7 +187,7 @@ function App() {
       if (token) {
         try {
           console.log('🔍 Attempting to verify token with API...');
-          const response = await fetch('http://localhost:3000/api/users/me', {
+          const response = await fetch(`${API_URL}/api/users/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
