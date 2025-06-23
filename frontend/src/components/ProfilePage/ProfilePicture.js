@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+import { getEnvironmentConfig } from '../../config/environments';
 
 const ProfilePicture = ({ currentPicture, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(currentPicture);
+
+  // Get the current environment configuration
+  const config = getEnvironmentConfig();
+  const API_URL = config.API_URL;
 
   const resizeImage = (file) => {
     return new Promise((resolve) => {
@@ -65,7 +69,7 @@ const ProfilePicture = ({ currentPicture, onUpdate }) => {
       const formData = new FormData();
       formData.append('profilePicture', resizedImage);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/profile-picture`, {
+      const response = await fetch(`${API_URL}/api/users/profile-picture`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
