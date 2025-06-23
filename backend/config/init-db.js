@@ -5,6 +5,14 @@ const LocationComment = require('../models/LocationComment');
 
 async function initializeDatabase() {
   try {
+    // Check connection
+    await sequelize.authenticate();
+    console.log('Database connection has been established successfully.');
+
+    // Enable PostGIS extension for GEOMETRY support
+    await sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
+    console.log('PostGIS extension enabled.');
+
     // Define associations
     Location.belongsTo(User, {
       foreignKey: 'creatorId',
