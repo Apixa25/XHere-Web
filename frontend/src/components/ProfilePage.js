@@ -8,7 +8,7 @@ import BadgeDisplay from './BadgeDisplay';
 import ProfileHeader from './ProfilePage/ProfileHeader';
 import ProfilePicture from './ProfilePage/ProfilePicture';
 import { getEnvironmentConfig } from '../config/environments';
-import './ProfilePage/ProfilePage.css';
+import '../styles/ProfilePage.css';
 
 const AdminBadge = () => (
   <div style={{

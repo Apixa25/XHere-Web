@@ -1,9 +1,12 @@
 import React from 'react';
+import { getEnvironmentConfig } from '../config/environments';
 
 const LocationDetails = ({ location }) => {
   console.log('Full location object in LocationDetails:', location);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  // Get the current environment configuration
+  const config = getEnvironmentConfig();
+  const API_URL = config.API_URL;
 
   console.log('LocationDetails - received location:', location);
   console.log('LocationDetails - media URLs:', location?.content?.mediaUrls);
