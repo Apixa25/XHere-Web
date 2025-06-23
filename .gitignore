@@ -3,6 +3,11 @@
 /frontend/node_modules
 /backend/node_modules
 
+# Lock files (use yarn instead of npm)
+package-lock.json
+*/package-lock.json
+**/package-lock.json
+
 # Build artifacts
 /frontend/build
 /frontend/android/app/build
