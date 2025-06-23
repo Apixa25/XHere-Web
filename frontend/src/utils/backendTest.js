@@ -1,8 +1,9 @@
 // Backend connectivity test utility
 // This helps debug deployment issues by testing API endpoints
+import { getEnvironmentConfig } from '../config/environments';
 
 export const testBackendConnectivity = async () => {
-  const config = require('../config/environments').getEnvironmentConfig();
+  const config = getEnvironmentConfig();
   const baseUrl = config.API_URL;
   
   console.log('🧪 Testing backend connectivity...');
@@ -69,7 +70,7 @@ export const testRegistration = async (testData = {
   password: 'testpassword123',
   name: 'Test User'
 }) => {
-  const config = require('../config/environments').getEnvironmentConfig();
+  const config = getEnvironmentConfig();
   const url = `${config.API_URL}/api/auth/register`;
   
   console.log('🧪 Testing registration endpoint...');
@@ -113,7 +114,7 @@ if (typeof window !== 'undefined') {
   
   // Add specific CORS debugging function
   window.debugCORS = async () => {
-    const config = require('../config/environments').getEnvironmentConfig();
+    const config = getEnvironmentConfig();
     const baseUrl = config.API_URL;
     
     console.log('🔍 CORS Debug Test');
