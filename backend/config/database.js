@@ -13,7 +13,9 @@ const config = {
     logging: console.log
   },
   production: {
-    url: process.env.DATABASE_URL,
+    // THIS IS A TEMPORARY, INSECURE WORKAROUND
+    // The real DATABASE_URL from Render's environment is not working.
+    url: "postgresql://xhere_database_user:nRRnCpH1o3oLLoDlVQZYD5GoiBhnSurz@dpg-d1c9eg8dl3ps73fe6adg-a/xhere_database",
     dialect: 'postgres',
     dialectOptions: {
       ssl: {
