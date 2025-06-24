@@ -18,6 +18,7 @@ import AuthPage from './components/AuthPage';
 import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
+import UserLocationsPage from './components/admin/UserLocationsPage';
 import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
@@ -1062,6 +1063,10 @@ function App() {
     {
       path: "/admin",
       element: user?.isAdmin ? <AdminDashboard /> : <Navigate to="/" />,
+    },
+    {
+      path: "/admin/user/:userId/locations",
+      element: user?.isAdmin ? <UserLocationsPage /> : <Navigate to="/" />,
     },
   ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations]);
 
