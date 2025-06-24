@@ -4,10 +4,39 @@ const Location = require('../models/Location');
 const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const path = require('path');
+const fs = require('fs');
 const { checkAndAwardBadges } = require('../utils/badgeChecker');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+
+// Configure multer for location media uploads
+const locationStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = 'uploads';
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    // Generate a unique filename with timestamp and random suffix
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const extension = path.extname(file.originalname);
+    cb(null, `${uniqueSuffix}${extension}`);
+  }
+});
+
+const locationUpload = multer({ 
+  storage: locationStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/quicktime'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      cb(new Error('Invalid file type'));
+      return;
+    }
+    cb(null, true);
+  }
+});
 
 // Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
@@ -107,7 +136,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add POST endpoint
-router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
+router.post('/', authenticateToken, locationUpload.array('media'), async (req, res) => {
   try {
     const { creditAmount } = req.body;
     
@@ -159,7 +188,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
     // Create the content object with media information
     const content = {
       text: text || '',
-      mediaUrls: req.files ? req.files.map(file => file.path) : [],
+      mediaUrls: req.files ? req.files.map(file => `uploads/${file.filename}`) : [],
       mediaTypes: req.files ? req.files.map(file => file.mimetype) : [],
       isAnonymous: isAnonymous === 'true'
     };
@@ -212,7 +241,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Update location
-router.put('/:id', authenticateToken, upload.array('media'), async (req, res) => {
+router.put('/:id', authenticateToken, locationUpload.array('media'), async (req, res) => {
   try {
     const location = await Location.findByPk(req.params.id);
     
