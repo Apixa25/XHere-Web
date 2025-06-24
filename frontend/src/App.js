@@ -309,8 +309,7 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    // Navigate to auth page after logout
-    window.location.href = '/auth';
+    // Router will automatically show login form when user is null
   };
 
   const handleVoteUpdate = async (updatedLocation) => {
@@ -805,7 +804,7 @@ function App() {
   const router = useMemo(() => createBrowserRouter([
     {
       path: "/",
-      element: (
+      element: user ? (
         <div className="App">
           <nav className="main-nav">
             <Link to="/">Home</Link>
@@ -813,9 +812,7 @@ function App() {
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
             {user ? (
               <button onClick={handleLogout} className="logout-button">Logout</button>
-            ) : (
-              <Link to="/auth">Login</Link>
-            )}
+            ) : null}
           </nav>
           
           {/* Location Type Filter */}
@@ -992,15 +989,13 @@ function App() {
             </GoogleMap>
           </div>
         </div>
+      ) : (
+        <AuthPage onLoginSuccess={handleLoginSuccess} />
       ),
     },
     {
-      path: "/auth",
-      element: <AuthPage onLoginSuccess={handleLoginSuccess} />,
-    },
-    {
       path: "/profile",
-      element: user ? <ProfilePage user={user} onLocationUpdate={fetchLocations} /> : <Navigate to="/auth" />,
+      element: user ? <ProfilePage user={user} onLocationUpdate={fetchLocations} /> : <Navigate to="/" />,
     },
     {
       path: "/admin",
