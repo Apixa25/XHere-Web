@@ -22,6 +22,7 @@ import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
 import CommentSection from './components/CommentSection';
+import { getEnvironmentConfig } from './config/environments.js';
 
 // Import Capacitor plugins
 import { Geolocation, PermissionStatus } from '@capacitor/geolocation';
@@ -37,8 +38,9 @@ const LIBRARIES = ['places', 'marker'];
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
 
-// Use environment variables with fallbacks for mobile
-const API_URL = process.env.REACT_APP_API_URL || 'http://10.0.2.2:3000';
+// Use environment configuration system
+const config = getEnvironmentConfig();
+const API_URL = config.API_URL;
 
 const defaultCenter = {
   lat: 41.7555,
