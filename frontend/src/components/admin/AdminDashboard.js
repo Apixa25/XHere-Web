@@ -174,6 +174,29 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleViewOnMap = (location) => {
+    if (!location.location?.coordinates) {
+      alert('Location coordinates not available');
+      return;
+    }
+
+    const lat = Number(location.location.coordinates[1]);
+    const lng = Number(location.location.coordinates[0]);
+    
+    // Store the location coordinates in localStorage for the main map to use
+    localStorage.setItem('adminViewLocation', JSON.stringify({
+      lat,
+      lng,
+      locationId: location.id
+    }));
+    
+    // Store a flag indicating we came from admin dashboard
+    localStorage.setItem('cameFromAdmin', 'true');
+    
+    // Navigate to the main map
+    navigate('/');
+  };
+
   const startEditing = (location) => {
     console.log('Starting edit for location:', location);
     const currentText = location.content?.text || '';
@@ -459,6 +482,11 @@ const AdminDashboard = () => {
               <span title="Downvotes">👎 {location.downvotes || 0}</span>
               <span title="Status">📍 {location.verificationStatus}</span>
               <span title="Creator">👤 {location.creator?.email}</span>
+              {location.location?.coordinates && (
+                <span title="Coordinates">
+                  📍 {Number(location.location.coordinates[1]).toFixed(6)}, {Number(location.location.coordinates[0]).toFixed(6)}
+                </span>
+              )}
             </div>
           </>
         )}
@@ -479,6 +507,14 @@ const AdminDashboard = () => {
           title="Delete location"
         >
           🗑️ Delete
+        </button>
+        <button 
+          onClick={() => handleViewOnMap(location)}
+          className="view-on-map-button"
+          disabled={editingLocation !== null}
+          title="View on Map"
+        >
+          🌍 View on Map
         </button>
       </div>
     </div>

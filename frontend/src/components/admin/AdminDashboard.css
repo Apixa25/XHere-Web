@@ -283,6 +283,26 @@ th[onClick]:hover {
   background-color: #1976D2;
 }
 
+.view-on-map-button {
+  padding: 6px 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.view-on-map-button:hover {
+  background-color: #45a049;
+}
+
+.view-on-map-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 .user-result {
   display: flex;
   justify-content: space-between;
@@ -361,6 +381,24 @@ th[onClick]:hover {
   gap: 15px;
   font-size: 0.9em;
   color: #666;
+}
+
+.location-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+  color: #666;
+  margin-right: 15px;
+}
+
+.location-stats span[title="Coordinates"] {
+  font-family: monospace;
+  font-size: 0.8em;
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #ddd;
 }
 
 .location-actions {

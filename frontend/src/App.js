@@ -185,6 +185,7 @@ function App() {
   const timerIntervals = useRef({});
   const [selectedLocationType, setSelectedLocationType] = useState('all');
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
+  const [cameFromAdmin, setCameFromAdmin] = useState(false);
   const currentFetchController = useRef(null);
   const isUpdatingMarkers = useRef(false);
   const isUpdatingCenter = useRef(false);
@@ -231,6 +232,53 @@ function App() {
 
     verifyToken();
   }, []);
+
+  // Handle admin view location functionality
+  useEffect(() => {
+    const adminViewLocation = localStorage.getItem('adminViewLocation');
+    const fromAdmin = localStorage.getItem('cameFromAdmin');
+    
+    if (adminViewLocation && map) {
+      try {
+        const locationData = JSON.parse(adminViewLocation);
+        const { lat, lng, locationId } = locationData;
+        
+        console.log('🗺️ Admin view location:', locationData);
+        
+        // Set the came from admin flag
+        if (fromAdmin === 'true') {
+          setCameFromAdmin(true);
+        }
+        
+        // Center the map on the location
+        setCenter({ lat, lng });
+        map.setCenter({ lat, lng });
+        map.setZoom(15); // Zoom in closer for better visibility
+        
+        // Find and select the location marker
+        const location = locationData.find(loc => loc.id === locationId);
+        if (location) {
+          setSelectedMarker(location);
+        }
+        
+        // Clear the stored location data
+        localStorage.removeItem('adminViewLocation');
+        localStorage.removeItem('cameFromAdmin');
+        
+      } catch (error) {
+        console.error('Error handling admin view location:', error);
+        localStorage.removeItem('adminViewLocation');
+        localStorage.removeItem('cameFromAdmin');
+      }
+    }
+  }, [map, locationData]);
+
+  // Clear cameFromAdmin flag when user logs out or navigates away
+  useEffect(() => {
+    if (!user) {
+      setCameFromAdmin(false);
+    }
+  }, [user]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -809,6 +857,17 @@ function App() {
             <Link to="/">Home</Link>
             {user && <Link to="/profile">Profile</Link>}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
+            {cameFromAdmin && user?.isAdmin && (
+              <button 
+                onClick={() => {
+                  setCameFromAdmin(false);
+                  window.location.href = '/admin';
+                }} 
+                className="back-to-admin-button"
+              >
+                ⬅️ Back to Admin
+              </button>
+            )}
             {user ? (
               <button onClick={handleLogout} className="logout-button">Logout</button>
             ) : (
