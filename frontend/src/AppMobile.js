@@ -22,6 +22,7 @@ import './styles/markers.css';
 import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
 import CommentSection from './components/CommentSection';
+import mobileDebug from './utils/mobileDebug';
 
 // Import Capacitor plugins
 import { Geolocation, PermissionStatus } from '@capacitor/geolocation';
@@ -650,6 +651,8 @@ function AppMobile() {
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
   const isUpdatingMarkers = useRef(false);
   const isUpdatingCenter = useRef(false);
+  const [networkStatus, setNetworkStatus] = useState('online');
+  const [connectionTestResult, setConnectionTestResult] = useState(null);
 
   // Get device info
   useEffect(() => {
@@ -697,6 +700,51 @@ function AppMobile() {
     };
     
     checkLocationPermission();
+  }, []);
+
+  // Monitor network status
+  useEffect(() => {
+    const updateNetworkStatus = () => {
+      const status = navigator.onLine ? 'online' : 'offline';
+      console.log('🌐 Network status changed:', status);
+      setNetworkStatus(status);
+    };
+
+    // Initial check
+    updateNetworkStatus();
+
+    // Listen for network changes
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+
+    return () => {
+      window.removeEventListener('online', updateNetworkStatus);
+      window.removeEventListener('offline', updateNetworkStatus);
+    };
+  }, []);
+
+  // Periodic connection test
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        setNetworkStatus('connecting');
+        await api.testConnection();
+        setNetworkStatus('online');
+        setConnectionTestResult('success');
+      } catch (error) {
+        console.error('❌ Periodic connection test failed:', error);
+        setNetworkStatus('offline');
+        setConnectionTestResult('failed');
+      }
+    };
+
+    // Test connection every 30 seconds
+    const interval = setInterval(testConnection, 30000);
+    
+    // Initial test
+    testConnection();
+
+    return () => clearInterval(interval);
   }, []);
 
   const mapStyles = {
@@ -803,8 +851,22 @@ function AppMobile() {
   // Handle authentication
   const handleAuth = async (e) => {
     e.preventDefault();
+    setError(null);
+    
     try {
-      const endpoint = isRegistering ? 'auth/register' : 'auth/login';
+      console.log('🔐 Starting authentication process...');
+      
+      // Test connection first
+      try {
+        await api.testConnection();
+        console.log('✅ API connection confirmed');
+      } catch (connectionError) {
+        console.error('❌ API connection failed:', connectionError);
+        setError(`Connection failed: ${connectionError.message}. Please check your internet connection and try again.`);
+        return;
+      }
+      
+      const endpoint = isRegistering ? 'register' : 'login';
       
       const requestBody = isRegistering 
         ? { 
@@ -822,23 +884,18 @@ function AppMobile() {
         password: '[REDACTED]'
       });
 
-      const response = await fetch(`${API_URL}/api/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+      let response;
+      if (isRegistering) {
+        response = await api.register(requestBody);
+      } else {
+        response = await api.login(requestBody);
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
+      console.log('✅ Authentication successful:', response);
+
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      setUser(response.user);
       
       setFormData({
         email: '',
@@ -847,8 +904,33 @@ function AppMobile() {
       });
       
     } catch (error) {
-      console.error('Auth error:', error);
-      alert(error.message || 'Authentication failed');
+      console.error('❌ Auth error:', error);
+      
+      // Provide user-friendly error messages
+      let userMessage = 'Authentication failed. Please try again.';
+      
+      if (error.message.includes('Network connection failed')) {
+        userMessage = 'Network connection failed. Please check your internet connection and try again.';
+      } else if (error.message.includes('Empty response')) {
+        userMessage = 'Server is not responding. Please try again later.';
+      } else if (error.message.includes('Invalid JSON')) {
+        userMessage = 'Server returned an invalid response. Please try again.';
+      } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        userMessage = 'Invalid email or password. Please check your credentials.';
+      } else if (error.message.includes('409') || error.message.includes('already exists')) {
+        userMessage = 'An account with this email already exists. Please try logging in instead.';
+      } else if (error.message.includes('400') || error.message.includes('Bad Request')) {
+        userMessage = 'Please check your input and try again.';
+      } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+        userMessage = 'Server error. Please try again later.';
+      } else {
+        userMessage = error.message || userMessage;
+      }
+      
+      setError(userMessage);
+      
+      // Show error alert for mobile
+      alert(`❌ ${userMessage}`);
     }
   };
 
@@ -1064,6 +1146,41 @@ function AppMobile() {
   const renderAuthForm = () => (
     <div className="mobile-auth-container">
       <h2>{isRegistering ? 'Register' : 'Login'}</h2>
+      
+      {/* Mobile Connection Test */}
+      <div className="mobile-connection-test">
+        <button 
+          onClick={async () => {
+            try {
+              console.log('🧪 Testing mobile connection...');
+              const result = await api.testConnection();
+              alert(`✅ Connection successful!\nAPI: ${result.status}\nDatabase: ${result.database}`);
+            } catch (error) {
+              console.error('❌ Connection test failed:', error);
+              alert(`❌ Connection failed:\n${error.message}\n\nPlease check your internet connection and try again.`);
+            }
+          }}
+          className="mobile-test-button"
+        >
+          🧪 Test Connection
+        </button>
+        
+        <button 
+          onClick={async () => {
+            try {
+              await mobileDebug.showDiagnosticModal();
+            } catch (error) {
+              console.error('❌ Diagnostic failed:', error);
+              alert('Error running diagnostics. Check console for details.');
+            }
+          }}
+          className="mobile-test-button"
+          style={{ marginLeft: '10px', backgroundColor: '#6c5ce7' }}
+        >
+          🔍 Full Diagnostic
+        </button>
+      </div>
+      
       <form onSubmit={handleAuth} className="mobile-auth-form">
         {isRegistering && (
           <div className="mobile-form-group">
@@ -1535,6 +1652,12 @@ function AppMobile() {
         <GoogleMapsProvider>
           <div className="mobile-app-container">
             {console.log('🏗️ Rendering main app container')}
+            
+            {/* Network Status Indicator */}
+            <div className={`mobile-network-status ${networkStatus}`} 
+                 title={`Network: ${networkStatus}`}>
+            </div>
+            
             {/* Debug overlay - remove this in production */}
             {process.env.NODE_ENV === 'development' && (
               <div style={{
@@ -1555,6 +1678,8 @@ function AppMobile() {
                 <div>Admin: {user?.isAdmin ? 'Yes' : 'No'}</div>
                 <div>Active Tab: {activeTab}</div>
                 <div>Screen: {window.innerWidth}x{window.innerHeight}</div>
+                <div>Network: {networkStatus}</div>
+                <div>Connection: {connectionTestResult || 'Unknown'}</div>
                 <button 
                   onClick={() => setActiveTab('map')}
                   style={{margin: '5px', padding: '2px 5px'}}

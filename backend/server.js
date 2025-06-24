@@ -27,7 +27,7 @@ const Location = require('./models/Location');
 
 const app = express();
 
-// CORS middleware - Simplified and robust configuration
+// CORS middleware - Enhanced for mobile compatibility
 const allowedOrigins = [
   'http://localhost:3000', 
   'http://localhost:3001', 
@@ -38,30 +38,42 @@ const allowedOrigins = [
   'https://api.xhere.world',
   'https://xhere-web-front-end.onrender.com',
   'https://xhere-api.onrender.com',
-  'https://xhere-web.onrender.com'
+  'https://xhere-web.onrender.com',
+  // Add mobile-specific origins
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost',
+  'https://localhost'
 ];
 
-// Simplified CORS configuration
+// Enhanced CORS configuration for mobile
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, Postman, curl)
     if (!origin) {
-      console.log('🌐 CORS: Allowing request with no origin');
+      console.log('🌐 CORS: Allowing request with no origin (mobile app)');
       return callback(null, true);
     }
     
     console.log('🌐 CORS request from origin:', origin);
     console.log('🌐 Allowed origins:', allowedOrigins);
     
+    // Check if origin is in allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
       console.log('✅ CORS: Origin allowed');
       callback(null, true);
     } else {
-      console.log('❌ CORS: Origin blocked:', origin);
-      callback(new Error('Not allowed by CORS'));
+      // For mobile browsers, be more permissive
+      if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.')) {
+        console.log('✅ CORS: Allowing local/mobile origin:', origin);
+        callback(null, true);
+      } else {
+        console.log('❌ CORS: Origin blocked:', origin);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
@@ -69,10 +81,14 @@ app.use(cors({
     'Accept', 
     'Origin',
     'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
+    'Access-Control-Request-Headers',
+    'User-Agent',
+    'Cache-Control',
+    'Pragma'
   ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
 
 // Add explicit OPTIONS handling for preflight requests
@@ -235,6 +251,34 @@ console.log('Available routes:', app._router.stack
     methods: Object.keys(r.route.methods)
   }))
 );
+
+// Enhanced error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Server error:', err);
+  console.error('❌ Request details:', {
+    method: req.method,
+    url: req.url,
+    origin: req.get('Origin'),
+    userAgent: req.get('User-Agent'),
+    headers: req.headers
+  });
+  
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: 'Cross-origin request not allowed',
+      details: err.message,
+      allowedOrigins: allowedOrigins,
+      requestOrigin: req.get('Origin')
+    });
+  }
+  
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message || 'Something went wrong',
+    timestamp: new Date().toISOString()
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

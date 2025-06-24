@@ -892,3 +892,106 @@ label {
 .mobile-delete-button {
   background-color: #dc3545; /* Red for delete */
 }
+
+/* Mobile Connection Test */
+.mobile-connection-test {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.mobile-test-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  margin: 10px 0;
+}
+
+.mobile-test-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.mobile-test-button:active {
+  transform: translateY(0);
+}
+
+/* Enhanced mobile error handling */
+.mobile-error-message {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin: 10px 0;
+  text-align: center;
+  font-size: 14px;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.mobile-success-message {
+  background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin: 10px 0;
+  text-align: center;
+  font-size: 14px;
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+}
+
+/* Mobile loading states */
+.mobile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #667eea;
+  font-size: 16px;
+}
+
+.mobile-loading::before {
+  content: "⏳";
+  margin-right: 10px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile network status indicator */
+.mobile-network-status {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #00b894;
+  box-shadow: 0 0 10px rgba(0, 184, 148, 0.5);
+  z-index: 1000;
+}
+
+.mobile-network-status.offline {
+  background: #ff6b6b;
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.mobile-network-status.connecting {
+  background: #fdcb6e;
+  box-shadow: 0 0 10px rgba(253, 203, 110, 0.5);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
