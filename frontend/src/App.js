@@ -241,10 +241,10 @@ function App() {
     
     if (adminViewLocation && map) {
       try {
-        const locationData = JSON.parse(adminViewLocation);
-        const { lat, lng, locationId } = locationData;
+        const adminLocationData = JSON.parse(adminViewLocation);
+        const { lat, lng, locationId } = adminLocationData;
         
-        console.log('🗺️ Admin view location:', locationData);
+        console.log('🗺️ Admin view location:', adminLocationData);
         
         // Set the came from admin flag
         if (fromAdmin === 'true') {
@@ -256,10 +256,13 @@ function App() {
         map.setCenter({ lat, lng });
         map.setZoom(15); // Zoom in closer for better visibility
         
-        // Find and select the location marker
+        // Find and select the location marker from the locationData state
         const location = locationData.find(loc => loc.id === locationId);
         if (location) {
           setSelectedMarker(location);
+          console.log('✅ Found and selected location marker:', location);
+        } else {
+          console.log('⚠️ Location not found in current locationData, waiting for data to load...');
         }
         
         // Clear the stored location data
@@ -273,6 +276,34 @@ function App() {
       }
     }
   }, [map, locationData]);
+
+  // Handle admin view location when locationData becomes available
+  useEffect(() => {
+    const adminViewLocation = localStorage.getItem('adminViewLocation');
+    const fromAdmin = localStorage.getItem('cameFromAdmin');
+    
+    if (adminViewLocation && fromAdmin === 'true' && locationData.length > 0) {
+      try {
+        const adminLocationData = JSON.parse(adminViewLocation);
+        const { locationId } = adminLocationData;
+        
+        // Find and select the location marker from the locationData state
+        const location = locationData.find(loc => loc.id === locationId);
+        if (location) {
+          setSelectedMarker(location);
+          console.log('✅ Found and selected location marker after data load:', location);
+          
+          // Clear the stored location data
+          localStorage.removeItem('adminViewLocation');
+          localStorage.removeItem('cameFromAdmin');
+        }
+      } catch (error) {
+        console.error('Error handling admin view location after data load:', error);
+        localStorage.removeItem('adminViewLocation');
+        localStorage.removeItem('cameFromAdmin');
+      }
+    }
+  }, [locationData]);
 
   // Clear cameFromAdmin flag when user logs out or navigates away
   useEffect(() => {

@@ -219,10 +219,6 @@ const AdminDashboard = () => {
     );
   };
 
-  const handleImageError = (imageUrl) => {
-    setFailedImages(prev => new Set(prev).add(imageUrl));
-  };
-
   const handleUserSelect = async (userId) => {
     console.log('Selecting user:', userId);
     // Navigate to dedicated user locations page
