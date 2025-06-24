@@ -155,6 +155,107 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Temporary debug endpoint to check image paths
+app.get('/api/debug/images', async (req, res) => {
+  try {
+    console.log('🔍 Debug images endpoint requested');
+    
+    const Location = require('./models/Location');
+    const User = require('./models/User');
+    const fs = require('fs');
+    const path = require('path');
+    
+    await sequelize.authenticate();
+    
+    const debugData = {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      uploadsDirectory: {
+        exists: fs.existsSync(path.join(__dirname, 'uploads')),
+        path: path.join(__dirname, 'uploads')
+      }
+    };
+    
+    // Check locations with media
+    const locations = await Location.findAll();
+    const locationsWithMedia = locations.filter(loc => 
+      loc.content?.mediaUrls && loc.content.mediaUrls.length > 0
+    );
+    
+    debugData.locations = {
+      total: locations.length,
+      withMedia: locationsWithMedia.length,
+      mediaDetails: locationsWithMedia.map(loc => ({
+        id: loc.id,
+        text: loc.content?.text?.substring(0, 50) + '...',
+        mediaUrls: loc.content?.mediaUrls || [],
+        mediaTypes: loc.content?.mediaTypes || [],
+        filesExist: (loc.content?.mediaUrls || []).map(url => {
+          const filePath = path.join(__dirname, url);
+          return {
+            url: url,
+            exists: fs.existsSync(filePath),
+            size: fs.existsSync(filePath) ? fs.statSync(filePath).size : 0
+          };
+        })
+      }))
+    };
+    
+    // Check users with profile pictures
+    const users = await User.findAll();
+    const usersWithPictures = users.filter(user => user.profile?.pictureUrl);
+    
+    debugData.users = {
+      total: users.length,
+      withPictures: usersWithPictures.length,
+      pictureDetails: usersWithPictures.map(user => {
+        const pictureUrl = user.profile?.pictureUrl;
+        const filePath = path.join(__dirname, pictureUrl);
+        return {
+          email: user.email,
+          pictureUrl: pictureUrl,
+          exists: fs.existsSync(filePath),
+          size: fs.existsSync(filePath) ? fs.statSync(filePath).size : 0
+        };
+      })
+    };
+    
+    // List uploads directory contents
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      const listFiles = (dir, prefix = '') => {
+        const items = fs.readdirSync(dir);
+        const files = [];
+        items.forEach(item => {
+          const itemPath = path.join(dir, item);
+          const stats = fs.statSync(itemPath);
+          files.push({
+            name: item,
+            path: itemPath.replace(__dirname, ''),
+            isDirectory: stats.isDirectory(),
+            size: stats.size,
+            modified: stats.mtime
+          });
+        });
+        return files;
+      };
+      
+      debugData.uploadsDirectory.contents = listFiles(uploadsDir);
+    }
+    
+    console.log('✅ Debug images response generated');
+    res.json(debugData);
+    
+  } catch (error) {
+    console.error('❌ Debug images error:', error);
+    res.status(500).json({
+      error: 'Debug failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // CORS test endpoint
 app.get('/api/cors-test', (req, res) => {
   const origin = req.get('Origin');
