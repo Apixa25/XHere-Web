@@ -1,3 +1,6 @@
+import VoteButtons from '../VoteButtons';
+import MessageButton from '../messaging/MessageButton';
+
 const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   // ... existing code ...
 
@@ -102,6 +105,30 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
               {location.totalPoints || 0} pts
             </div>
             {getStatusBadge()}
+          </div>
+
+          {/* Voting and Message row */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '10px',
+            margin: '12px 0'
+          }}>
+            <VoteButtons location={location} onVoteUpdate={() => {}} />
+            {/* Only show MessageButton if not the creator */}
+            {location.creator && localStorage.getItem('user') &&
+              JSON.parse(localStorage.getItem('user')).userId !== location.creator._id && (
+                <MessageButton
+                  recipientId={location.creator._id}
+                  recipientName={location.creator.profile?.name || location.creator.email}
+                  locationId={location.id}
+                  locationText={location.content.text}
+                  className="small"
+                >
+                  Send Message
+                </MessageButton>
+            )}
           </div>
           
           {/* ... rest of the existing code ... */}
