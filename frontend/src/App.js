@@ -156,6 +156,131 @@ function GoogleMapsProvider({ children }) {
   return children;
 }
 
+function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteUpdate, API_URL }) {
+  if (!marker) return null;
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '120px', // just below filter panel
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 2000,
+      background: 'white',
+      borderRadius: '12px',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.25)',
+      maxWidth: '400px',
+      width: '90vw',
+      maxHeight: '80vh',
+      overflowY: 'auto',
+      padding: '24px',
+      border: '1px solid #eee',
+    }}>
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: 16,
+          fontSize: 28,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#d32f2f',
+          fontWeight: 'bold',
+          zIndex: 10,
+        }}
+        aria-label="Close info box"
+      >
+        ×
+      </button>
+      <div className="marker-header">
+        <div className="poster-info">
+          <p className="poster-name">
+            {marker.content.isAnonymous
+              ? 'Posted anonymously'
+              : `Posted by: ${marker.creator?.profile?.name || 'Unknown User'}`}
+          </p>
+          <p className="post-date">
+            {new Date(marker.createdAt).toLocaleDateString()}
+          </p>
+          {/* Message button for non-anonymous posts */}
+          {!marker.content.isAnonymous && marker.creator && user && marker.creator.id !== user.id && (
+            <div style={{ marginTop: '8px' }}>
+              <MessageButton
+                recipientId={marker.creator.id}
+                recipientName={marker.creator.profile?.name || marker.creator.email}
+                locationId={marker.id}
+                locationText={marker.content.text}
+                className="small"
+                onMessageSent={() => {
+                  console.log('Message sent successfully from map');
+                }}
+              >
+                💬 Message Creator
+              </MessageButton>
+            </div>
+          )}
+        </div>
+        <div className="marker-stats"></div>
+      </div>
+      <div className="location-badges-container">
+        <div className="location-type-badge">
+          {LOCATION_TYPES[marker.locationType]?.icon || '📍'} {LOCATION_TYPES[marker.locationType]?.label || 'General'}
+        </div>
+        <div className="marker-stats-right">
+          {marker.credits > 0 && (
+            <div className="credits-badge">
+              💎 {marker.credits}
+            </div>
+          )}
+          <div className="points-badge">
+            {marker.upvotes - marker.downvotes} pts
+          </div>
+        </div>
+      </div>
+      <p>{marker.content.text}</p>
+      <VoteButtons location={marker} onVoteUpdate={handleVoteUpdate} />
+      {marker.content.mediaUrls && marker.content.mediaUrls.length > 0 && (
+        <div className="media-gallery">
+          {marker.content.mediaUrls.map((url, index) => {
+            const mediaType = marker.content.mediaTypes[index];
+            const fullUrl = `${API_URL}/${url.replace(/\\/g, '/')}`;
+            if (mediaType && mediaType.startsWith('video/')) {
+              return (
+                <video key={index} controls className="location-video">
+                  <source src={fullUrl} type={mediaType} />
+                  Your browser does not support the video tag.
+                </video>
+              );
+            } else {
+              return (
+                <img key={index} src={fullUrl} alt="Location content" className="location-image" />
+              );
+            }
+          })}
+        </div>
+      )}
+      {user && (user.isAdmin || user.id === marker.creatorId) && (
+        <button
+          onClick={() => handleDeleteLocation(marker.id)}
+          className="delete-button"
+        >
+          Delete Location
+        </button>
+      )}
+      <CommentSection
+        locationId={marker.id}
+        user={user}
+        onNewBadges={(newBadges) => {
+          if (newBadges && newBadges.length > 0) {
+            console.log('New badges from comments:', newBadges);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 function App() {
   const [user, setUser] = useState(getUserFromStorage());
   const [isUserComplete, setIsUserComplete] = useState(false);
@@ -191,6 +316,8 @@ function App() {
   const currentFetchController = useRef(null);
   const isUpdatingMarkers = useRef(false);
   const isUpdatingCenter = useRef(false);
+  const infoBoxRef = useRef(null);
+  const [infoBoxHeight, setInfoBoxHeight] = useState(0);
 
   const mapStyles = {
     height: "100vh",
@@ -252,10 +379,13 @@ function App() {
           setCameFromAdmin(true);
         }
         
-        // Center the map on the location
+        // Center the map on the location using the same logic as marker clicks
         setCenter({ lat, lng });
         map.setCenter({ lat, lng });
         map.setZoom(15); // Zoom in closer for better visibility
+        
+        // Use the same centering logic as marker clicks for consistency
+        panMapToShowInfoBox(lat, lng);
         
         // Find and select the location marker from the locationData state
         const location = locationData.find(loc => loc.id === locationId);
@@ -468,12 +598,50 @@ function App() {
     }
   };
 
+  // Function to pan the map so the top of the info box is just below the filter panel
+  const panMapToShowInfoBox = (lat, lng) => {
+    if (!mapRef.current) return;
+
+    try {
+      const map = mapRef.current;
+      const bounds = map.getBounds();
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+
+      const mapDiv = map.getDiv();
+      const mapHeight = mapDiv.clientHeight;
+
+      // Get the filter panel height in pixels
+      const filterPanel = document.querySelector('.location-filter');
+      const panelHeight = filterPanel ? filterPanel.getBoundingClientRect().height : 0;
+
+      // Calculate the ratio of the panel height to the map height
+      const panelRatio = panelHeight / mapHeight;
+      // Convert this ratio to a latitude offset
+      const latSpan = ne.lat() - sw.lat();
+      const latOffset = latSpan * panelRatio;
+
+      // Pan so the marker's top aligns just below the filter panel
+      const newLat = lat - latOffset;
+      const newLng = lng;
+
+      map.panTo({ lat: newLat, lng: newLng });
+    } catch (error) {
+      console.error('❌ Error panning map to show info box:', error);
+    }
+  };
+
   const handleMarkerClick = (location) => {
     console.log('Clicked location full data:', JSON.stringify(location, null, 2));
     console.log('Media URLs:', location.content.mediaUrls);
     console.log("Marker clicked:", location); // Debug log
     setSelectedMarker(location);
     setSelectedLocation(null); // Close any new location form
+    
+    // Center the map to show the info box properly
+    const lat = Number(location.location.coordinates[1]);
+    const lng = Number(location.location.coordinates[0]);
+    panMapToShowInfoBox(lat, lng);
   };
 
   const handleLocationSubmit = async (formData) => {
@@ -1017,126 +1185,14 @@ function App() {
               )}
 
               {selectedMarker && (
-                <OverlayView
-                  position={{
-                    lat: selectedMarker.location.coordinates[1],
-                    lng: selectedMarker.location.coordinates[0],
-                  }}
-                  mapPaneName={OverlayView.FLOAT_PANE}
-                >
-                  <div
-                    className="custom-info-window location-details-content"
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onDoubleClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedMarker(null);
-                      }}
-                      className="close-button"
-                    >&times;</button>
-                    <div className="marker-header">
-                      <div className="poster-info">
-                        <p className="poster-name">
-                          {selectedMarker.content.isAnonymous
-                            ? 'Posted anonymously'
-                            : `Posted by: ${selectedMarker.creator?.profile?.name || 'Unknown User'}`}
-                        </p>
-                        <p className="post-date">
-                          {new Date(selectedMarker.createdAt).toLocaleDateString()}
-                        </p>
-                        {/* Message button for non-anonymous posts */}
-                        {!selectedMarker.content.isAnonymous && selectedMarker.creator && user && selectedMarker.creator.id !== user.id && (
-                          <div style={{ marginTop: '8px' }}>
-                            <MessageButton
-                              recipientId={selectedMarker.creator.id}
-                              recipientName={selectedMarker.creator.profile?.name || selectedMarker.creator.email}
-                              locationId={selectedMarker.id}
-                              locationText={selectedMarker.content.text}
-                              className="small"
-                              onMessageSent={() => {
-                                console.log('Message sent successfully from map');
-                              }}
-                            >
-                              💬 Message Creator
-                            </MessageButton>
-                          </div>
-                        )}
-                      </div>
-                      <div className="marker-stats">
-                        {/* This will be empty, badges are moved below */}
-                      </div>
-                    </div>
-
-                    <div className="location-badges-container">
-                      <div className="location-type-badge">
-                        {LOCATION_TYPES[selectedMarker.locationType]?.icon || '📍'} {LOCATION_TYPES[selectedMarker.locationType]?.label || 'General'}
-                      </div>
-                      <div className="marker-stats-right">
-                        {selectedMarker.credits > 0 && (
-                          <div className="credits-badge">
-                            💎 {selectedMarker.credits}
-                          </div>
-                        )}
-                        <div className="points-badge">
-                          {selectedMarker.upvotes - selectedMarker.downvotes} pts
-                        </div>
-                      </div>
-                    </div>
-
-                    <p>{selectedMarker.content.text}</p>
-                    
-                    <VoteButtons
-                      location={selectedMarker}
-                      onVoteUpdate={handleVoteUpdate}
-                    />
-
-                    {selectedMarker.content.mediaUrls && selectedMarker.content.mediaUrls.length > 0 && (
-                      <div className="media-gallery">
-                        {selectedMarker.content.mediaUrls.map((url, index) => {
-                          const mediaType = selectedMarker.content.mediaTypes[index];
-                          const fullUrl = `${API_URL}/${url.replace(/\\/g, '/')}`;
-                          if (mediaType && mediaType.startsWith('video/')) {
-                            return (
-                              <video key={index} controls className="location-video">
-                                <source src={fullUrl} type={mediaType} />
-                                Your browser does not support the video tag.
-                              </video>
-                            );
-                          } else {
-                            return (
-                              <img key={index} src={fullUrl} alt="Location content" className="location-image" />
-                            );
-                          }
-                        })}
-                      </div>
-                    )}
-                    
-                    {user && (user.isAdmin || user.id === selectedMarker.creatorId) && (
-                      <button
-                        onClick={() => handleDeleteLocation(selectedMarker.id)}
-                        className="delete-button"
-                      >
-                        Delete Location
-                      </button>
-                    )}
-
-                    {/* Comment Section */}
-                    <CommentSection
-                      locationId={selectedMarker.id}
-                      user={user}
-                      onNewBadges={(newBadges) => {
-                        // Handle new badges from comments
-                        if (newBadges && newBadges.length > 0) {
-                          // You can add badge notification logic here
-                          console.log('New badges from comments:', newBadges);
-                        }
-                      }}
-                    />
-                  </div>
-                </OverlayView>
+                <InfoBoxModal
+                  marker={selectedMarker}
+                  onClose={() => setSelectedMarker(null)}
+                  user={user}
+                  handleDeleteLocation={handleDeleteLocation}
+                  handleVoteUpdate={handleVoteUpdate}
+                  API_URL={API_URL}
+                />
               )}
             </GoogleMap>
           </div>
@@ -1162,6 +1218,66 @@ function App() {
   ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations]);
 
   console.log("Render App:", { selectedMarker: selectedMarker, selectedLocation, routerPath});
+
+  // Measure info box height after render
+  useEffect(() => {
+    if (selectedMarker) {
+      let attempts = 0;
+      const maxAttempts = 20; // 20 * 50ms = 1s
+      function tryMeasure() {
+        if (infoBoxRef.current) {
+          const measuredHeight = infoBoxRef.current.getBoundingClientRect().height;
+          console.log('[InfoBox] Measured info box height:', measuredHeight);
+          setInfoBoxHeight(measuredHeight);
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(tryMeasure, 50);
+        } else {
+          console.log('[InfoBox] Ref is still null after polling, could not measure info box height.');
+        }
+      }
+      tryMeasure();
+    }
+  }, [selectedMarker]);
+
+  // Smart pan function
+  const panMapToShowInfoBoxSmart = (lat, lng, boxHeightPx) => {
+    if (!mapRef.current) return;
+    try {
+      const map = mapRef.current;
+      const bounds = map.getBounds();
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      const mapDiv = map.getDiv();
+      const mapHeight = mapDiv.clientHeight;
+      const filterPanel = document.querySelector('.location-filter');
+      const panelHeight = filterPanel ? filterPanel.getBoundingClientRect().height : 0;
+      let offsetRatio;
+      if (boxHeightPx + panelHeight > mapHeight) {
+        offsetRatio = (panelHeight + (boxHeightPx - (mapHeight - panelHeight))) / mapHeight;
+      } else {
+        offsetRatio = panelHeight / mapHeight;
+      }
+      const latSpan = ne.lat() - sw.lat();
+      const latOffset = latSpan * offsetRatio;
+      const newLat = lat - latOffset;
+      console.log('[InfoBox] Panning map:', {
+        lat, lng, boxHeightPx, mapHeight, panelHeight, offsetRatio, latSpan, latOffset, newLat
+      });
+      map.panTo({ lat: newLat, lng });
+    } catch (error) {
+      console.error('❌ Error panning map to show info box:', error);
+    }
+  };
+
+  // Pan after measuring
+  useEffect(() => {
+    if (selectedMarker && infoBoxHeight > 0) {
+      const lat = Number(selectedMarker.location.coordinates[1]);
+      const lng = Number(selectedMarker.location.coordinates[0]);
+      panMapToShowInfoBoxSmart(lat, lng, infoBoxHeight);
+    }
+  }, [selectedMarker, infoBoxHeight]);
 
   return (
     <ErrorBoundary>

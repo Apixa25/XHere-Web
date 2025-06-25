@@ -1,7 +1,7 @@
 import React from 'react';
 import '../../styles/MessageDetail.css';
 
-const MessageDetail = ({ message, onClose, onDelete, activeTab }) => {
+const MessageDetail = ({ message, onClose, onDelete, activeTab, onReply }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString();
@@ -12,9 +12,11 @@ const MessageDetail = ({ message, onClose, onDelete, activeTab }) => {
   };
 
   const handleReply = () => {
-    // This could open a compose modal for replying
-    // For now, we'll just close the detail view
-    onClose();
+    if (onReply) {
+      onReply(message);
+    } else {
+      onClose();
+    }
   };
 
   return (

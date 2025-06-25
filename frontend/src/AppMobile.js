@@ -155,7 +155,8 @@ function LocationInfoWindow({
   handleDeleteLocation,
   setSelectedMarker,
   handleVoteUpdate,
-  submitting
+  submitting,
+  infoBoxRef
 }) {
   const [assignCredits, setAssignCredits] = useState(false);
   const [creditAmount, setCreditAmount] = useState(0);
@@ -461,7 +462,7 @@ function LocationInfoWindow({
         }}
         onCloseClick={() => onClose('marker')}
       >
-        <div className="mobile-marker-info">
+        <div ref={infoBoxRef} className="mobile-marker-info">
           <div className="mobile-marker-header">
             <div className="poster-info">
               <p className="poster-name">
@@ -670,6 +671,8 @@ function AppMobile() {
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
   const isUpdatingMarkers = useRef(false);
   const isUpdatingCenter = useRef(false);
+  const infoBoxRef = useRef(null);
+  const [infoBoxHeight, setInfoBoxHeight] = useState(0);
 
   // Get device info
   useEffect(() => {
@@ -922,6 +925,43 @@ function AppMobile() {
     console.log("Marker clicked:", location);
     setSelectedMarker(location);
     setSelectedLocation(null);
+    
+    // Center the map to show the info box properly
+    const lat = Number(location.location.coordinates[1]);
+    const lng = Number(location.location.coordinates[0]);
+    panMapToShowInfoBox(lat, lng);
+  };
+
+  // Function to pan the map so the top of the info box is just below the filter panel
+  const panMapToShowInfoBox = (lat, lng) => {
+    if (!map) return;
+
+    try {
+      const bounds = map.getBounds();
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+
+      const mapDiv = map.getDiv();
+      const mapHeight = mapDiv.clientHeight;
+
+      // Get the filter panel height in pixels
+      const filterPanel = document.querySelector('.mobile-location-filter');
+      const panelHeight = filterPanel ? filterPanel.getBoundingClientRect().height : 0;
+
+      // Calculate the ratio of the panel height to the map height
+      const panelRatio = panelHeight / mapHeight;
+      // Convert this ratio to a latitude offset
+      const latSpan = ne.lat() - sw.lat();
+      const latOffset = latSpan * panelRatio;
+
+      // Pan so the marker's top aligns just below the filter panel
+      const newLat = lat - latOffset;
+      const newLng = lng;
+
+      map.panTo({ lat: newLat, lng: newLng });
+    } catch (error) {
+      console.error('❌ Error panning map to show info box:', error);
+    }
   };
 
   // Handle location submission with Capacitor
@@ -1279,6 +1319,50 @@ function AppMobile() {
     }
   };
 
+  // 1. Measure info box height after render
+  useEffect(() => {
+    if (selectedMarker && infoBoxRef.current) {
+      setTimeout(() => {
+        setInfoBoxHeight(infoBoxRef.current.getBoundingClientRect().height);
+      }, 50);
+    }
+  }, [selectedMarker]);
+
+  // 2. Smart pan function
+  const panMapToShowInfoBoxSmart = (lat, lng, boxHeightPx) => {
+    if (!map) return;
+    try {
+      const bounds = map.getBounds();
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      const mapDiv = map.getDiv();
+      const mapHeight = mapDiv.clientHeight;
+      const filterPanel = document.querySelector('.mobile-location-filter');
+      const panelHeight = filterPanel ? filterPanel.getBoundingClientRect().height : 0;
+      let offsetRatio;
+      if (boxHeightPx + panelHeight > mapHeight) {
+        offsetRatio = (panelHeight + (boxHeightPx - (mapHeight - panelHeight))) / mapHeight;
+      } else {
+        offsetRatio = panelHeight / mapHeight;
+      }
+      const latSpan = ne.lat() - sw.lat();
+      const latOffset = latSpan * offsetRatio;
+      const newLat = lat - latOffset;
+      map.panTo({ lat: newLat, lng });
+    } catch (error) {
+      console.error('❌ Error panning map to show info box:', error);
+    }
+  };
+
+  // 3. Pan after measuring
+  useEffect(() => {
+    if (selectedMarker && infoBoxHeight > 0) {
+      const lat = Number(selectedMarker.location.coordinates[1]);
+      const lng = Number(selectedMarker.location.coordinates[0]);
+      panMapToShowInfoBoxSmart(lat, lng, infoBoxHeight);
+    }
+  }, [selectedMarker, infoBoxHeight]);
+
   // Only render the map when user is logged in
   if (!user) {
     console.log('🔐 No user found, showing auth form');
@@ -1485,6 +1569,7 @@ function AppMobile() {
                   setSelectedMarker={setSelectedMarker}
                   handleVoteUpdate={handleVoteUpdate}
                   submitting={submitting}
+                  infoBoxRef={infoBoxRef}
                 />
               )}
             </GoogleMap>

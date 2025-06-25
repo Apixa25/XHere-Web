@@ -8,6 +8,7 @@ const MessagingPanel = ({ onClose }) => {
   const [showCompose, setShowCompose] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
+  const [composeData, setComposeData] = useState(null);
 
   // Handler to open message detail
   const handleOpenDetail = (message) => {
@@ -19,6 +20,26 @@ const MessagingPanel = ({ onClose }) => {
   const handleCloseDetail = () => {
     setShowDetail(false);
     setSelectedMessage(null);
+  };
+
+  // Handler to reply to a message
+  const handleReply = (message) => {
+    setShowDetail(false);
+    setSelectedMessage(null);
+    setComposeData({
+      recipientId: message.sender?.id,
+      recipientName: message.sender?.profile?.name || message.sender?.email || 'Unknown User',
+      subject: message.subject ? `Re: ${message.subject}` : '',
+      locationId: message.location?.id || null,
+      locationText: message.location?.content?.text || null
+    });
+    setShowCompose(true);
+  };
+
+  // Handler to close compose
+  const handleCloseCompose = () => {
+    setShowCompose(false);
+    setComposeData(null);
   };
 
   return (
@@ -58,7 +79,7 @@ const MessagingPanel = ({ onClose }) => {
       <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
         <button onClick={() => setActiveTab('inbox')} style={{ marginRight: 8, fontWeight: activeTab === 'inbox' ? 'bold' : 'normal' }}>Inbox</button>
         <button onClick={() => setActiveTab('sent')} style={{ fontWeight: activeTab === 'sent' ? 'bold' : 'normal' }}>Sent</button>
-        <button onClick={() => setShowCompose(true)} style={{ marginLeft: 16 }}>✏️ Compose</button>
+        <button onClick={() => { setShowCompose(true); setComposeData(null); }} style={{ marginLeft: 16 }}>✏️ Compose</button>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         {showDetail && selectedMessage ? (
@@ -70,14 +91,22 @@ const MessagingPanel = ({ onClose }) => {
               // Optionally, trigger a refresh in MessageList if needed
             }}
             activeTab={activeTab}
+            onReply={handleReply}
           />
-        ) : !showCompose ? (
+        ) : showCompose ? (
+          <MessageCompose 
+            onClose={handleCloseCompose}
+            recipientId={composeData?.recipientId}
+            recipientName={composeData?.recipientName}
+            subject={composeData?.subject}
+            locationId={composeData?.locationId}
+            locationText={composeData?.locationText}
+          />
+        ) : (
           <MessageList 
             activeTab={activeTab} 
             onOpenDetail={handleOpenDetail}
           />
-        ) : (
-          <MessageCompose onClose={() => setShowCompose(false)} />
         )}
       </div>
     </div>
