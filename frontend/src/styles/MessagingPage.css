@@ -21,7 +21,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .messaging-header {
@@ -187,4 +187,14 @@
     padding: 6px 10px;
     font-size: 12px;
   }
+}
+
+.message-list {
+  display: block !important;
+  opacity: 1 !important;
+  height: auto !important;
+  min-height: 100px !important;
+  color: #111 !important;
+  background: #fff !important;
+  z-index: 9999 !important;
 } 

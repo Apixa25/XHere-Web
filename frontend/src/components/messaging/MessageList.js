@@ -3,18 +3,34 @@ import messageService from '../../services/messageService';
 import MessageDetail from './MessageDetail';
 import '../../styles/MessageList.css';
 
-const MessageList = ({ activeTab = 'inbox' }) => {
+const MessageList = ({ activeTab = 'inbox', onOpenDetail }) => {
+  console.log('📬 MessageList component rendered with activeTab:', activeTab);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [showDetail, setShowDetail] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    console.log('📬 MessageList useEffect triggered');
+    console.log('📬 activeTab:', activeTab);
     fetchMessages();
-  }, [activeTab]);
+  }, [activeTab, refreshKey]);
+
+  // Add a method to force refresh
+  const forceRefresh = () => {
+    console.log('📬 Force refreshing messages');
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Expose forceRefresh method to parent
+  useEffect(() => {
+    if (window.forceRefreshMessages) {
+      window.forceRefreshMessages = forceRefresh;
+    }
+  }, []);
 
   const fetchMessages = async () => {
+    console.log('📬 fetchMessages called for tab:', activeTab);
     setLoading(true);
     setError('');
     
@@ -23,24 +39,24 @@ const MessageList = ({ activeTab = 'inbox' }) => {
         ? await messageService.getInbox()
         : await messageService.getSent();
       
+      console.log('📬 Messages fetched:', data);
       setMessages(data);
     } catch (error) {
+      console.error('📬 Error fetching messages:', error);
       setError('Failed to load messages');
-      console.error('Error fetching messages:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleMessageClick = async (message) => {
-    setSelectedMessage(message);
-    setShowDetail(true);
-    
+    if (onOpenDetail) {
+      onOpenDetail(message);
+    }
     // Mark as read if it's an inbox message and unread
     if (activeTab === 'inbox' && !message.isRead) {
       try {
         await messageService.markAsRead(message.id);
-        // Update the message in the list
         setMessages(prevMessages => 
           prevMessages.map(msg => 
             msg.id === message.id 
@@ -61,20 +77,11 @@ const MessageList = ({ activeTab = 'inbox' }) => {
         setMessages(prevMessages => 
           prevMessages.filter(msg => msg.id !== messageId)
         );
-        if (selectedMessage?.id === messageId) {
-          setSelectedMessage(null);
-          setShowDetail(false);
-        }
       } catch (error) {
         console.error('Error deleting message:', error);
         alert('Failed to delete message');
       }
     }
-  };
-
-  const handleCloseDetail = () => {
-    setShowDetail(false);
-    setSelectedMessage(null);
   };
 
   const formatDate = (dateString) => {
@@ -143,7 +150,7 @@ const MessageList = ({ activeTab = 'inbox' }) => {
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`message-item ${!message.isRead && activeTab === 'inbox' ? 'unread' : ''} ${selectedMessage?.id === message.id ? 'selected' : ''}`}
+              className={`message-item ${!message.isRead && activeTab === 'inbox' ? 'unread' : ''}`}
               onClick={() => handleMessageClick(message)}
             >
               <div className="message-header">
@@ -191,15 +198,6 @@ const MessageList = ({ activeTab = 'inbox' }) => {
             </div>
           ))}
         </div>
-      )}
-
-      {showDetail && selectedMessage && (
-        <MessageDetail
-          message={selectedMessage}
-          onClose={handleCloseDetail}
-          onDelete={() => handleDeleteMessage(selectedMessage.id)}
-          activeTab={activeTab}
-        />
       )}
     </div>
   );

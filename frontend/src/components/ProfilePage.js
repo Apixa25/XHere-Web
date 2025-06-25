@@ -10,6 +10,7 @@ import ProfilePicture from './ProfilePage/ProfilePicture';
 import MessagingPage from './messaging/MessagingPage';
 import MessageButton from './messaging/MessageButton';
 import messageService from '../services/messageService';
+import MessagingPanel from './messaging/MessagingPanel';
 
 const AdminBadge = () => (
   <div style={{
@@ -738,6 +739,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           onClick={() => {
             console.log('📬 Messages button clicked!');
             console.log('📬 Current unread count:', unreadCount);
+            console.log('📬 MessagingPage component:', typeof MessagingPage);
             setShowMessaging(true);
           }}
           style={{
@@ -1111,14 +1113,9 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         </div>
       )}
 
-      {/* Messaging Modal */}
+      {/* Messaging Panel (replaces old modal) */}
       {showMessaging && (
-        <MessagingPage 
-          onClose={() => {
-            setShowMessaging(false);
-            fetchUnreadCount(); // Refresh count when closing
-          }} 
-        />
+        <MessagingPanel onClose={() => setShowMessaging(false)} />
       )}
     </div>
   );
