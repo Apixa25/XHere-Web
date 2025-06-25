@@ -203,10 +203,13 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           <p className="post-date">
             {new Date(marker.createdAt).toLocaleDateString()}
           </p>
-          {/* Message and voting row for non-anonymous posts */}
-          {!marker.content.isAnonymous && marker.creator && user && marker.creator.id !== user.id && (
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
-              <VoteButtons location={marker} onVoteUpdate={handleVoteUpdate} />
+          
+          {/* Voting buttons - always shown for all locations */}
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
+            <VoteButtons location={marker} onVoteUpdate={handleVoteUpdate} />
+            
+            {/* Message button - only shown for non-anonymous posts */}
+            {!marker.content.isAnonymous && marker.creator && user && marker.creator.id !== user.id && (
               <MessageButton
                 recipientId={marker.creator.id}
                 recipientName={marker.creator.profile?.name || marker.creator.email}
@@ -219,22 +222,24 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
               >
                 Send Message
               </MessageButton>
-              <span style={{
-                background: 'white',
-                borderRadius: '8px',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                padding: '4px 10px',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                border: '1px solid #e0e0e0',
-              }}>
-                {LOCATION_TYPES[marker.locationType]?.icon || '📍'} {LOCATION_TYPES[marker.locationType]?.label || 'General'}
-              </span>
-            </div>
-          )}
+            )}
+            
+            {/* Location type badge */}
+            <span style={{
+              background: 'white',
+              borderRadius: '8px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+              padding: '4px 10px',
+              fontWeight: 'bold',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid #e0e0e0',
+            }}>
+              {LOCATION_TYPES[marker.locationType]?.icon || '📍'} {LOCATION_TYPES[marker.locationType]?.label || 'General'}
+            </span>
+          </div>
         </div>
         <div className="marker-stats"></div>
       </div>
