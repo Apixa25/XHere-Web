@@ -152,6 +152,11 @@
   display: flex;
   align-items: center;
   margin-bottom: 0; /* Remove bottom margin */
+  flex-wrap: nowrap; /* Prevent wrapping */
+}
+
+.location-form .form-options .checkbox-item label {
+  white-space: nowrap; /* Prevent label text from wrapping */
 }
 
 .location-form .auto-delete-options,
