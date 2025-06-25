@@ -99,31 +99,44 @@
 }
 
 .location-form h3 {
-  text-align: center;
   margin-top: 0;
-  margin-bottom: 10px; /* Reduced spacing */
+  margin-bottom: 5px;
   color: #333;
-  font-size: 1.6em; /* Increased title size */
+  font-size: 1.6em;
+  text-transform: uppercase;
+  text-shadow: 1px 2px 6px rgba(0,0,0,0.25), 0 1px 0 #fff;
 }
 
 .location-form form {
   display: flex;
   flex-direction: column;
+  gap: 8px; /* Reduced from 16px if previously set */
 }
 
 .location-form textarea {
   min-height: 80px;
-  padding: 8px; /* Reduced padding */
+  padding: 4px; /* Reduced from 8px */
   border: 1px solid #ccc;
   border-radius: 5px;
-  margin-bottom: 8px; /* Reduced spacing */
-  font-size: 1.1em; /* Increased text area font size */
+  margin-bottom: 4px; /* Reduced from 8px */
+  font-size: 1.1em;
   resize: vertical;
 }
 
 .location-form input[type="file"] {
-  margin-bottom: 8px; /* Reduced spacing */
-  font-size: 1em; /* Increased file input font size */
+  margin-bottom: 4px; /* Reduced from 8px */
+  font-size: 1em;
+}
+
+.location-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Reduced from 8px */
+  margin-bottom: 6px; /* Reduced from 12px */
+}
+
+.location-type-select {
+  padding: 3px; /* Reduced from 6px */
 }
 
 .location-form .form-options {

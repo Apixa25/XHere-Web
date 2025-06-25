@@ -36,7 +36,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
   return (
     <div className="location-form">
       <button onClick={handleCloseClick} className="close-button">&times;</button>
-      <h3>Create a new location</h3>
+      <h3>NEW LOCATION</h3>
       <form onSubmit={handleSubmit}>
         <textarea
           placeholder="Add a description"
