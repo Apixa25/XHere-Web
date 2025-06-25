@@ -434,6 +434,36 @@ function App() {
         lng: clickedLng
       });
       setSelectedMarker(null); // Close any open marker info windows
+      
+      // Pan the map to ensure the location form is fully visible
+      panMapToShowForm(clickedLat, clickedLng);
+    }
+  };
+
+  // Function to pan the map so the clicked point is at the bottom 10% of the screen
+  const panMapToShowForm = (lat, lng) => {
+    if (!mapRef.current) return;
+
+    try {
+      const map = mapRef.current;
+      const bounds = map.getBounds();
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+
+      const mapDiv = map.getDiv();
+      const mapHeight = mapDiv.clientHeight;
+
+      // Place the clicked point at 90% from the top (0 = top, 1 = bottom)
+      const desiredScreenYRatio = 0.9;
+      const latSpan = ne.lat() - sw.lat();
+      const latOffset = latSpan * (0.5 - desiredScreenYRatio);
+
+      const newLat = lat - latOffset;
+      const newLng = lng;
+
+      map.panTo({ lat: newLat, lng: newLng });
+    } catch (error) {
+      console.error('❌ Error panning map to show form:', error);
     }
   };
 
@@ -870,6 +900,18 @@ function App() {
       checkAdvancedMarkers();
     }
   }, [map]);
+
+  // Pan map when location form opens to ensure it's visible
+  useEffect(() => {
+    if (selectedLocation && mapRef.current) {
+      // Add a small delay to ensure the form has rendered
+      const timer = setTimeout(() => {
+        panMapToShowForm(selectedLocation.lat, selectedLocation.lng);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedLocation]);
 
   // Fetch locations when user is set
   useEffect(() => {
