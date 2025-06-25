@@ -1,0 +1,257 @@
+.message-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1200;
+  padding: 20px;
+}
+
+.message-detail-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.message-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.message-detail-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.message-detail-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.message-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+}
+
+.message-field {
+  display: flex;
+  margin-bottom: 12px;
+  align-items: flex-start;
+}
+
+.message-field:last-child {
+  margin-bottom: 0;
+}
+
+.message-field label {
+  min-width: 80px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  margin-right: 12px;
+}
+
+.message-field span {
+  color: #666;
+  font-size: 14px;
+  flex: 1;
+}
+
+.location-reference {
+  background: #e8f5e8;
+  color: #2e7d32;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  border-left: 3px solid #4caf50;
+  margin-top: 4px;
+}
+
+.message-body {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.message-body label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.message-text {
+  color: #333;
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message-detail-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.reply-button {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reply-button:hover {
+  background: #388e3c;
+  transform: translateY(-1px);
+}
+
+.delete-button {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.delete-button:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+}
+
+.close-detail-button {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.close-detail-button:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .message-detail-overlay {
+    padding: 10px;
+  }
+  
+  .message-detail-modal {
+    max-height: 95vh;
+  }
+  
+  .message-detail-header {
+    padding: 16px 20px;
+  }
+  
+  .message-detail-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .message-detail-content {
+    padding: 20px;
+  }
+  
+  .message-info {
+    padding: 16px;
+  }
+  
+  .message-field {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .message-field label {
+    min-width: auto;
+    margin-right: 0;
+  }
+  
+  .message-detail-actions {
+    flex-direction: column;
+    padding: 16px 20px;
+  }
+  
+  .reply-button,
+  .delete-button,
+  .close-detail-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-detail-overlay {
+    padding: 5px;
+  }
+  
+  .message-detail-header {
+    padding: 12px 16px;
+  }
+  
+  .message-detail-content {
+    padding: 16px;
+  }
+  
+  .message-info {
+    padding: 12px;
+  }
+  
+  .message-body {
+    padding: 16px;
+  }
+  
+  .message-text {
+    font-size: 14px;
+  }
+  
+  .message-detail-actions {
+    padding: 12px 16px;
+  }
+} 

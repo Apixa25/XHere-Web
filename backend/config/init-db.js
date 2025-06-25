@@ -2,6 +2,7 @@ const sequelize = require('./database');
 const User = require('../models/User');
 const Location = require('../models/Location');
 const LocationComment = require('../models/LocationComment');
+const Message = require('../models/Message');
 
 async function initializeDatabase() {
   try {
@@ -55,10 +56,41 @@ async function initializeDatabase() {
       as: 'comments'
     });
 
+    // Message associations
+    Message.belongsTo(User, {
+      foreignKey: 'senderId',
+      as: 'sender'
+    });
+
+    Message.belongsTo(User, {
+      foreignKey: 'recipientId',
+      as: 'recipient'
+    });
+
+    Message.belongsTo(Location, {
+      foreignKey: 'locationId',
+      as: 'location'
+    });
+
+    User.hasMany(Message, {
+      foreignKey: 'senderId',
+      as: 'sentMessages'
+    });
+
+    User.hasMany(Message, {
+      foreignKey: 'recipientId',
+      as: 'receivedMessages'
+    });
+
+    Location.hasMany(Message, {
+      foreignKey: 'locationId',
+      as: 'messages'
+    });
+
     // Sync database with new fields
     await sequelize.sync({ alter: true });
     
-    console.log('Database synchronized successfully with new gamification fields and comment system');
+    console.log('Database synchronized successfully with messaging system');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;

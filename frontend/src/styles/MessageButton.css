@@ -1,0 +1,127 @@
+.message-button {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.message-button:hover {
+  background: #1976D2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.message-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(33, 150, 243, 0.3);
+}
+
+.message-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Small variant */
+.message-button.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* Large variant */
+.message-button.large {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+/* Outline variant */
+.message-button.outline {
+  background: transparent;
+  color: #2196F3;
+  border: 2px solid #2196F3;
+}
+
+.message-button.outline:hover {
+  background: #2196F3;
+  color: white;
+}
+
+/* Secondary variant */
+.message-button.secondary {
+  background: #6c757d;
+}
+
+.message-button.secondary:hover {
+  background: #5a6268;
+}
+
+/* Success variant */
+.message-button.success {
+  background: #28a745;
+}
+
+.message-button.success:hover {
+  background: #218838;
+}
+
+/* Warning variant */
+.message-button.warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.message-button.warning:hover {
+  background: #e0a800;
+}
+
+/* Danger variant */
+.message-button.danger {
+  background: #dc3545;
+}
+
+.message-button.danger:hover {
+  background: #c82333;
+}
+
+/* Icon-only variant */
+.message-button.icon-only {
+  padding: 8px;
+  min-width: 36px;
+  justify-content: center;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .message-button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  
+  .message-button.large {
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-button {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  
+  .message-button.large {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+} 

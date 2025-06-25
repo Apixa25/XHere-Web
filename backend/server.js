@@ -152,6 +152,7 @@ const userRoutes = require('./routes/userRoutes');
 const voteRoutes = require('./routes/voteRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 // Register routes
 app.use('/api/auth', authRoutes);
@@ -160,6 +161,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/votes', voteRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Add this debug log
 console.log('Available routes:', app._router.stack

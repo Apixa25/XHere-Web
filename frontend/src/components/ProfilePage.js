@@ -7,6 +7,8 @@ import api from '../services/api';
 import BadgeDisplay from './BadgeDisplay';
 import ProfileHeader from './ProfilePage/ProfileHeader';
 import ProfilePicture from './ProfilePage/ProfilePicture';
+import MessagingPage from './messaging/MessagingPage';
+import MessageButton from './messaging/MessageButton';
 
 const AdminBadge = () => (
   <div style={{
@@ -31,6 +33,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [editingLocation, setEditingLocation] = useState(null);
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
   const [mediaToDelete, setMediaToDelete] = useState([]);
+  const [showMessaging, setShowMessaging] = useState(false);
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
   const token = localStorage.getItem('token');
@@ -588,6 +591,32 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             })}
           </div>
         )}
+
+        {location.creator._id !== userData?._id && (
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#666', 
+            marginBottom: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span>Created by: {location.creator.profile?.name || location.creator.email}</span>
+            <MessageButton
+              recipientId={location.creator._id}
+              recipientName={location.creator.profile?.name || location.creator.email}
+              locationId={location.id}
+              locationText={location.content.text}
+              className="small"
+              onMessageSent={() => {
+                // Could show a success message here
+                console.log('Message sent successfully');
+              }}
+            >
+              💬
+            </MessageButton>
+          </div>
+        )}
       </div>
     );
   };
@@ -683,6 +712,42 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         API_URL={API_URL}
         navigate={navigate}
       />
+
+      {/* Messages Button */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        marginBottom: '20px'
+      }}>
+        <button
+          onClick={() => setShowMessaging(true)}
+          style={{
+            background: '#2196F3',
+            color: 'white',
+            border: 'none',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.4)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 2px 8px rgba(33, 150, 243, 0.3)';
+          }}
+        >
+          💬 Messages
+        </button>
+      </div>
 
       <BadgeDisplay 
         badges={userData?.badges || []} 
@@ -794,9 +859,25 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 <div style={{ 
                   fontSize: '12px', 
                   color: '#666', 
-                  marginBottom: '8px' 
+                  marginBottom: '8px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}>
-                  Created by: {location.creator.profile?.name || location.creator.email}
+                  <span>Created by: {location.creator.profile?.name || location.creator.email}</span>
+                  <MessageButton
+                    recipientId={location.creator._id}
+                    recipientName={location.creator.profile?.name || location.creator.email}
+                    locationId={location.id}
+                    locationText={location.content.text}
+                    className="small"
+                    onMessageSent={() => {
+                      // Could show a success message here
+                      console.log('Message sent successfully');
+                    }}
+                  >
+                    💬
+                  </MessageButton>
                 </div>
               )}
               
@@ -991,6 +1072,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Messaging Modal */}
+      {showMessaging && (
+        <MessagingPage onClose={() => setShowMessaging(false)} />
       )}
     </div>
   );
