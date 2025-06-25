@@ -32,6 +32,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { App as CapApp } from '@capacitor/app';
+import MessageButton from './components/messaging/MessageButton';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -472,6 +473,23 @@ function LocationInfoWindow({
               <p className="post-date">
                 {new Date(selectedMarker.createdAt).toLocaleDateString()}
               </p>
+              {/* Message button for non-anonymous posts */}
+              {!selectedMarker.content.isAnonymous && selectedMarker.creator && user && selectedMarker.creator.id !== user.id && (
+                <div style={{ marginTop: '8px' }}>
+                  <MessageButton
+                    recipientId={selectedMarker.creator.id}
+                    recipientName={selectedMarker.creator.profile?.name || selectedMarker.creator.email}
+                    locationId={selectedMarker.id}
+                    locationText={selectedMarker.content.text}
+                    className="small"
+                    onMessageSent={() => {
+                      console.log('Message sent successfully from mobile map');
+                    }}
+                  >
+                    💬 Message Creator
+                  </MessageButton>
+                </div>
+              )}
             </div>
           </div>
           <div className="location-badges-container">

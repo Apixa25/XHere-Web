@@ -24,6 +24,7 @@ import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
 import LocationForm from './components/LocationForm';
 import CommentSection from './components/CommentSection';
+import MessageButton from './components/messaging/MessageButton';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1046,6 +1047,23 @@ function App() {
                         <p className="post-date">
                           {new Date(selectedMarker.createdAt).toLocaleDateString()}
                         </p>
+                        {/* Message button for non-anonymous posts */}
+                        {!selectedMarker.content.isAnonymous && selectedMarker.creator && user && selectedMarker.creator.id !== user.id && (
+                          <div style={{ marginTop: '8px' }}>
+                            <MessageButton
+                              recipientId={selectedMarker.creator.id}
+                              recipientName={selectedMarker.creator.profile?.name || selectedMarker.creator.email}
+                              locationId={selectedMarker.id}
+                              locationText={selectedMarker.content.text}
+                              className="small"
+                              onMessageSent={() => {
+                                console.log('Message sent successfully from map');
+                              }}
+                            >
+                              💬 Message Creator
+                            </MessageButton>
+                          </div>
+                        )}
                       </div>
                       <div className="marker-stats">
                         {/* This will be empty, badges are moved below */}

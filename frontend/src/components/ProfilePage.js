@@ -9,6 +9,7 @@ import ProfileHeader from './ProfilePage/ProfileHeader';
 import ProfilePicture from './ProfilePage/ProfilePicture';
 import MessagingPage from './messaging/MessagingPage';
 import MessageButton from './messaging/MessageButton';
+import messageService from '../services/messageService';
 
 const AdminBadge = () => (
   <div style={{
@@ -34,6 +35,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [editForm, setEditForm] = useState({ text: '', newMedia: [] });
   const [mediaToDelete, setMediaToDelete] = useState([]);
   const [showMessaging, setShowMessaging] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
   const token = localStorage.getItem('token');
@@ -54,8 +56,21 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         profile: response.user.profile || {},
         badges: userBadges // Make sure badges are included in userData
       });
+      
+      // Fetch unread message count
+      fetchUnreadCount();
     } catch (error) {
       console.error('Error fetching user data:', error);
+    }
+  };
+
+  // Function to fetch unread message count
+  const fetchUnreadCount = async () => {
+    try {
+      const { count } = await messageService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
     }
   };
 
@@ -720,7 +735,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         marginBottom: '20px'
       }}>
         <button
-          onClick={() => setShowMessaging(true)}
+          onClick={() => {
+            console.log('📬 Messages button clicked!');
+            console.log('📬 Current unread count:', unreadCount);
+            setShowMessaging(true);
+          }}
           style={{
             background: '#2196F3',
             color: 'white',
@@ -734,7 +753,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             alignItems: 'center',
             gap: '8px',
             boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            position: 'relative'
           }}
           onMouseOver={(e) => {
             e.target.style.transform = 'translateY(-2px)';
@@ -746,6 +766,23 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           }}
         >
           💬 Messages
+          {unreadCount > 0 && (
+            <span style={{
+              background: '#f44336',
+              color: 'white',
+              borderRadius: '50%',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              marginLeft: '4px'
+            }}>
+              {unreadCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -1076,7 +1113,12 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
       {/* Messaging Modal */}
       {showMessaging && (
-        <MessagingPage onClose={() => setShowMessaging(false)} />
+        <MessagingPage 
+          onClose={() => {
+            setShowMessaging(false);
+            fetchUnreadCount(); // Refresh count when closing
+          }} 
+        />
       )}
     </div>
   );
