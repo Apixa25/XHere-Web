@@ -673,6 +673,7 @@ function AppMobile() {
   const isUpdatingCenter = useRef(false);
   const infoBoxRef = useRef(null);
   const [infoBoxHeight, setInfoBoxHeight] = useState(0);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   // Get device info
   useEffect(() => {
@@ -691,31 +692,68 @@ function AppMobile() {
   // Check and request location permission
   useEffect(() => {
     const checkLocationPermission = async () => {
+      console.log('📍 Starting location permission check...');
       try {
         const status = await Geolocation.checkPermissions();
+        console.log('📍 Current location permission status:', status);
         
         if (status.location === 'granted') {
           setLocationPermission(true);
+          console.log('📍 Location permission already granted, getting current position...');
+          // Get current position immediately if permission is already granted
+          try {
+            const position = await Geolocation.getCurrentPosition({
+              enableHighAccuracy: true,
+              timeout: 10000
+            });
+            
+            const userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            
+            console.log('📍 Setting initial center to user location:', userLocation);
+            setCenter(userLocation);
+          } catch (error) {
+            console.warn('⚠️ Could not get current position, using default center:', error);
+            setCenter(defaultCenter);
+          }
         } else {
+          console.log('📍 Requesting location permission...');
+          // Request permission
           const requestStatus = await Geolocation.requestPermissions();
+          console.log('📍 Permission request result:', requestStatus);
           setLocationPermission(requestStatus.location === 'granted');
-        }
-        
-        // If permission granted, get current position
-        if (status.location === 'granted' || status.location === 'prompt') {
-          const position = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: true,
-            timeout: 10000
-          });
           
-          setCenter({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
+          if (requestStatus.location === 'granted') {
+            console.log('📍 Permission granted, getting current position...');
+            // Get current position after permission granted
+            try {
+              const position = await Geolocation.getCurrentPosition({
+                enableHighAccuracy: true,
+                timeout: 10000
+              });
+              
+              const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              
+              console.log('📍 Setting initial center to user location:', userLocation);
+              setCenter(userLocation);
+            } catch (error) {
+              console.warn('⚠️ Could not get current position, using default center:', error);
+              setCenter(defaultCenter);
+            }
+          } else {
+            console.log('📍 Location permission denied, using default center');
+            setCenter(defaultCenter);
+          }
         }
       } catch (error) {
-        console.error('Error checking location permission:', error);
+        console.error('❌ Error checking location permission:', error);
         setLocationPermission(false);
+        setCenter(defaultCenter);
       }
     };
     
@@ -1294,6 +1332,7 @@ function AppMobile() {
 
   // Function to get current location
   const getCurrentLocation = async () => {
+    setIsGettingLocation(true);
     try {
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
@@ -1305,6 +1344,7 @@ function AppMobile() {
         lng: position.coords.longitude
       };
       
+      console.log('📍 Setting center to user location:', newCenter);
       setCenter(newCenter);
       
       if (map) {
@@ -1314,6 +1354,8 @@ function AppMobile() {
     } catch (error) {
       console.error('Error getting current location:', error);
       alert('Could not get your current location. Please check your permissions.');
+    } finally {
+      setIsGettingLocation(false);
     }
   };
 
@@ -1425,6 +1467,14 @@ function AppMobile() {
                     {type.icon} {type.label}
                   </button>
                 ))}
+                <button 
+                  className="filter-button location-button"
+                  onClick={getCurrentLocation}
+                  title="Center map on my location"
+                  disabled={isGettingLocation}
+                >
+                  {isGettingLocation ? '🔄 Getting Location...' : '📍 My Location'}
+                </button>
               </div>
               <div className="location-count-display">
                 <span className="count-text">

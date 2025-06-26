@@ -560,6 +560,36 @@
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
 
+/* Special styling for the location button */
+.filter-button.location-button {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border-color: #4CAF50;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.filter-button.location-button:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+  border-color: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.filter-button.location-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.filter-button.location-button:disabled {
+  background: linear-gradient(135deg, #cccccc, #bbbbbb);
+  color: #666666;
+  border-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .location-details-content .location-badges-container {
   display: flex;
   justify-content: space-between;

@@ -870,6 +870,36 @@ label {
   border-color: #007bff;
 }
 
+/* Special styling for the location button */
+.filter-button.location-button {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border-color: #4CAF50;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+.filter-button.location-button:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+  border-color: #45a049;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(76, 175, 80, 0.4);
+}
+
+.filter-button.location-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+.filter-button.location-button:disabled {
+  background: linear-gradient(135deg, #cccccc, #bbbbbb);
+  color: #666666;
+  border-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .mobile-marker-info .comment-section {
   margin-top: 15px;
 }

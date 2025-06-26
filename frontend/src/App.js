@@ -336,10 +336,86 @@ function App() {
   const isUpdatingCenter = useRef(false);
   const infoBoxRef = useRef(null);
   const [infoBoxHeight, setInfoBoxHeight] = useState(0);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const mapStyles = {
     height: "100vh",
     width: "100%"
+  };
+
+  // Get user's current location when they log in
+  useEffect(() => {
+    const getUserLocation = async () => {
+      if (!user) return; // Only get location when user is logged in
+      
+      console.log('📍 Starting location check for logged-in user...');
+      
+      if (!navigator.geolocation) {
+        console.log('📍 Geolocation not supported by browser, using default center');
+        return;
+      }
+
+      try {
+        console.log('📍 Requesting current position...');
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000 // Cache for 1 minute
+          });
+        });
+
+        const userLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+
+        console.log('📍 Setting initial center to user location:', userLocation);
+        setCenter(userLocation);
+      } catch (error) {
+        console.warn('⚠️ Could not get current location, using default center:', error);
+        // Keep the default center
+      }
+    };
+
+    getUserLocation();
+  }, [user]);
+
+  // Function to get current location manually
+  const getCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        });
+      });
+
+      const userLocation = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      };
+
+      console.log('📍 Setting center to user location:', userLocation);
+      setCenter(userLocation);
+
+      if (mapRef.current) {
+        mapRef.current.panTo(userLocation);
+        mapRef.current.setZoom(15);
+      }
+    } catch (error) {
+      console.error('Error getting current location:', error);
+      alert('Could not get your current location. Please check your permissions.');
+    } finally {
+      setIsGettingLocation(false);
+    }
   };
 
   useEffect(() => {
@@ -1155,6 +1231,14 @@ function App() {
                     {type.icon} {type.label}
                   </button>
                 ))}
+                <button 
+                  className="filter-button location-button"
+                  onClick={getCurrentLocation}
+                  title="Center map on my location"
+                  disabled={isGettingLocation}
+                >
+                  {isGettingLocation ? '🔄 Getting Location...' : '📍 My Location'}
+                </button>
               </div>
               <div className="location-count-display">
                 <span className="count-text">
