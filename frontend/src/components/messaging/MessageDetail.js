@@ -41,11 +41,6 @@ const MessageDetail = ({ message, onClose, onDelete, activeTab, onReply }) => {
             </div>
             
             <div className="message-field">
-              <label>To:</label>
-              <span>{getUserDisplayName(message.recipient)}</span>
-            </div>
-            
-            <div className="message-field">
               <label>Subject:</label>
               <span>{message.subject}</span>
             </div>
