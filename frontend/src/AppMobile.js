@@ -1183,15 +1183,13 @@ function AppMobile() {
     try {
       const decoded = jwtDecode(credentialResponse.credential);
       
-      const response = await fetch(`${API_URL}/api/users/google`, {
+      const response = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          token: credentialResponse.credential,
-          email: decoded.email,
-          name: decoded.name
+          token: credentialResponse.credential
         })
       });
 
