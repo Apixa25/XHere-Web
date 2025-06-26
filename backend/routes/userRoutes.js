@@ -9,6 +9,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { checkAndAwardBadges } = require('../utils/badgeChecker');
+const { Op, Sequelize } = require('sequelize');
+const sequelize = require('../config/database');
 
 // Configure multer for all uploads
 const storage = multer.diskStorage({
@@ -359,5 +361,46 @@ router.post('/profile-picture',
     }
   }
 );
+
+// Add user search endpoint for messaging
+router.get('/search', authenticateToken, async (req, res) => {
+  try {
+    const { query } = req.query;
+    
+    if (!query || query.length < 2) {
+      return res.json([]);
+    }
+    
+    const users = await User.findAll({
+      where: {
+        [Op.or]: [
+          { email: { [Op.iLike]: `%${query}%` } },
+          Sequelize.literal(`CAST("profile"->>'name' AS TEXT) ILIKE '%${query}%'`)
+        ],
+        id: { [Op.ne]: req.user.userId } // Exclude current user
+      },
+      attributes: ['id', 'email', 'profile'],
+      limit: 10,
+      order: [
+        // Prioritize exact matches
+        [sequelize.literal(`CASE WHEN email ILIKE '${query}' THEN 1 WHEN CAST("profile"->>'name' AS TEXT) ILIKE '${query}' THEN 1 ELSE 2 END`), 'ASC'],
+        ['email', 'ASC']
+      ]
+    });
+
+    // Format results for frontend
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      email: user.email,
+      displayName: user.profile?.name || user.email,
+      profile: user.profile
+    }));
+
+    res.json(formattedUsers);
+  } catch (error) {
+    console.error('User search error:', error);
+    res.status(500).json({ error: 'Error searching users' });
+  }
+});
 
 module.exports = router; 

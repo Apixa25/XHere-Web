@@ -170,6 +170,17 @@ const api = {
       }
     });
     return handleResponse(response);
+  },
+
+  // Search users for messaging
+  searchUsers: async (query) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/users/search?query=${encodeURIComponent(query)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return handleResponse(response);
   }
 };
 

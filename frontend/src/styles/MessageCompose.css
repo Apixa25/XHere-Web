@@ -64,8 +64,88 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
-  background: #f5f5f5;
+  background: white;
+  color: #333;
+  transition: border-color 0.2s ease;
+}
+
+.recipient-input:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.recipient-search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.search-loading {
+  padding: 12px;
+  text-align: center;
   color: #666;
+  font-size: 14px;
+}
+
+.search-result-item {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.search-result-item:hover {
+  background-color: #f8f9fa;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-display-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.user-details {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.email {
+  color: #666;
+}
+
+.no-results {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
 }
 
 .location-context {
