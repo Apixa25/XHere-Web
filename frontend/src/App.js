@@ -1280,11 +1280,43 @@ function App() {
                 ))}
               </div>
               
-              {/* Keyword Search */}
-              <KeywordSearchCompact 
-                onSearch={setKeywordSearch}
-                placeholder="Search keywords..."
-              />
+              {/* Keyword Search and Refresh */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <KeywordSearchCompact 
+                  onSearch={setKeywordSearch}
+                  placeholder="Search keywords..."
+                />
+                
+                {/* Refresh Locations Button */}
+                <button
+                  style={{
+                    background: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    height: '32px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#388e3c'}
+                  onMouseLeave={(e) => e.target.style.background = '#4CAF50'}
+                  onClick={() => {
+                    console.log('🔄 Manual location refresh triggered');
+                    isUpdatingMarkers.current = false;
+                    fetchLocations();
+                  }}
+                  title="Refresh locations for current map view"
+                >
+                  🔄 Refresh
+                </button>
+              </div>
               
               <div className="location-count-display">
                 <span className="count-text">
@@ -1331,30 +1363,6 @@ function App() {
               onClick={() => setMapType(mapType === 'roadmap' ? 'satellite' : 'roadmap')}
             >
               {mapType === 'roadmap' ? '🛰️ Satellite View' : '🗺️ Map View'}
-            </button>
-            <button
-              style={{
-                position: 'absolute',
-                top: 16,
-                right: 200,
-                zIndex: 1000,
-                background: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '8px 14px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-              }}
-              onClick={() => {
-                console.log('🔄 Manual location refresh triggered');
-                isUpdatingMarkers.current = false;
-                fetchLocations();
-              }}
-              title="Refresh locations for current map view"
-            >
-              🔄 Refresh Locations
             </button>
             <GoogleMap
               mapContainerStyle={mapStyles}
