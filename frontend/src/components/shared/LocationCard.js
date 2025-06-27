@@ -1,9 +1,12 @@
 import VoteButtons from '../VoteButtons';
 import MessageButton from '../messaging/MessageButton';
 import KeywordsDisplay from '../KeywordsDisplay';
+import React, { useState } from "react";
+import LocationShareModal from "./LocationShareModal";
 
 const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
-  // ... existing code ...
+  const [showShare, setShowShare] = useState(false);
+  const locationLink = `${window.location.origin}/location/${location.id}`;
 
   const getStatusBadge = () => {
     switch(location.verificationStatus) {
@@ -194,6 +197,12 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
           </div>
         </div>
       </div>
+      <button onClick={() => setShowShare(true)}>Share</button>
+      {showShare && (
+        <LocationShareModal link={locationLink} onClose={() => setShowShare(false)} />
+      )}
     </div>
   );
 };
+
+export default LocationCard;

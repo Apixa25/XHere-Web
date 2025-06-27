@@ -28,6 +28,7 @@ import MessageButton from './components/messaging/MessageButton';
 import KeywordsDisplay from './components/KeywordsDisplay';
 import KeywordSearch from './components/KeywordSearch';
 import KeywordSearchCompact from './components/KeywordSearchCompact';
+import LocationShareModal from './components/shared/LocationShareModal';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -160,6 +161,7 @@ function GoogleMapsProvider({ children }) {
 }
 
 function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteUpdate, API_URL }) {
+  const [showShare, setShowShare] = useState(false);
   if (!marker) return null;
   return (
     <div style={{
@@ -225,6 +227,13 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
               >
                 Send Message
               </MessageButton>
+            )}
+            
+            {/* Share button */}
+            <button onClick={() => setShowShare(true)}>Share</button>
+            
+            {showShare && (
+              <LocationShareModal link={`${window.location.origin}/location/${marker.id}`} onClose={() => setShowShare(false)} />
             )}
             
             {/* Location type badge */}

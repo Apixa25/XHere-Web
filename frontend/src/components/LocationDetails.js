@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
+import LocationShareModal from './shared/LocationShareModal';
 
 const LocationDetails = ({ location }) => {
+  const [showShare, setShowShare] = useState(false);
+  const locationLink = `${window.location.origin}/location/${location.id}`;
+
   console.log('Full location object in LocationDetails:', location);
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
@@ -12,6 +16,10 @@ const LocationDetails = ({ location }) => {
   return (
     <div>
       <p>{location.content.text}</p>
+      <button onClick={() => setShowShare(true)}>Share</button>
+      {showShare && (
+        <LocationShareModal link={locationLink} onClose={() => setShowShare(false)} />
+      )}
       
       {/* Modified Credits Display */}
       {Number(location?.credits) > 0 && (
