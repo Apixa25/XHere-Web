@@ -1608,11 +1608,10 @@ function AppMobile() {
             {/* Floating action buttons */}
             <div className="mobile-fab-container">
               <button 
-                className="mobile-fab location-fab"
-                onClick={getCurrentLocation}
-                aria-label="Get current location"
+                className={`filter-button ${selectedLocationType === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectedLocationType('all')}
               >
-                📍
+                🌍 All
               </button>
             </div>
           </div>

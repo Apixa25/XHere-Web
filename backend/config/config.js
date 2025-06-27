@@ -1,11 +1,11 @@
 const config = {
     development: {
         username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres',
+        password: process.env.DB_PASSWORD || '1234',
         database: process.env.DB_NAME || 'location_app',
         host: process.env.DB_HOST || 'localhost',
         dialect: 'postgres',
-        port: process.env.PORT || 3000,
+        port: process.env.PORT || 5432,
         frontendUrl: 'http://localhost:3001'
     },
     production: {

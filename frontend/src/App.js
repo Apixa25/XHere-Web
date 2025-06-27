@@ -1221,6 +1221,14 @@ function App() {
                 >
                   🌍 All
                 </button>
+                <button 
+                  className="filter-button circle-icon-button"
+                  onClick={getCurrentLocation}
+                  title="Center map on my location"
+                  disabled={isGettingLocation}
+                >
+                  📍
+                </button>
                 {Object.entries(LOCATION_TYPES).map(([key, type]) => (
                   <button 
                     key={key}
@@ -1230,14 +1238,6 @@ function App() {
                     {type.icon} {type.label}
                   </button>
                 ))}
-                <button 
-                  className="filter-button location-button"
-                  onClick={getCurrentLocation}
-                  title="Center map on my location"
-                  disabled={isGettingLocation}
-                >
-                  {isGettingLocation ? '🔄 Getting Location...' : '📍 My Location'}
-                </button>
               </div>
               <div className="location-count-display">
                 <span className="count-text">

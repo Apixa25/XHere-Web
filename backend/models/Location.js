@@ -21,7 +21,7 @@ const Location = sequelize.define('Location', {
     }
   },
   locationType: {
-    type: DataTypes.ENUM('general', 'yard_sale', 'crime', 'point_of_interest'),
+    type: DataTypes.ENUM('general', 'yard_sale', 'crime', 'interesting', 'event', 'market', 'food_truck', 'church', 'historical', 'for_sale'),
     defaultValue: 'general',
     allowNull: false
   },
