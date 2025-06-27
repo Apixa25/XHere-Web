@@ -119,30 +119,25 @@ router.get('/', authenticateToken, async (req, res) => {
       console.log('🔍 User search added (excluding anonymous locations)');
     }
 
-    // Geographic filtering for map view (only when not profile page)
-    if (req.query.profile !== 'true' && req.query.lat && req.query.lng) {
-      const centerLat = parseFloat(req.query.lat);
-      const centerLng = parseFloat(req.query.lng);
-      const radiusMiles = parseFloat(req.query.radius) || 5; // Default 5 mile radius
+    // Viewport-based filtering for map view (like Zillow)
+    if (req.query.profile !== 'true' && req.query.north && req.query.south && req.query.east && req.query.west) {
+      const north = parseFloat(req.query.north);
+      const south = parseFloat(req.query.south);
+      const east = parseFloat(req.query.east);
+      const west = parseFloat(req.query.west);
       
-      // Convert miles to degrees (approximate)
-      // 1 degree of latitude ≈ 69 miles
-      // 1 degree of longitude ≈ 69 * cos(latitude) miles
-      const latRadius = radiusMiles / 69;
-      const lngRadius = radiusMiles / (69 * Math.cos(centerLat * Math.PI / 180));
+      console.log('🗺️ Viewport filtering:', { north, south, east, west });
       
       if (!query.where) query.where = {};
       
-      // Add geographic bounds filtering
-      const geoConditions = {
+      // Add viewport bounds filtering using PostGIS
+      const viewportConditions = {
         location: {
           [Op.and]: [
             // Latitude bounds
-            sequelize.literal(`ST_Y(location::geometry) BETWEEN ${centerLat - latRadius} AND ${centerLat + latRadius}`),
+            sequelize.literal(`ST_Y(location::geometry) BETWEEN ${south} AND ${north}`),
             // Longitude bounds  
-            sequelize.literal(`ST_X(location::geometry) BETWEEN ${centerLng - lngRadius} AND ${centerLng + lngRadius}`),
-            // Distance check (more precise than bounding box)
-            sequelize.literal(`ST_DWithin(location::geometry, ST_SetSRID(ST_MakePoint(${centerLng}, ${centerLat}), 4326), ${radiusMiles * 1609.34})`)
+            sequelize.literal(`ST_X(location::geometry) BETWEEN ${west} AND ${east}`)
           ]
         }
       };
@@ -153,17 +148,21 @@ router.get('/', authenticateToken, async (req, res) => {
         query.where = {
           [Op.and]: [
             { [Op.or]: existingConditions },
-            geoConditions
+            viewportConditions
           ]
         };
       } else {
         query.where = {
           ...query.where,
-          ...geoConditions
+          ...viewportConditions
         };
       }
       
-      // Add distance calculation for ordering by proximity
+      // Calculate center of viewport for distance ordering
+      const centerLat = (north + south) / 2;
+      const centerLng = (east + west) / 2;
+      
+      // Add distance calculation for ordering by proximity to viewport center
       query.attributes = {
         include: [
           [
@@ -178,6 +177,8 @@ router.get('/', authenticateToken, async (req, res) => {
         ['distance', 'ASC'],
         ['createdAt', 'DESC']
       ];
+      
+      console.log('🗺️ Viewport-based query applied');
     }
 
     console.log('🔍 Final query structure:', JSON.stringify({

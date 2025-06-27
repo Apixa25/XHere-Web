@@ -346,6 +346,7 @@ function App() {
   const [infoBoxHeight, setInfoBoxHeight] = useState(0);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapType, setMapType] = useState('roadmap');
+  const [locationLimitReached, setLocationLimitReached] = useState(false);
 
   const mapStyles = {
     height: "100vh",
@@ -786,7 +787,7 @@ function App() {
     }
   };
 
-  // Fetch locations with location type filtering
+  // Fetch locations with viewport-based filtering (like Zillow)
   const fetchLocations = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -816,6 +817,8 @@ function App() {
       
       const url = new URL(`${API_URL}/api/locations`);
       url.searchParams.append('profile', 'false');
+      
+      // Filter by location type if specified
       if (selectedLocationType !== 'all') {
         url.searchParams.append('locationType', selectedLocationType);
       }
@@ -826,10 +829,27 @@ function App() {
         url.searchParams.append('user', keywordSearch.trim());
       }
       
-      // Add geographic filtering parameters for map view
-      url.searchParams.append('lat', center.lat.toString());
-      url.searchParams.append('lng', center.lng.toString());
-      url.searchParams.append('radius', '5'); // 5 mile radius
+      // Get current map bounds for viewport-based filtering
+      if (mapRef.current) {
+        const bounds = mapRef.current.getBounds();
+        if (bounds) {
+          const ne = bounds.getNorthEast();
+          const sw = bounds.getSouthWest();
+          
+          url.searchParams.append('north', ne.lat().toString());
+          url.searchParams.append('south', sw.lat().toString());
+          url.searchParams.append('east', ne.lng().toString());
+          url.searchParams.append('west', sw.lng().toString());
+          
+          console.log('🗺️ Fetching locations for viewport:', {
+            north: ne.lat(),
+            south: sw.lat(),
+            east: ne.lng(),
+            west: sw.lng(),
+            zoom: mapRef.current.getZoom()
+          });
+        }
+      }
       
       const response = await fetch(url.toString(), {
         headers: {
@@ -846,7 +866,27 @@ function App() {
 
       const data = await response.json();
       console.log('🗺️ Locations fetched successfully:', data.length, 'locations');
+      
+      // Check if we hit the limit and need to warn the user
+      if (data.length >= 25) {
+        console.log('⚠️ Location limit reached - suggesting user zoom in');
+        setLocationLimitReached(true);
+      } else {
+        setLocationLimitReached(false);
+      }
+      
+      // Force marker update by temporarily clearing the flag
+      isUpdatingMarkers.current = false;
       setLocationData(data);
+      
+      // Ensure markers are recreated after data update
+      setTimeout(() => {
+        if (map && data.length > 0) {
+          console.log('🔄 Forcing marker recreation after data update');
+          isUpdatingMarkers.current = false;
+        }
+      }, 200);
+      
     } catch (err) {
       if (err.name === 'AbortError') {
         console.log('🗺️ Location fetch cancelled');
@@ -858,7 +898,7 @@ function App() {
       setIsFetchingLocations(false);
       currentFetchController.current = null;
     }
-  }, [user, selectedLocationType, center, keywordSearch]);
+  }, [user, selectedLocationType, keywordSearch, map]);
 
   const inspectLocation = (loc) => {
     try {
@@ -901,25 +941,10 @@ function App() {
           clearTimeout(boundsChangeTimeout);
         }
         
-        // Throttle the center update to prevent excessive API calls
+        // Throttle the location refresh to prevent excessive API calls
         boundsChangeTimeout = setTimeout(() => {
-          const newCenter = mapInstance.getCenter();
-          const newLat = newCenter.lat();
-          const newLng = newCenter.lng();
-          
-          // Only refetch if center changed by more than 0.5 miles (roughly 0.007 degrees)
-          const latDiff = Math.abs(newLat - center.lat);
-          const lngDiff = Math.abs(newLng - center.lng);
-          
-          if (latDiff > 0.007 || lngDiff > 0.007) {
-            console.log('🗺️ Map center changed significantly, updating location fetch');
-            isUpdatingCenter.current = true;
-            setCenter({ lat: newLat, lng: newLng });
-            // Reset the flag after a short delay
-            setTimeout(() => {
-              isUpdatingCenter.current = false;
-            }, 500);
-          }
+          console.log('🗺️ Map viewport changed, refreshing locations');
+          fetchLocations();
         }, 1000); // 1 second throttle
       });
       
@@ -1263,9 +1288,27 @@ function App() {
               
               <div className="location-count-display">
                 <span className="count-text">
-                  📍 {locationData.length}/25 locations
+                  📍 {locationData.length}/25 locations in current view
                   {isFetchingLocations && <span style={{color: '#FFA726'}}> 🔄</span>}
                 </span>
+                {locationLimitReached && (
+                  <div style={{
+                    color: '#FF5722',
+                    fontSize: '12px',
+                    marginTop: '4px',
+                    fontWeight: 'bold'
+                  }}>
+                    ⚠️ Too many locations! Zoom in to see more details.
+                  </div>
+                )}
+                <div style={{
+                  color: '#666',
+                  fontSize: '11px',
+                  marginTop: '2px',
+                  fontStyle: 'italic'
+                }}>
+                  Locations update automatically as you move the map
+                </div>
               </div>
             </div>
           )}
@@ -1288,6 +1331,30 @@ function App() {
               onClick={() => setMapType(mapType === 'roadmap' ? 'satellite' : 'roadmap')}
             >
               {mapType === 'roadmap' ? '🛰️ Satellite View' : '🗺️ Map View'}
+            </button>
+            <button
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 200,
+                zIndex: 1000,
+                background: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '8px 14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              }}
+              onClick={() => {
+                console.log('🔄 Manual location refresh triggered');
+                isUpdatingMarkers.current = false;
+                fetchLocations();
+              }}
+              title="Refresh locations for current map view"
+            >
+              🔄 Refresh Locations
             </button>
             <GoogleMap
               mapContainerStyle={mapStyles}
