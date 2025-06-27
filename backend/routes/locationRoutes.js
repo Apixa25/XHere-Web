@@ -94,23 +94,29 @@ router.get('/', authenticateToken, async (req, res) => {
         )
       ];
       
+      // When searching by user, exclude anonymous locations to preserve anonymity
+      const userSearchConditions = [
+        { [Op.or]: userConditions },
+        sequelize.literal(`NOT (content->>'isAnonymous')::boolean`)
+      ];
+      
       // If we already have conditions, combine them with AND
       if (query.where[Op.or] || query.where[Op.and]) {
         const existingConditions = query.where[Op.or] || query.where[Op.and] || [query.where];
         query.where = {
           [Op.and]: [
             { [Op.or]: existingConditions },
-            { [Op.or]: userConditions }
+            { [Op.and]: userSearchConditions }
           ]
         };
       } else {
         query.where = {
           ...query.where,
-          [Op.or]: userConditions
+          [Op.and]: userSearchConditions
         };
       }
       
-      console.log('🔍 User search added');
+      console.log('🔍 User search added (excluding anonymous locations)');
     }
 
     // Geographic filtering for map view (only when not profile page)
