@@ -229,13 +229,6 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
               </MessageButton>
             )}
             
-            {/* Share button */}
-            <button onClick={() => setShowShare(true)}>Share</button>
-            
-            {showShare && (
-              <LocationShareModal link={`${window.location.origin}/location/${marker.id}`} onClose={() => setShowShare(false)} />
-            )}
-            
             {/* Location type badge */}
             <span style={{
               background: 'white',
@@ -257,7 +250,7 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
       </div>
       <div style={{ position: 'relative' }}>
         <div className="location-badges-container">
-          <div className="marker-stats-right">
+          <div className="marker-stats-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
             {marker.credits > 0 && (
               <div className="credits-badge">
                 $ {marker.credits}
@@ -266,6 +259,11 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
             <div className="points-badge">
               {marker.upvotes - marker.downvotes} pts
             </div>
+            <div style={{ flex: 1 }} /> {/* Spacer to push Share button to the right */}
+            <button onClick={() => setShowShare(true)}>Share</button>
+            {showShare && (
+              <LocationShareModal link={`${window.location.origin}/location/${marker.id}`} onClose={() => setShowShare(false)} />
+            )}
           </div>
         </div>
       </div>
