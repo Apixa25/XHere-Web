@@ -649,11 +649,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           {/* Only show MessageButton if not user's own card */}
           {(() => {
             const creatorId = location.creator?.id || location.creatorId;
-            console.log("DEBUG MessageButton check:", {
-              creatorId: creatorId,
-              userDataId: userData?.id,
-              shouldShow: creatorId !== userData?.id
-            });
             return creatorId !== userData?.id;
           })() && (
             <MessageButton
@@ -958,11 +953,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 {/* Only show MessageButton if not user's own card */}
                 {(() => {
                   const creatorId = location.creator?.id || location.creatorId;
-                  console.log("DEBUG MessageButton check:", {
-                    creatorId: creatorId,
-                    userDataId: userData?.id,
-                    shouldShow: creatorId !== userData?.id
-                  });
                   return creatorId !== userData?.id;
                 })() && (
                   <MessageButton
