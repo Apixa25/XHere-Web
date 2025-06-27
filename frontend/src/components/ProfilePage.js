@@ -11,6 +11,8 @@ import MessagingPage from './messaging/MessagingPage';
 import MessageButton from './messaging/MessageButton';
 import messageService from '../services/messageService';
 import MessagingPanel from './messaging/MessagingPanel';
+import KeywordsDisplay from '../components/KeywordsDisplay';
+import LOCATION_TYPES from '../constants/locationTypes';
 
 const AdminBadge = () => (
   <div style={{
@@ -501,6 +503,14 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
 
   const LocationCard = ({ location }) => {
     console.log("LocationCard props:", location);
+    
+    // Debug log for MessageButton logic
+    console.log("DEBUG ProfilePage LocationCard:", {
+      creatorId: location.creator?.id,
+      userDataId: userData?.id,
+      shouldShowMessage: location.creator?.id !== userData?.id
+    });
+    
     return (
       <div style={{
         backgroundColor: 'white',
@@ -530,6 +540,12 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             }}>
               {location.content.text}
             </p>
+            {location.locationType && LOCATION_TYPES[location.locationType] && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.95em', color: '#1976d2', fontWeight: 500 }}>
+                <span>{LOCATION_TYPES[location.locationType].icon}</span>
+                <span>{LOCATION_TYPES[location.locationType].label}</span>
+              </div>
+            )}
           </div>
           <div style={{
             display: 'flex',
@@ -608,19 +624,29 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           </div>
         )}
 
-        {location.creator._id !== userData?._id && (
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#666', 
-            marginBottom: '8px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <span>Created by: {location.creator.profile?.name || location.creator.email}</span>
+        {/* Always show creator info */}
+        <div style={{ 
+          fontSize: '12px', 
+          color: '#666', 
+          marginBottom: '8px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>Created by: {location.creator.profile?.name || location.creator.email}</span>
+          {/* Only show MessageButton if not user's own card */}
+          {(() => {
+            const creatorId = location.creator?.id || location.creatorId;
+            console.log("DEBUG MessageButton check:", {
+              creatorId: creatorId,
+              userDataId: userData?.id,
+              shouldShow: creatorId !== userData?.id
+            });
+            return creatorId !== userData?.id;
+          })() && (
             <MessageButton
-              recipientId={location.creator._id}
-              recipientName={location.creator.profile?.name || location.creator.email}
+              recipientId={location.creator?.id || location.creatorId}
+              recipientName={location.creator?.profile?.name || location.creator?.email}
               locationId={location.id}
               locationText={location.content.text}
               className="small"
@@ -631,8 +657,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             >
               💬
             </MessageButton>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   };
@@ -894,19 +920,29 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 </div>
               </div>
 
-              {location.creator._id !== userData?._id && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#666', 
-                  marginBottom: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span>Created by: {location.creator.profile?.name || location.creator.email}</span>
+              {/* Always show creator info */}
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#666', 
+                marginBottom: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>Created by: {location.creator.profile?.name || location.creator.email}</span>
+                {/* Only show MessageButton if not user's own card */}
+                {(() => {
+                  const creatorId = location.creator?.id || location.creatorId;
+                  console.log("DEBUG MessageButton check:", {
+                    creatorId: creatorId,
+                    userDataId: userData?.id,
+                    shouldShow: creatorId !== userData?.id
+                  });
+                  return creatorId !== userData?.id;
+                })() && (
                   <MessageButton
-                    recipientId={location.creator._id}
-                    recipientName={location.creator.profile?.name || location.creator.email}
+                    recipientId={location.creator?.id || location.creatorId}
+                    recipientName={location.creator?.profile?.name || location.creator?.email}
                     locationId={location.id}
                     locationText={location.content.text}
                     className="small"
@@ -917,8 +953,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                   >
                     💬
                   </MessageButton>
-                </div>
-              )}
+                )}
+              </div>
               
               {editingLocation?._id === location._id ? (
                 // Edit mode
@@ -1068,6 +1104,13 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                     }}>
                       {location.content.text}
                     </p>
+                    {location.locationType && LOCATION_TYPES[location.locationType] && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.95em', color: '#1976d2', fontWeight: 500 }}>
+                        <span>{LOCATION_TYPES[location.locationType].icon}</span>
+                        <span>{LOCATION_TYPES[location.locationType].label}</span>
+                      </div>
+                    )}
+                    <KeywordsDisplay keywords={location.keywords} />
                     <div style={{ 
                       height: '150px',
                       marginBottom: '10px',

@@ -56,6 +56,21 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
     return `${minutes} minutes remaining`;
   };
 
+  // Get current user id safely
+  const currentUserId = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'))?.id;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Get creator id safely (prefer creator.id, fallback to creatorId)
+  const creatorId = location.creator?.id || location.creatorId;
+
+  // Debug log
+  console.log('DEBUG: Current user id:', currentUserId, 'Creator id:', creatorId);
+
   return (
     <div
       key={location.id}
@@ -120,18 +135,17 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
             margin: '12px 0'
           }}>
             <VoteButtons location={location} onVoteUpdate={() => {}} />
-            {/* Only show MessageButton if not the creator */}
-            {location.creator && localStorage.getItem('user') &&
-              JSON.parse(localStorage.getItem('user')).userId !== location.creator._id && (
-                <MessageButton
-                  recipientId={location.creator._id}
-                  recipientName={location.creator.profile?.name || location.creator.email}
-                  locationId={location.id}
-                  locationText={location.content.text}
-                  className="small"
-                >
-                  Send Message
-                </MessageButton>
+            {/* Only show MessageButton if not the creator (current user) */}
+            {currentUserId && creatorId && currentUserId !== creatorId && (
+              <MessageButton
+                recipientId={creatorId}
+                recipientName={location.creator?.profile?.name || location.creator?.email}
+                locationId={location.id}
+                locationText={location.content.text}
+                className="small"
+              >
+                Send Message
+              </MessageButton>
             )}
           </div>
           
