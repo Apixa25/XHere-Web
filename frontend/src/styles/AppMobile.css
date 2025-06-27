@@ -789,7 +789,7 @@ label {
 
 /* Location Type Selector in Form */
 .mobile-location-type-selector {
-  margin: 10px 0;
+  margin-bottom: 15px;
 }
 
 .mobile-location-type-selector label {
@@ -805,7 +805,7 @@ label {
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 16px;
-  background: white;
+  background-color: white;
 }
 
 /* Location Type Badge in Info Window */
@@ -933,4 +933,31 @@ label {
   font-size: 20px;
   padding: 0;
   margin-left: 4px;
+}
+
+.mobile-keywords-section {
+  margin-bottom: 15px;
+}
+
+.mobile-keywords-section label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.mobile-keywords-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: white;
+}
+
+.mobile-keywords-section .keywords-help {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 5px;
+  display: block;
 }

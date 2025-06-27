@@ -20,6 +20,15 @@ const Location = sequelize.define('Location', {
       isAnonymous: false
     }
   },
+  keywords: {
+    type: DataTypes.JSONB,
+    defaultValue: [],
+    allowNull: false,
+    get() {
+      const keywords = this.getDataValue('keywords');
+      return keywords || [];
+    }
+  },
   locationType: {
     type: DataTypes.ENUM('general', 'yard_sale', 'crime', 'interesting', 'event', 'market', 'food_truck', 'church', 'historical', 'for_sale'),
     defaultValue: 'general',

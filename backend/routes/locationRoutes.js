@@ -42,6 +42,24 @@ router.get('/', authenticateToken, async (req, res) => {
       query.where.locationType = req.query.locationType;
     }
 
+    // Filter by keywords if specified
+    if (req.query.keywords) {
+      if (!query.where) {
+        query.where = {};
+      }
+      const searchKeywords = req.query.keywords.toLowerCase().split(',').map(k => k.trim());
+      
+      console.log('🔍 Keyword search requested:', searchKeywords);
+      
+      // Use JSONB containment operator to check if any of the search keywords exist in the keywords array
+      query.where = {
+        ...query.where,
+        keywords: sequelize.literal(`keywords ?| ARRAY[${searchKeywords.map(k => `'${k}'`).join(',')}]`)
+      };
+      
+      console.log('🔍 Keyword search query:', query.where.keywords);
+    }
+
     // Geographic filtering for map view (only when not profile page)
     if (req.query.profile !== 'true' && req.query.lat && req.query.lng) {
       const centerLat = parseFloat(req.query.lat);
@@ -134,7 +152,8 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       autoDelete, 
       deleteTime, 
       deleteUnit,
-      locationType 
+      locationType,
+      keywords 
     } = req.body;
 
     // Calculate deleteAt time if autoDelete is enabled
@@ -156,6 +175,21 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       }
     }
 
+    // Parse keywords from string to array if provided
+    let parsedKeywords = [];
+    if (keywords) {
+      try {
+        parsedKeywords = typeof keywords === 'string' ? JSON.parse(keywords) : keywords;
+        // Ensure it's an array and clean the keywords
+        parsedKeywords = Array.isArray(parsedKeywords) 
+          ? parsedKeywords.filter(k => k && k.trim()).map(k => k.trim().toLowerCase())
+          : [];
+      } catch (error) {
+        console.warn('Invalid keywords format:', keywords);
+        parsedKeywords = [];
+      }
+    }
+
     // Create the content object with media information
     const content = {
       text: text || '',
@@ -170,6 +204,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
         coordinates: [parseFloat(longitude), parseFloat(latitude)]
       },
       content,
+      keywords: parsedKeywords,
       locationType: locationType || 'general',
       creatorId: req.user.userId,
       autoDelete: autoDelete === 'true',

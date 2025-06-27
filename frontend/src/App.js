@@ -25,6 +25,8 @@ import LOCATION_TYPES from './constants/locationTypes';
 import LocationForm from './components/LocationForm';
 import CommentSection from './components/CommentSection';
 import MessageButton from './components/messaging/MessageButton';
+import KeywordsDisplay from './components/KeywordsDisplay';
+import KeywordSearch from './components/KeywordSearch';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -258,6 +260,10 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
         </div>
       </div>
       <p>{marker.content.text}</p>
+      
+      {/* Keywords Display */}
+      <KeywordsDisplay keywords={marker.keywords} maxDisplay={5} />
+      
       {marker.content.mediaUrls && marker.content.mediaUrls.length > 0 && (
         <div className="media-gallery">
           {marker.content.mediaUrls.map((url, index) => {
@@ -329,6 +335,7 @@ function App() {
   const advancedMarkerRefs = useRef([]);
   const timerIntervals = useRef({});
   const [selectedLocationType, setSelectedLocationType] = useState('all');
+  const [keywordSearch, setKeywordSearch] = useState('');
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
   const [cameFromAdmin, setCameFromAdmin] = useState(false);
   const currentFetchController = useRef(null);
@@ -756,6 +763,7 @@ function App() {
       }
       data.append('creditAmount', formData.creditAmount || 0);
       data.append('locationType', formData.locationType || 'general');
+      data.append('keywords', JSON.stringify(formData.keywords || []));
       
       if (formData.media) {
         formData.media.forEach(file => {
@@ -811,6 +819,11 @@ function App() {
         url.searchParams.append('locationType', selectedLocationType);
       }
       
+      // Add keyword search if specified
+      if (keywordSearch.trim()) {
+        url.searchParams.append('keywords', keywordSearch.trim());
+      }
+      
       // Add geographic filtering parameters for map view
       url.searchParams.append('lat', center.lat.toString());
       url.searchParams.append('lng', center.lng.toString());
@@ -843,7 +856,7 @@ function App() {
       setIsFetchingLocations(false);
       currentFetchController.current = null;
     }
-  }, [user, selectedLocationType, center]);
+  }, [user, selectedLocationType, center, keywordSearch]);
 
   const inspectLocation = (loc) => {
     try {
@@ -1239,6 +1252,13 @@ function App() {
                   </button>
                 ))}
               </div>
+              
+              {/* Keyword Search */}
+              <KeywordSearch 
+                onSearch={setKeywordSearch}
+                placeholder="Search by keywords (e.g., food, outdoor, family-friendly)"
+              />
+              
               <div className="location-count-display">
                 <span className="count-text">
                   📍 {locationData.length}/25 locations

@@ -1,5 +1,6 @@
 import VoteButtons from '../VoteButtons';
 import MessageButton from '../messaging/MessageButton';
+import KeywordsDisplay from '../KeywordsDisplay';
 
 const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   // ... existing code ...
@@ -88,6 +89,9 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
           }}>
             {location.content.text}
           </div>
+          
+          {/* Keywords Display */}
+          <KeywordsDisplay keywords={location.keywords} maxDisplay={3} />
           
           <div style={{
             display: 'flex',

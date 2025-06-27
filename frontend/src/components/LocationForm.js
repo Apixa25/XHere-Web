@@ -11,6 +11,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
   const [deleteUnit, setDeleteUnit] = useState('minutes');
   const [creditAmount, setCreditAmount] = useState(0);
   const [locationType, setLocationType] = useState('general');
+  const [keywords, setKeywords] = useState('');
 
   const handleCloseClick = (e) => {
     e.stopPropagation();
@@ -19,6 +20,13 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Parse keywords from comma-separated string to array
+    const keywordsArray = keywords
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+
     onSubmit({
       lat: position.lat,
       lng: position.lng,
@@ -30,6 +38,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
       deleteUnit,
       creditAmount,
       locationType,
+      keywords: keywordsArray
     });
   };
 
@@ -49,6 +58,20 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
           multiple
           onChange={(e) => setMedia([...e.target.files])}
         />
+        
+        {/* Keywords Input */}
+        <div className="form-group">
+          <label htmlFor="keywords">Keywords/Tags:</label>
+          <input
+            type="text"
+            id="keywords"
+            placeholder="Enter keywords separated by commas (e.g., food, outdoor, family-friendly)"
+            value={keywords}
+            onChange={(e) => setKeywords(e.target.value)}
+            className="keywords-input"
+          />
+          <small className="keywords-help">Add keywords to help others find your location</small>
+        </div>
         
         {/* Location Type Selector */}
         <div className="form-group">

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef, createContext } from 'react';
+import React, { useState, useEffect, useCallback, useRef, createContext, useMemo } from 'react';
 import { 
   GoogleMap, 
   LoadScript, 
   Marker,
   InfoWindow,
-  useLoadScript 
+  useLoadScript,
+  OverlayView
 } from '@react-google-maps/api';
 import api from './services/api';
 import './App.css';
@@ -13,7 +14,7 @@ import BadgeNotification from './components/BadgeNotification';
 import VoteButtons from './components/VoteButtons';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
-import { createBrowserRouter, RouterProvider, Link, Navigate, MemoryRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Link, Navigate, MemoryRouter, useParams } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
@@ -33,6 +34,8 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { App as CapApp } from '@capacitor/app';
 import MessageButton from './components/messaging/MessageButton';
+import KeywordsDisplay from './components/KeywordsDisplay';
+import KeywordSearch from './components/KeywordSearch';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -245,6 +248,13 @@ function LocationInfoWindow({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Parse keywords from comma-separated string to array
+    const keywordsArray = contentForm.keywords
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+    
     const formData = {
       lat: selectedLocation.lat,
       lng: selectedLocation.lng,
@@ -254,7 +264,9 @@ function LocationInfoWindow({
       autoDelete: contentForm.autoDelete,
       deleteTime: contentForm.deleteTime,
       deleteUnit: contentForm.deleteUnit,
-      creditAmount: assignCredits ? creditAmount : 0
+      creditAmount: assignCredits ? creditAmount : 0,
+      locationType: contentForm.locationType,
+      keywords: keywordsArray
     };
 
     try {
@@ -293,6 +305,20 @@ function LocationInfoWindow({
                 </option>
               ))}
             </select>
+          </div>
+          
+          {/* Keywords Input */}
+          <div className="mobile-keywords-section">
+            <label htmlFor="keywords">Keywords/Tags:</label>
+            <input
+              type="text"
+              id="keywords"
+              placeholder="food, outdoor, family-friendly"
+              value={contentForm.keywords}
+              onChange={e => setContentForm({ ...contentForm, keywords: e.target.value })}
+              className="mobile-keywords-input"
+            />
+            <small className="keywords-help">Add keywords separated by commas</small>
           </div>
           
           <div className="mobile-media-buttons">
@@ -511,6 +537,9 @@ function LocationInfoWindow({
 
           <p className="marker-text">{selectedMarker.content.text}</p>
           
+          {/* Keywords Display */}
+          <KeywordsDisplay keywords={selectedMarker.keywords} maxDisplay={5} />
+          
           <VoteButtons 
             location={selectedMarker}
             onVoteUpdate={handleVoteUpdate}
@@ -654,7 +683,8 @@ function AppMobile() {
     autoDelete: false,
     deleteTime: 0,
     deleteUnit: 'minutes',
-    locationType: 'general'
+    locationType: 'general',
+    keywords: ''
   });
   const [map, setMap] = useState(null);
   const [center, setCenter] = useState(defaultCenter);
@@ -667,6 +697,7 @@ function AppMobile() {
   const [locationPermission, setLocationPermission] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState(null);
   const [selectedLocationType, setSelectedLocationType] = useState('all');
+  const [keywordSearch, setKeywordSearch] = useState('');
   const timerIntervals = useRef({});
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
   const isUpdatingMarkers = useRef(false);
@@ -776,6 +807,11 @@ function AppMobile() {
         url.searchParams.append('locationType', selectedLocationType);
       }
       
+      // Add keyword search if specified
+      if (keywordSearch.trim()) {
+        url.searchParams.append('keywords', keywordSearch.trim());
+      }
+      
       // Add geographic filtering parameters for map view
       url.searchParams.append('lat', center.lat.toString());
       url.searchParams.append('lng', center.lng.toString());
@@ -807,7 +843,7 @@ function AppMobile() {
     } finally {
       setIsFetchingLocations(false);
     }
-  }, [selectedLocationType, center]);
+  }, [selectedLocationType, center, keywordSearch]);
 
   // Fetch locations when user is set
   useEffect(() => {
@@ -1021,6 +1057,7 @@ function AppMobile() {
       }
       data.append('creditAmount', formData.creditAmount || 0);
       data.append('locationType', formData.locationType || 'general');
+      data.append('keywords', JSON.stringify(formData.keywords || []));
       
       if (formData.media) {
         formData.media.forEach(file => {
@@ -1038,7 +1075,8 @@ function AppMobile() {
         autoDelete: false,
         deleteTime: 0,
         deleteUnit: 'minutes',
-        locationType: 'general'
+        locationType: 'general',
+        keywords: ''
       });
       
       setSelectedLocation(null);
@@ -1613,6 +1651,12 @@ function AppMobile() {
               >
                 🌍 All
               </button>
+              
+              {/* Keyword Search for Mobile */}
+              <KeywordSearch 
+                onSearch={setKeywordSearch}
+                placeholder="Search keywords..."
+              />
             </div>
           </div>
         );

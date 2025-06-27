@@ -193,6 +193,22 @@
   font-size: 1.1em; /* Increased number and select input font size */
 }
 
+.location-form .keywords-input {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1.1em;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.location-form .keywords-help {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 2px;
+  display: block;
+}
+
 .location-form button[type="submit"] {
   background-color: #4CAF50; /* Green */
   color: white;
