@@ -25,9 +25,7 @@ router.get('/', authenticateToken, async (req, res) => {
     // For profile page requests, filter based on user type and userId
     if (req.query.profile === 'true') {
       if (!req.user.isAdmin) {
-        query.where = {
-          creatorId: req.user.userId
-        };
+        query.where = { creatorId: req.user.userId };
       }
       // Admin users will see all locations in their profile
       // Remove limit for profile page to show all user's locations
@@ -36,28 +34,83 @@ router.get('/', authenticateToken, async (req, res) => {
 
     // Filter by location type if specified
     if (req.query.locationType && req.query.locationType !== 'all') {
-      if (!query.where) {
-        query.where = {};
-      }
+      if (!query.where) query.where = {};
       query.where.locationType = req.query.locationType;
     }
 
     // Filter by keywords if specified
     if (req.query.keywords) {
-      if (!query.where) {
-        query.where = {};
-      }
-      const searchKeywords = req.query.keywords.toLowerCase().split(',').map(k => k.trim());
+      const searchKeywords = req.query.keywords.toLowerCase().split(',').map(k => k.trim()).filter(k => k.length > 0);
       
       console.log('🔍 Keyword search requested:', searchKeywords);
       
-      // Use JSONB containment operator to check if any of the search keywords exist in the keywords array
-      query.where = {
-        ...query.where,
-        keywords: sequelize.literal(`keywords ?| ARRAY[${searchKeywords.map(k => `'${k}'`).join(',')}]`)
-      };
+      if (searchKeywords.length > 0) {
+        if (!query.where) query.where = {};
+        
+        // Use a simple text search approach
+        const keywordConditions = searchKeywords.map(keyword => ({
+          keywords: sequelize.literal(`keywords::text ILIKE '%${keyword}%'`)
+        }));
+        
+        query.where = {
+          ...query.where,
+          [Op.or]: keywordConditions
+        };
+        
+        console.log('🔍 Keyword search query added');
+      }
+    }
+
+    // Filter by user email or username if specified
+    if (req.query.user) {
+      const userSearch = req.query.user.trim().toLowerCase();
       
-      console.log('🔍 Keyword search query:', query.where.keywords);
+      console.log('🔍 User search requested:', userSearch);
+      
+      // Ensure User model is included for the search
+      if (!query.include) query.include = [];
+      const hasCreator = query.include.some(
+        inc => inc.model === User && inc.as === 'creator'
+      );
+      if (!hasCreator) {
+        query.include.push({
+          model: User,
+          as: 'creator',
+          attributes: ['email', 'profile', 'id']
+        });
+      }
+      
+      // Add user search conditions
+      if (!query.where) query.where = {};
+      
+      const userConditions = [
+        sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('creator.email')),
+          { [Op.like]: `%${userSearch}%` }
+        ),
+        sequelize.where(
+          sequelize.fn('LOWER', sequelize.cast(sequelize.col('creator.profile'), 'TEXT')),
+          { [Op.like]: `%${userSearch}%` }
+        )
+      ];
+      
+      // If we already have conditions, combine them with AND
+      if (query.where[Op.or] || query.where[Op.and]) {
+        const existingConditions = query.where[Op.or] || query.where[Op.and] || [query.where];
+        query.where = {
+          [Op.and]: [
+            { [Op.or]: existingConditions },
+            { [Op.or]: userConditions }
+          ]
+        };
+      } else {
+        query.where = {
+          ...query.where,
+          [Op.or]: userConditions
+        };
+      }
+      
+      console.log('🔍 User search added');
     }
 
     // Geographic filtering for map view (only when not profile page)
@@ -72,13 +125,10 @@ router.get('/', authenticateToken, async (req, res) => {
       const latRadius = radiusMiles / 69;
       const lngRadius = radiusMiles / (69 * Math.cos(centerLat * Math.PI / 180));
       
-      if (!query.where) {
-        query.where = {};
-      }
+      if (!query.where) query.where = {};
       
       // Add geographic bounds filtering
-      query.where = {
-        ...query.where,
+      const geoConditions = {
         location: {
           [Op.and]: [
             // Latitude bounds
@@ -90,6 +140,22 @@ router.get('/', authenticateToken, async (req, res) => {
           ]
         }
       };
+      
+      // Combine with existing conditions
+      if (query.where[Op.and] || query.where[Op.or]) {
+        const existingConditions = query.where[Op.and] || query.where[Op.or] || [query.where];
+        query.where = {
+          [Op.and]: [
+            { [Op.or]: existingConditions },
+            geoConditions
+          ]
+        };
+      } else {
+        query.where = {
+          ...query.where,
+          ...geoConditions
+        };
+      }
       
       // Add distance calculation for ordering by proximity
       query.attributes = {
@@ -108,6 +174,14 @@ router.get('/', authenticateToken, async (req, res) => {
       ];
     }
 
+    console.log('🔍 Final query structure:', JSON.stringify({
+      include: query.include ? query.include.length : 0,
+      where: query.where ? 'present' : 'none',
+      order: query.order,
+      limit: query.limit,
+      attributes: query.attributes ? 'present' : 'none'
+    }, null, 2));
+
     const locations = await Location.findAll(query);
     
     // Debug logs
@@ -119,7 +193,13 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json(locations);
   } catch (error) {
-    console.error('Error fetching locations:', error);
+    console.error('❌ Error fetching locations:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code
+    });
     res.status(500).json({ error: error.message });
   }
 });

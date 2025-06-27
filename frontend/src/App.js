@@ -820,9 +820,10 @@ function App() {
         url.searchParams.append('locationType', selectedLocationType);
       }
       
-      // Add keyword search if specified
+      // Add keyword and user search if specified
       if (keywordSearch.trim()) {
         url.searchParams.append('keywords', keywordSearch.trim());
+        url.searchParams.append('user', keywordSearch.trim());
       }
       
       // Add geographic filtering parameters for map view
