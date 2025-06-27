@@ -674,6 +674,7 @@ function AppMobile() {
   const infoBoxRef = useRef(null);
   const [infoBoxHeight, setInfoBoxHeight] = useState(0);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [mapType, setMapType] = useState('roadmap');
 
   // Get device info
   useEffect(() => {
@@ -1448,42 +1449,25 @@ function AppMobile() {
         }
 
         return (
-          <div className="mobile-map-container">
-            {/* Location Type Filter */}
-            <div className="mobile-location-filter">
-              <div className="filter-buttons">
-                <button 
-                  className={`filter-button ${selectedLocationType === 'all' ? 'active' : ''}`}
-                  onClick={() => setSelectedLocationType('all')}
-                >
-                  🌍 All
-                </button>
-                {Object.entries(LOCATION_TYPES).map(([key, type]) => (
-                  <button 
-                    key={key}
-                    className={`filter-button ${selectedLocationType === key ? 'active' : ''}`}
-                    onClick={() => setSelectedLocationType(key)}
-                  >
-                    {type.icon} {type.label}
-                  </button>
-                ))}
-                <button 
-                  className="filter-button location-button"
-                  onClick={getCurrentLocation}
-                  title="Center map on my location"
-                  disabled={isGettingLocation}
-                >
-                  {isGettingLocation ? '🔄 Getting Location...' : '📍 My Location'}
-                </button>
-              </div>
-              <div className="location-count-display">
-                <span className="count-text">
-                  📍 {locationData.length}/25 locations
-                  {isFetchingLocations && <span style={{color: '#FFA726'}}> 🔄</span>}
-                </span>
-              </div>
-            </div>
-            
+          <div className="mobile-map-container" style={{ position: 'relative' }}>
+            <button
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                zIndex: 1000,
+                background: '#fff',
+                border: '1px solid #ccc',
+                borderRadius: '6px',
+                padding: '8px 14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              }}
+              onClick={() => setMapType(mapType === 'roadmap' ? 'satellite' : 'roadmap')}
+            >
+              {mapType === 'roadmap' ? '🛰️ Satellite View' : '🗺️ Map View'}
+            </button>
             <GoogleMap
               mapContainerStyle={mapStyles}
               zoom={13}
@@ -1500,7 +1484,8 @@ function AppMobile() {
                 mapId: '51948ac5ec373e9c',
                 useAdvancedMarkers: true,
                 useStaticMap: false,
-                gestureHandling: 'greedy' // Better touch handling
+                gestureHandling: 'greedy',
+                mapTypeId: mapType,
               }}
             >
               {locationData.map((location) => {

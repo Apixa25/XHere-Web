@@ -337,6 +337,7 @@ function App() {
   const infoBoxRef = useRef(null);
   const [infoBoxHeight, setInfoBoxHeight] = useState(0);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [mapType, setMapType] = useState('roadmap');
 
   const mapStyles = {
     height: "100vh",
@@ -1247,7 +1248,25 @@ function App() {
             </div>
           )}
           
-          <div className="map-container">
+          <div className="map-container" style={{ position: 'relative' }}>
+            <button
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                zIndex: 1000,
+                background: '#fff',
+                border: '1px solid #ccc',
+                borderRadius: '6px',
+                padding: '8px 14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+              }}
+              onClick={() => setMapType(mapType === 'roadmap' ? 'satellite' : 'roadmap')}
+            >
+              {mapType === 'roadmap' ? '🛰️ Satellite View' : '🗺️ Map View'}
+            </button>
             <GoogleMap
               mapContainerStyle={mapStyles}
               center={center}
@@ -1260,6 +1279,7 @@ function App() {
                 disableDefaultUI: true,
                 clickableIcons: false,
                 gestureHandling: 'greedy',
+                mapTypeId: mapType,
               }}
             >
               {selectedLocation && (
