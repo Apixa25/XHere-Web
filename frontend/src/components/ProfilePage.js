@@ -1076,7 +1076,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                       {renderLocationMedia(location)}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', marginBottom: '20px' }}>
                     <button
                       onClick={() => handleEdit(location)}
                       style={{
