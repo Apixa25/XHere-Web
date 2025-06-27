@@ -560,6 +560,21 @@
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
 
+.filter-button.keyword-search-active {
+  background: #ff9800;
+  color: white;
+  border-color: #ff9800;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+  font-weight: 600;
+}
+
+.filter-button.keyword-search-active:hover {
+  background: #f57c00;
+  border-color: #f57c00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
 /* Special styling for the location button */
 .filter-button.location-button {
   background: linear-gradient(135deg, #4CAF50, #45a049);

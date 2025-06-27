@@ -355,6 +355,19 @@ function App() {
   const [mapType, setMapType] = useState('roadmap');
   const [locationLimitReached, setLocationLimitReached] = useState(false);
 
+  // Refs to store current filter state for viewport changes
+  const currentSelectedTypeRef = useRef(selectedLocationType);
+  const currentKeywordSearchRef = useRef(keywordSearch);
+
+  // Update refs when state changes
+  useEffect(() => {
+    currentSelectedTypeRef.current = selectedLocationType;
+  }, [selectedLocationType]);
+
+  useEffect(() => {
+    currentKeywordSearchRef.current = keywordSearch;
+  }, [keywordSearch]);
+
   const mapStyles = {
     height: "100vh",
     width: "100%"
@@ -800,6 +813,8 @@ function App() {
       const token = localStorage.getItem('token');
       console.log('🗺️ Fetching locations - Token exists:', !!token);
       console.log('🗺️ Fetching locations - User exists:', !!user);
+      console.log('🗺️ Fetching locations - Selected type:', currentSelectedTypeRef.current);
+      console.log('🗺️ Fetching locations - Keyword search:', currentKeywordSearchRef.current);
       
       if (!token) {
         console.log('🗺️ No token available, skipping location fetch');
@@ -825,15 +840,17 @@ function App() {
       const url = new URL(`${API_URL}/api/locations`);
       url.searchParams.append('profile', 'false');
       
-      // Filter by location type if specified
-      if (selectedLocationType !== 'all') {
-        url.searchParams.append('locationType', selectedLocationType);
-      }
-      
-      // Add keyword and user search if specified
-      if (keywordSearch.trim()) {
-        url.searchParams.append('keywords', keywordSearch.trim());
-        url.searchParams.append('user', keywordSearch.trim());
+      // Apply filters: location type OR keyword search (mutually exclusive)
+      if (currentKeywordSearchRef.current.trim()) {
+        // If keyword search is active, search by keyword (overrides location type)
+        url.searchParams.append('keywords', currentKeywordSearchRef.current.trim());
+        console.log('🔍 Keyword search active - searching by keyword:', currentKeywordSearchRef.current.trim());
+      } else if (currentSelectedTypeRef.current !== 'all') {
+        // If no keyword search, filter by location type
+        url.searchParams.append('locationType', currentSelectedTypeRef.current);
+        console.log('🔍 Location type filter active:', currentSelectedTypeRef.current);
+      } else {
+        console.log('🔍 No filters active - showing all locations');
       }
       
       // Get current map bounds for viewport-based filtering
@@ -865,6 +882,7 @@ function App() {
         signal: currentFetchController.current.signal
       });
       
+      console.log('🗺️ Locations API URL:', url.toString());
       console.log('🗺️ Locations API response status:', response.status);
       
       if (!response.ok) {
@@ -905,7 +923,7 @@ function App() {
       setIsFetchingLocations(false);
       currentFetchController.current = null;
     }
-  }, [user, selectedLocationType, keywordSearch, map]);
+  }, [user, map]);
 
   const inspectLocation = (loc) => {
     try {
@@ -1230,6 +1248,22 @@ function App() {
     }
   }, [user, fetchLocations]);
 
+  // Trigger fetch when location type changes
+  useEffect(() => {
+    if (user && map) {
+      console.log('🔍 Location type changed, fetching locations');
+      fetchLocations();
+    }
+  }, [selectedLocationType, user, map, fetchLocations]);
+
+  // Trigger fetch when keyword search changes
+  useEffect(() => {
+    if (user && map) {
+      console.log('🔍 Keyword search changed, fetching locations');
+      fetchLocations();
+    }
+  }, [keywordSearch, user, map, fetchLocations]);
+
   // Memoize the router so it doesn't re-create on every render
   const router = useMemo(() => createBrowserRouter([
     {
@@ -1263,10 +1297,13 @@ function App() {
             <div className="location-filter">
               <div className="filter-buttons">
                 <button 
-                  className={`filter-button ${selectedLocationType === 'all' ? 'active' : ''}`}
-                  onClick={() => setSelectedLocationType('all')}
+                  className={`filter-button ${selectedLocationType === 'all' && !keywordSearch.trim() ? 'active' : ''} ${keywordSearch.trim() ? 'keyword-search-active' : ''}`}
+                  onClick={() => {
+                    setSelectedLocationType('all');
+                    setKeywordSearch(''); // Clear keyword search when selecting "All"
+                  }}
                 >
-                  🌍 All
+                  {keywordSearch.trim() ? `🔍 "${keywordSearch}"` : '🌍 All'}
                 </button>
                 <button 
                   className="filter-button circle-icon-button"
@@ -1279,8 +1316,11 @@ function App() {
                 {Object.entries(LOCATION_TYPES).map(([key, type]) => (
                   <button 
                     key={key}
-                    className={`filter-button ${selectedLocationType === key ? 'active' : ''}`}
-                    onClick={() => setSelectedLocationType(key)}
+                    className={`filter-button ${selectedLocationType === key && !keywordSearch.trim() ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedLocationType(key);
+                      setKeywordSearch(''); // Clear keyword search when selecting a type
+                    }}
                   >
                     {type.icon} {type.label}
                   </button>
@@ -1289,8 +1329,13 @@ function App() {
               
               {/* Keyword Search and Refresh */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <KeywordSearchCompact 
-                  onSearch={setKeywordSearch}
+                <KeywordSearchCompact
+                  onSearch={(searchTerm) => {
+                    setKeywordSearch(searchTerm);
+                    if (searchTerm.trim()) {
+                      setSelectedLocationType('all'); // Clear location type when keyword search is active
+                    }
+                  }}
                   placeholder="Search keywords..."
                 />
                 
@@ -1421,7 +1466,7 @@ function App() {
             </GoogleMap>
           </div>
         </div>
-      ),
+      )
     },
     {
       path: "/auth",
@@ -1439,7 +1484,7 @@ function App() {
       path: "/admin/user/:userId/locations",
       element: user?.isAdmin ? <UserLocationsPage /> : <Navigate to="/" />,
     },
-  ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations]);
+  ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount]);
 
   console.log("Render App:", { selectedMarker: selectedMarker, selectedLocation, routerPath});
 
