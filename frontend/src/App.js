@@ -27,6 +27,7 @@ import CommentSection from './components/CommentSection';
 import MessageButton from './components/messaging/MessageButton';
 import KeywordsDisplay from './components/KeywordsDisplay';
 import KeywordSearch from './components/KeywordSearch';
+import KeywordSearchCompact from './components/KeywordSearchCompact';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1254,9 +1255,9 @@ function App() {
               </div>
               
               {/* Keyword Search */}
-              <KeywordSearch 
+              <KeywordSearchCompact 
                 onSearch={setKeywordSearch}
-                placeholder="Search by keywords (e.g., food, outdoor, family-friendly)"
+                placeholder="Search keywords..."
               />
               
               <div className="location-count-display">

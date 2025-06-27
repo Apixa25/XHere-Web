@@ -1,0 +1,59 @@
+.ksc-form {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 2px 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  max-width: 320px;
+  width: 100%;
+}
+
+.ksc-input {
+  flex: 1 1 0;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  padding: 3px 4px;
+  background: transparent;
+}
+
+.ksc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 36px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  margin: 0;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.ksc-search {
+  background: #4CAF50;
+  color: #fff;
+}
+.ksc-search:hover {
+  background: #388e3c;
+}
+
+.ksc-clear {
+  background: #f44336;
+  color: #fff;
+}
+.ksc-clear:hover {
+  background: #b71c1c;
+} 
