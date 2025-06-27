@@ -844,7 +844,8 @@ function App() {
       if (currentKeywordSearchRef.current.trim()) {
         // If keyword search is active, search by keyword (overrides location type)
         url.searchParams.append('keywords', currentKeywordSearchRef.current.trim());
-        console.log('🔍 Keyword search active - searching by keyword:', currentKeywordSearchRef.current.trim());
+        url.searchParams.append('user', currentKeywordSearchRef.current.trim()); // Also search by user email/name
+        console.log('🔍 Keyword search active - searching by keyword and user:', currentKeywordSearchRef.current.trim());
       } else if (currentSelectedTypeRef.current !== 'all') {
         // If no keyword search, filter by location type
         url.searchParams.append('locationType', currentSelectedTypeRef.current);
