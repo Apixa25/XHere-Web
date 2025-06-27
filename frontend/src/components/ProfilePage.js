@@ -567,6 +567,18 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
               }}>
                 {location.totalPoints !== undefined ? location.totalPoints : 0} pts
               </div>
+              {location.credits > 0 && (
+                <div style={{
+                  backgroundColor: '#FF9800',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}>
+                  💰 {location.credits} Credits
+                </div>
+              )}
               {getStatusBadge(location)}
             </div>
           </div>
@@ -906,7 +918,8 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
               <div style={{
                 display: 'flex',
                 justifyContent: 'flex-end',
-                marginBottom: '8px'
+                marginBottom: '8px',
+                gap: '8px'
               }}>
                 <div style={{
                   backgroundColor: '#4CAF50',
@@ -918,6 +931,18 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
                 }}>
                   {location.upvotes - location.downvotes} pts
                 </div>
+                {location.credits > 0 && (
+                  <div style={{
+                    backgroundColor: '#FF9800',
+                    color: 'white',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    💰 {location.credits} Credits
+                  </div>
+                )}
               </div>
 
               {/* Always show creator info */}
