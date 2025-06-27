@@ -153,7 +153,7 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
               display: 'inline-block',
               marginLeft: '8px'
             }}>
-              💎 {location.credits} Credits Available
+              $ {location.credits} Credits Available
             </div>
           )}
 

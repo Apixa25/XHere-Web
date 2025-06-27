@@ -500,7 +500,7 @@ function LocationInfoWindow({
             <div className="marker-stats-right">
               {selectedMarker.credits > 0 && (
                 <div className="credits-badge">
-                  💎 {selectedMarker.credits}
+                  $ {selectedMarker.credits}
                 </div>
               )}
               <div className="points-badge">
@@ -1530,10 +1530,8 @@ function AppMobile() {
                           : '<div class="marker-profile-placeholder">👤</div>'
                         }
                         <div class="marker-text">${shortText}</div>
-                        <div class="marker-stats">
-                          <span class="votes">⬆️ ${location.upvotes || 0}</span>
-                          ${location.credits ? `<span class="credits">✨ ${location.credits}</span>` : ''}
-                          ${location.deleteAt ? `<span class="timer" id="timer-${location.id}"></span>` : ''}
+                        <div class="marker-stats" style="display: flex; align-items: center; gap: 10px; flex-direction: row;">
+                          <span class="votes" style="display: inline-flex; align-items: center;">⬆️ ${location.upvotes || 0}</span>${location.credits > 0 ? `<span class="credits" style="display: inline-flex; align-items: center;">💵 ${location.credits}</span>` : ''}
                         </div>
                       </div>
                     `;

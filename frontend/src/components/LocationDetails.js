@@ -20,7 +20,7 @@ const LocationDetails = ({ location }) => {
           marginTop: '5px'
         }}>
           <div className="credits-badge">
-            💎 {location.credits} {location.credits === 1 ? 'Credit' : 'Credits'} Available
+            $ {location.credits} {location.credits === 1 ? 'Credit' : 'Credits'} Available
           </div>
         </div>
       )}
