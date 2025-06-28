@@ -33,18 +33,23 @@ const OfficialLocationControls = ({ location, onSuccess, onError, compact = fals
   }, [location?.id, location?.isOfficial]);
 
   const loadNominations = async () => {
+    console.log('🔍 Loading nominations for location:', location.id);
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await api.getLocationNominations(location.id);
+      console.log('🔍 Nominations API response:', response);
+      
       if (response.success) {
         setNominations(response.nominations || []);
+        console.log('🔍 Set nominations:', response.nominations || []);
       } else {
         setError(response.message || 'Failed to load nominations');
+        console.error('🔍 Failed to load nominations:', response.message);
       }
     } catch (error) {
-      console.error('Error loading nominations:', error);
+      console.error('🔍 Error loading nominations:', error);
       setError(error.message || 'Failed to load nominations');
     } finally {
       setIsLoading(false);

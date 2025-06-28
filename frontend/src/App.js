@@ -37,6 +37,7 @@ import PurchaseHistory from './components/PurchaseHistory';
 import UserOwnedLocations from './components/UserOwnedLocations';
 import OfficialLocationsPage from './components/OfficialLocationsPage';
 import MakeOfficialButton from './components/MakeOfficialButton';
+import OfficialLocationControls from './components/OfficialLocationControls';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -360,31 +361,33 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           compact={false}
         />
         
-        {/* Make Official Button - Show for non-official locations */}
+        {/* Official Location Controls - Show for non-official locations */}
         {!marker.isOfficial && (
-          <MakeOfficialButton
+          <OfficialLocationControls
             location={marker}
             onSuccess={(result) => {
-              console.log('Location made official:', result);
-              // Update the marker data to reflect the new official status
-              if (result.location) {
-                // Update the marker with the new official status
-                Object.assign(marker, result.location);
-                // Force a re-render by updating state
-                // This will trigger the InfoBoxModal to re-render with updated data
-                setTimeout(() => {
-                  window.location.reload(); // Simple refresh for now
-                }, 1000);
+              console.log('Official controls action successful:', result);
+              // Handle different types of success
+              if (result.type === 'location_made_official') {
+                // Update the marker data to reflect the new official status
+                if (result.location) {
+                  // Update the marker with the new official status
+                  Object.assign(marker, result.location);
+                  // Force a re-render by updating state
+                  // This will trigger the InfoBoxModal to re-render with updated data
+                  setTimeout(() => {
+                    window.location.reload(); // Simple refresh for now
+                  }, 1000);
+                }
+              } else if (result.type === 'nomination_created') {
+                // Show success message for nomination
+                alert('Nomination created successfully! It will expire in 7 days and requires 3 community votes.');
               }
             }}
             onError={(error) => {
-              console.error('Error making location official:', error);
-              // If the error is about location already being official, refresh the data
-              if (error.response?.data?.message?.includes('already official')) {
-                alert('This location is already official. Refreshing data...');
-                // Refresh the location data to sync with backend
-                fetchLocations();
-              }
+              console.error('Official controls error:', error);
+              // Show error message to user
+              alert(error);
             }}
             compact={false}
           />
