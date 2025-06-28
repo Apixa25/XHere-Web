@@ -4,12 +4,13 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const Location = require('../models/Location');
 const { authenticateToken } = require('../middleware/auth');
+const { Op } = require('sequelize');
 
 // Get all messages for the current user (inbox)
 router.get('/inbox', authenticateToken, async (req, res) => {
   try {
     const messages = await Message.findAll({
-      where: { recipientId: req.user.userId },
+      where: { recipientId: req.user.id },
       include: [
         {
           model: User,
@@ -36,7 +37,7 @@ router.get('/inbox', authenticateToken, async (req, res) => {
 router.get('/sent', authenticateToken, async (req, res) => {
   try {
     const messages = await Message.findAll({
-      where: { senderId: req.user.userId },
+      where: { senderId: req.user.id },
       include: [
         {
           model: User,
@@ -76,7 +77,7 @@ router.post('/', authenticateToken, async (req, res) => {
     }
     
     // Prevent sending message to yourself
-    if (recipientId === req.user.userId) {
+    if (recipientId === req.user.id) {
       return res.status(400).json({ error: 'Cannot send message to yourself' });
     }
     
@@ -89,7 +90,7 @@ router.post('/', authenticateToken, async (req, res) => {
     }
     
     const message = await Message.create({
-      senderId: req.user.userId,
+      senderId: req.user.id,
       recipientId,
       subject: subject || 'New Message',
       content,
@@ -134,7 +135,7 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
     }
     
     // Only the recipient can mark a message as read
-    if (message.recipientId !== req.user.userId) {
+    if (message.recipientId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -160,7 +161,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
     
     // Only the sender or recipient can delete a message
-    if (message.senderId !== req.user.userId && message.recipientId !== req.user.userId) {
+    if (message.senderId !== req.user.id && message.recipientId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -177,7 +178,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
   try {
     const count = await Message.count({
       where: {
-        recipientId: req.user.userId,
+        recipientId: req.user.id,
         isRead: false
       }
     });
@@ -186,6 +187,37 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching unread count:', error);
     res.status(500).json({ error: 'Error fetching unread count' });
+  }
+});
+
+// Get conversation between two users
+router.get('/conversation/:userId', authenticateToken, async (req, res) => {
+  try {
+    const otherUserId = req.params.userId;
+    
+    // Prevent getting conversation with yourself
+    if (otherUserId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot get conversation with yourself' });
+    }
+
+    const messages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: req.user.id, recipientId: otherUserId },
+          { senderId: otherUserId, recipientId: req.user.id }
+        ]
+      },
+      include: [
+        { model: User, as: 'sender', attributes: ['email', 'profile', 'id'] },
+        { model: User, as: 'recipient', attributes: ['email', 'profile', 'id'] }
+      ],
+      order: [['createdAt', 'ASC']]
+    });
+
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching conversation:', error);
+    res.status(500).json({ error: 'Error fetching conversation' });
   }
 });
 

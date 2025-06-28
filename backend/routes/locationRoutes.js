@@ -25,7 +25,7 @@ router.get('/', authenticateToken, async (req, res) => {
     // For profile page requests, filter based on user type and userId
     if (req.query.profile === 'true') {
       if (!req.user.isAdmin) {
-        query.where = { creatorId: req.user.userId };
+        query.where = { creatorId: req.user.id };
       }
       // Admin users will see all locations in their profile
       // Remove limit for profile page to show all user's locations
@@ -217,7 +217,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
     const { creditAmount } = req.body;
     
     // Check if user has enough credits
-    const user = await User.findByPk(req.user.userId);
+    const user = await User.findByPk(req.user.id);
     if (creditAmount > user.credits) {
       return res.status(400).json({ error: 'Insufficient credits' });
     }
@@ -293,7 +293,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       content,
       keywords: parsedKeywords,
       locationType: locationType || 'general',
-      creatorId: req.user.userId,
+      creatorId: req.user.id,
       autoDelete: autoDelete === 'true',
       deleteAt,
       credits: creditAmount || 0
@@ -321,7 +321,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 
     // Allow deletion if user is admin OR is the creator
-    if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
+    if (!req.user.isAdmin && location.creatorId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized to delete this location' });
     }
 
@@ -342,7 +342,7 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    if (!req.user.isAdmin && location.creatorId !== req.user.userId) {
+    if (!req.user.isAdmin && location.creatorId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized to update this location' });
     }
 
@@ -406,7 +406,7 @@ router.put('/:id', authenticateToken, upload.array('media'), async (req, res) =>
 router.post('/:locationId/vote', authenticateToken, async (req, res) => {
   try {
     const { voteType } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const locationId = req.params.locationId;
 
     // Update location votes

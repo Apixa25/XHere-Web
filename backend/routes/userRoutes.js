@@ -128,7 +128,7 @@ router.post('/login', async (req, res) => {
 router.get('/locations', authenticateToken, async (req, res) => {
   try {
     const locations = await Location.findAll({
-      where: { creatorId: req.user.userId },
+      where: { creatorId: req.user.id },
       include: [{
         model: User,
         as: 'creator',
@@ -154,7 +154,7 @@ router.put('/locations/:id', authenticateToken, upload.array('media'), async (re
     }
 
     // Check authorization
-    if (location.creatorId !== req.user.userId) {
+    if (location.creatorId !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized to modify this location' });
     }
 
@@ -261,7 +261,7 @@ router.put('/make-admin', async (req, res) => {
 // Add this new route
 router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.userId, {
+    const user = await User.findByPk(req.user.id, {
       attributes: ['id', 'email', 'profile', 'isAdmin', 'credits']
     });
 
@@ -317,11 +317,11 @@ router.get('/profile/:userId', authenticateToken, async (req, res) => {
 
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.userId);
+    const user = await User.findByPk(req.user.id);
     console.log('User data from DB:', JSON.stringify(user, null, 2));
     
     // Check and award badges in one place only
-    const badges = await checkAndAwardBadges(req.user.userId);
+    const badges = await checkAndAwardBadges(req.user.id);
     console.log('Badges checked:', badges);
     
     res.json({ 
@@ -347,7 +347,7 @@ router.post('/profile-picture',
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const user = await User.findByPk(req.user.userId);
+      const user = await User.findByPk(req.user.id);
       user.profile = {
         ...user.profile,
         pictureUrl: req.file.path.replace(/\\/g, '/')
@@ -377,7 +377,7 @@ router.get('/search', authenticateToken, async (req, res) => {
           { email: { [Op.iLike]: `%${query}%` } },
           Sequelize.literal(`CAST("profile"->>'name' AS TEXT) ILIKE '%${query}%'`)
         ],
-        id: { [Op.ne]: req.user.userId } // Exclude current user
+        id: { [Op.ne]: req.user.id } // Exclude current user
       },
       attributes: ['id', 'email', 'profile'],
       limit: 10,

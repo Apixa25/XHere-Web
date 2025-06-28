@@ -12,7 +12,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
   try {
     const { locationId } = req.params;
     const { voteType } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     console.log('Vote attempt:', { locationId, userId, voteType });
 

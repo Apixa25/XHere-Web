@@ -12,7 +12,12 @@ class CreditService {
    */
   async getBalance(userId) {
     try {
+      console.log('🔍 CreditService.getBalance - Looking for user ID:', userId);
       const user = await User.findByPk(userId);
+      console.log('🔍 CreditService.getBalance - User found:', user ? 'Yes' : 'No');
+      if (user) {
+        console.log('🔍 CreditService.getBalance - User credits:', user.credits);
+      }
       if (!user) {
         throw new Error('User not found');
       }

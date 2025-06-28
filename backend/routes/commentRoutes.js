@@ -90,7 +90,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
     }
 
     // Prevent users from commenting on their own locations (optional feature)
-    // if (location.creatorId === req.user.userId) {
+    // if (location.creatorId === req.user.id) {
     //   return res.status(400).json({ error: 'Cannot comment on your own location' });
     // }
 
@@ -108,7 +108,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
     const comment = await LocationComment.create({
       text,
       locationId,
-      authorId: req.user.userId,
+      authorId: req.user.id,
       parentCommentId: parentCommentId || null,
       isAnonymous: isAnonymous === 'true',
       mediaUrls: req.files ? req.files.map(file => file.path) : [],
@@ -125,7 +125,7 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
     });
 
     // Check for new badges
-    const newBadges = await checkAndAwardBadges(req.user.userId);
+    const newBadges = await checkAndAwardBadges(req.user.id);
 
     res.status(201).json({ 
       comment: commentWithAuthor,
@@ -149,7 +149,7 @@ router.put('/:commentId', authenticateToken, upload.array('media'), async (req, 
     }
 
     // Only allow the author or admin to edit
-    if (!req.user.isAdmin && comment.authorId !== req.user.userId) {
+    if (!req.user.isAdmin && comment.authorId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized to edit this comment' });
     }
 
@@ -200,7 +200,7 @@ router.delete('/:commentId', authenticateToken, async (req, res) => {
     }
 
     // Only allow the author or admin to delete
-    if (!req.user.isAdmin && comment.authorId !== req.user.userId) {
+    if (!req.user.isAdmin && comment.authorId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized to delete this comment' });
     }
 
@@ -217,7 +217,7 @@ router.post('/:commentId/vote', authenticateToken, async (req, res) => {
   try {
     const { commentId } = req.params;
     const { voteType } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const comment = await LocationComment.findByPk(commentId);
     if (!comment) {

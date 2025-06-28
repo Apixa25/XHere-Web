@@ -9,7 +9,7 @@ const sequelize = require('../config/database');
 // Admin middleware
 const adminAuth = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.user.userId);
+    const user = await User.findByPk(req.user.id);
     if (!user?.isAdmin) {
       return res.status(403).json({ error: 'Admin access denied' });
     }
@@ -71,7 +71,7 @@ router.delete('/users/:userId', authenticateToken, adminAuth, async (req, res) =
     }
 
     // Prevent deleting yourself
-    if (userToDelete.id === req.user.userId) {
+    if (userToDelete.id === req.user.id) {
       await transaction.rollback();
       return res.status(400).json({ error: 'Cannot delete your own admin account' });
     }

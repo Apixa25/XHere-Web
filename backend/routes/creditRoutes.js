@@ -12,6 +12,8 @@ const { validateSufficientCredits } = require('../middleware/credit');
  */
 router.get('/balance', authenticateToken, async (req, res) => {
   try {
+    console.log('🔍 Credit balance request - User ID:', req.user.id);
+    console.log('🔍 Credit balance request - User object:', req.user);
     const balance = await creditService.getBalance(req.user.id);
     res.json({
       success: true,
