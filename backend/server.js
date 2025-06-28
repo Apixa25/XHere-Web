@@ -156,12 +156,8 @@ const messageRoutes = require('./routes/messageRoutes');
 const creditRoutes = require('./routes/creditRoutes');
 const ownershipRoutes = require('./routes/ownershipRoutes');
 
-// Register the Stripe webhook route BEFORE body parsers
-app.use('/api/credits/stripe-webhook', require('./routes/creditRoutes'));
-
-// Body parsing middleware (for all other routes)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Register the Stripe webhook route BEFORE body parsers (raw body needed)
+app.use('/api/credits/stripe-webhook', express.raw({ type: 'application/json' }), creditRoutes);
 
 // Register all other routes
 app.use('/api/auth', authRoutes);

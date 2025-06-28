@@ -1,0 +1,240 @@
+/* Location Trading Components Styles */
+
+/* Purchase Modal Animations */
+.purchase-modal-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.purchase-modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.purchase-modal-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.purchase-modal-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Buy Location Button Hover Effects */
+.buy-location-button {
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.buy-location-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.buy-location-button:active {
+  transform: translateY(0);
+}
+
+/* Ownership Status Badge Animations */
+.ownership-badge {
+  transition: all 0.2s ease;
+}
+
+.ownership-badge:hover {
+  transform: scale(1.05);
+}
+
+/* Price Trend Indicators */
+.price-trend-early {
+  background: linear-gradient(45deg, #4CAF50, #66BB6A);
+}
+
+.price-trend-mid {
+  background: linear-gradient(45deg, #FF9800, #FFB74D);
+}
+
+.price-trend-late {
+  background: linear-gradient(45deg, #F44336, #EF5350);
+}
+
+/* Purchase History Timeline */
+.purchase-history-timeline {
+  position: relative;
+}
+
+.purchase-history-timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #4CAF50, #FF9800, #F44336);
+}
+
+/* Loading Spinner */
+.trading-loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success Animation */
+.purchase-success {
+  animation: successPulse 0.6s ease-in-out;
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Error Animation */
+.purchase-error {
+  animation: errorShake 0.5s ease-in-out;
+}
+
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Price Display */
+.price-display {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  transition: all 0.2s ease;
+}
+
+.price-display:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* Official Badge */
+.official-badge {
+  background: linear-gradient(135deg, #2196F3, #42A5F5);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+  animation: officialGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes officialGlow {
+  from { box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3); }
+  to { box-shadow: 0 2px 12px rgba(33, 150, 243, 0.6); }
+}
+
+/* Portfolio Stats Cards */
+.portfolio-stats-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.portfolio-stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Trading Actions Container */
+.trading-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .trading-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .portfolio-stats-card {
+    margin-bottom: 16px;
+  }
+  
+  .price-display {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+  
+  .official-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .portfolio-stats-card {
+    background: #2d2d2d;
+    border-color: #444;
+    color: #fff;
+  }
+  
+  .price-display {
+    background: linear-gradient(135deg, #2e7d32, #388e3c);
+  }
+  
+  .official-badge {
+    background: linear-gradient(135deg, #1565c0, #1976d2);
+  }
+}
+
+/* Accessibility */
+.buy-location-button:focus {
+  outline: 2px solid #4CAF50;
+  outline-offset: 2px;
+}
+
+.ownership-badge:focus {
+  outline: 2px solid #2196F3;
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .price-display {
+    border: 2px solid #4CAF50;
+  }
+  
+  .official-badge {
+    border: 2px solid #2196F3;
+  }
+  
+  .portfolio-stats-card {
+    border: 2px solid #333;
+  }
+} 

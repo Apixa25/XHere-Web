@@ -1,11 +1,15 @@
 import VoteButtons from '../VoteButtons';
 import MessageButton from '../messaging/MessageButton';
 import KeywordsDisplay from '../KeywordsDisplay';
+import BuyLocationButton from '../BuyLocationButton';
+import OwnershipStatus from '../OwnershipStatus';
+import PurchaseHistory from '../PurchaseHistory';
 import React, { useState } from "react";
 import LocationShareModal from "./LocationShareModal";
 
 const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   const [showShare, setShowShare] = useState(false);
+  const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const locationLink = `${window.location.origin}/location/${location.id}`;
 
   const getStatusBadge = () => {
@@ -74,6 +78,16 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   // Debug log
   console.log('DEBUG: Current user id:', currentUserId, 'Creator id:', creatorId);
 
+  const handlePurchaseSuccess = (result) => {
+    console.log('Location purchased successfully:', result);
+    // You can add additional logic here, like refreshing the location list
+  };
+
+  const handlePurchaseError = (error) => {
+    console.error('Purchase error:', error);
+    // You can add error handling logic here
+  };
+
   return (
     <div
       key={location.id}
@@ -110,6 +124,20 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
           
           {/* Keywords Display */}
           <KeywordsDisplay keywords={location.keywords} maxDisplay={3} />
+          
+          {/* Ownership Status Indicators */}
+          <div style={{
+            marginTop: '8px',
+            marginBottom: '8px'
+          }}>
+            <OwnershipStatus 
+              location={location} 
+              compact={compact}
+              onStatusUpdate={() => {
+                // Refresh ownership status if needed
+              }}
+            />
+          </div>
           
           <div style={{
             display: 'flex',
@@ -150,6 +178,50 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
                 Send Message
               </MessageButton>
             )}
+          </div>
+
+          {/* Location Trading Actions */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '8px',
+            margin: '8px 0'
+          }}>
+            <BuyLocationButton
+              location={location}
+              onPurchaseSuccess={handlePurchaseSuccess}
+              onError={handlePurchaseError}
+              compact={compact}
+            />
+            
+            {/* Purchase History Button */}
+            <button
+              onClick={() => setShowPurchaseHistory(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: compact ? '6px 10px' : '8px 12px',
+                backgroundColor: '#f5f5f5',
+                color: '#666',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: compact ? '11px' : '12px',
+                fontWeight: 'bold',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#e0e0e0';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = '#f5f5f5';
+              }}
+            >
+              <span>📜</span>
+              <span>History</span>
+            </button>
           </div>
           
           {/* ... rest of the existing code ... */}
@@ -197,9 +269,39 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
           </div>
         </div>
       </div>
-      <button onClick={() => setShowShare(true)}>Share</button>
+      
+      {/* Share Button */}
+      <button 
+        onClick={() => setShowShare(true)}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: '#2196F3',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          marginTop: '10px',
+          transition: 'background-color 0.2s'
+        }}
+        onMouseOver={(e) => e.target.style.backgroundColor = '#1976D2'}
+        onMouseOut={(e) => e.target.style.backgroundColor = '#2196F3'}
+      >
+        Share
+      </button>
+      
+      {/* Modals */}
       {showShare && (
         <LocationShareModal link={locationLink} onClose={() => setShowShare(false)} />
+      )}
+      
+      {showPurchaseHistory && (
+        <PurchaseHistory
+          locationId={location.id}
+          isOpen={showPurchaseHistory}
+          onClose={() => setShowPurchaseHistory(false)}
+        />
       )}
     </div>
   );

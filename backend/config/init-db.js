@@ -14,78 +14,7 @@ async function initializeDatabase() {
     await sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
     console.log('PostGIS extension enabled.');
 
-    // Define associations
-    Location.belongsTo(User, {
-      foreignKey: 'creatorId',
-      as: 'creator'
-    });
-    
-    User.hasMany(Location, {
-      foreignKey: 'creatorId',
-      as: 'locations'
-    });
-
-    // LocationComment associations
-    LocationComment.belongsTo(Location, {
-      foreignKey: 'locationId',
-      as: 'location'
-    });
-
-    LocationComment.belongsTo(User, {
-      foreignKey: 'authorId',
-      as: 'author'
-    });
-
-    LocationComment.belongsTo(LocationComment, {
-      foreignKey: 'parentCommentId',
-      as: 'parentComment'
-    });
-
-    LocationComment.hasMany(LocationComment, {
-      foreignKey: 'parentCommentId',
-      as: 'replies'
-    });
-
-    Location.hasMany(LocationComment, {
-      foreignKey: 'locationId',
-      as: 'comments'
-    });
-
-    User.hasMany(LocationComment, {
-      foreignKey: 'authorId',
-      as: 'comments'
-    });
-
-    // Message associations
-    Message.belongsTo(User, {
-      foreignKey: 'senderId',
-      as: 'sender'
-    });
-
-    Message.belongsTo(User, {
-      foreignKey: 'recipientId',
-      as: 'recipient'
-    });
-
-    Message.belongsTo(Location, {
-      foreignKey: 'locationId',
-      as: 'location'
-    });
-
-    User.hasMany(Message, {
-      foreignKey: 'senderId',
-      as: 'sentMessages'
-    });
-
-    User.hasMany(Message, {
-      foreignKey: 'recipientId',
-      as: 'receivedMessages'
-    });
-
-    Location.hasMany(Message, {
-      foreignKey: 'locationId',
-      as: 'messages'
-    });
+    // No associations here; all are defined in model associate methods
 
     // Sync database with new fields
     await sequelize.sync({ alter: true });

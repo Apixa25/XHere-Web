@@ -41,6 +41,51 @@ const validateCredits = (requiredCredits) => {
 };
 
 /**
+ * Middleware to validate sufficient credits for spending
+ * Gets the required amount from request body
+ */
+const validateSufficientCredits = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { amount } = req.body;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid amount is required'
+      });
+    }
+
+    const hasSufficient = await creditService.hasSufficientCredits(userId, amount);
+    
+    if (!hasSufficient) {
+      const balance = await creditService.getBalance(userId);
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient credits. Required: ${amount}, Available: ${balance}`,
+        required: amount,
+        available: balance
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Credit validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error validating credits'
+    });
+  }
+};
+
+/**
  * Middleware to validate location purchase credits
  * Uses dynamic credit calculation based on location
  */
@@ -113,6 +158,7 @@ const getUserCredits = async (req, res, next) => {
 
 module.exports = {
   validateCredits,
+  validateSufficientCredits,
   validateLocationPurchaseCredits,
   validateOfficialLocationCredits,
   getUserCredits
