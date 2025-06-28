@@ -330,21 +330,77 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
 
 // Delete endpoint
 router.delete('/:id', authenticateToken, async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
     const location = await Location.findByPk(req.params.id);
     
     if (!location) {
+      await transaction.rollback();
       return res.status(404).json({ error: 'Location not found' });
     }
 
     // Allow deletion if user is admin OR is the creator
     if (!req.user.isAdmin && location.creatorId !== req.user.id) {
+      await transaction.rollback();
       return res.status(403).json({ error: 'Unauthorized to delete this location' });
     }
 
-    await location.destroy();
+    console.log('🗑️ Deleting location and related records:', req.params.id);
+
+    // Import required models
+    const LocationOwnership = require('../models/LocationOwnership');
+    const LocationOwnershipHistory = require('../models/LocationOwnershipHistory');
+    const LocationNomination = require('../models/LocationNomination');
+    const NominationVote = require('../models/NominationVote');
+    const LocationComment = require('../models/LocationComment');
+
+    // Delete related records in the correct order (child tables first)
+    
+    // 1. Delete nomination votes (child of nominations)
+    await NominationVote.destroy({
+      where: {
+        nominationId: {
+          [Op.in]: sequelize.literal(`(SELECT id FROM "LocationNominations" WHERE "locationId" = '${req.params.id}')`)
+        }
+      },
+      transaction
+    });
+
+    // 2. Delete location nominations
+    await LocationNomination.destroy({
+      where: { locationId: req.params.id },
+      transaction
+    });
+
+    // 3. Delete location ownership history
+    await LocationOwnershipHistory.destroy({
+      where: { locationId: req.params.id },
+      transaction
+    });
+
+    // 4. Delete location ownership
+    await LocationOwnership.destroy({
+      where: { locationId: req.params.id },
+      transaction
+    });
+
+    // 5. Delete location comments
+    await LocationComment.destroy({
+      where: { locationId: req.params.id },
+      transaction
+    });
+
+    // 6. Finally delete the location itself
+    await location.destroy({ transaction });
+
+    await transaction.commit();
+    
+    console.log('✅ Location deleted successfully');
     res.json({ message: 'Location deleted successfully' });
+    
   } catch (error) {
+    await transaction.rollback();
     console.error('Error deleting location:', error);
     res.status(500).json({ error: error.message });
   }
