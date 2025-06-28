@@ -132,6 +132,29 @@ const UserOwnedLocations = () => {
         }}>
           Manage your location portfolio and trading activities
         </p>
+        
+        {/* Back to Map Button */}
+        <button
+          onClick={() => window.location.href = '/'}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            transition: 'background-color 0.2s',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
+          onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
+        >
+          🗺️ Back to Map
+        </button>
       </div>
 
       {/* Stats and Credit Balance */}

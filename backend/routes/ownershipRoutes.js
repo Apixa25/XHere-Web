@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const { validateLocationPurchaseCredits, validateOfficialLocationCredits, getUserCredits } = require('../middleware/credit');
 const locationTradingService = require('../services/locationTradingService');
+const sequelize = require('../config/database');
 
 /**
  * @route POST /api/ownership/purchase
@@ -24,12 +25,13 @@ router.post('/purchase',
         });
       }
 
-      const result = await locationTradingService.purchaseLocation({ buyerId, locationId });
-      
-      res.json({ 
-        success: true, 
-        message: 'Location purchased successfully!',
-        ...result 
+      await sequelize.transaction(async (t) => {
+        const result = await locationTradingService.purchaseLocation({ buyerId, locationId, transaction: t });
+        res.json({ 
+          success: true, 
+          message: 'Location purchased successfully!',
+          ...result 
+        });
       });
     } catch (error) {
       console.error('Purchase location error:', error);
@@ -173,6 +175,32 @@ router.get('/:locationId/history', async (req, res) => {
 });
 
 /**
+ * @route GET /api/ownership/user/me
+ * @desc Get current user's owned locations
+ * @access Private
+ */
+router.get('/user/me', 
+  authenticateToken, 
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const ownedLocations = await locationTradingService.getUserOwnedLocations(userId);
+      
+      res.json({ 
+        success: true, 
+        ownedLocations 
+      });
+    } catch (error) {
+      console.error('Get user owned locations error:', error);
+      res.status(400).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  }
+);
+
+/**
  * @route GET /api/ownership/user/:userId
  * @desc Get all locations owned by a user
  * @access Private (user can only see their own locations)
@@ -200,34 +228,6 @@ router.get('/user/:userId',
       });
     } catch (error) {
       console.error('Get user owned locations error:', error);
-      res.status(400).json({ 
-        success: false, 
-        message: error.message 
-      });
-    }
-  }
-);
-
-/**
- * @route GET /api/ownership/user/me
- * @desc Get current user's owned locations
- * @access Private
- */
-router.get('/user/me', 
-  authenticateToken, 
-  getUserCredits,
-  async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const ownedLocations = await locationTradingService.getUserOwnedLocations(userId);
-      
-      res.json({ 
-        success: true, 
-        ownedLocations,
-        userCredits: req.userCredits
-      });
-    } catch (error) {
-      console.error('Get my owned locations error:', error);
       res.status(400).json({ 
         success: false, 
         message: error.message 

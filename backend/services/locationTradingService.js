@@ -72,127 +72,126 @@ class LocationTradingService {
    * @param {Object} params - Purchase parameters
    * @param {string} params.buyerId - Buyer's user ID
    * @param {string} params.locationId - Location ID to purchase
+   * @param {object} params.transaction - Sequelize transaction object
    * @returns {Promise<Object>} Purchase result
    */
-  async purchaseLocation({ buyerId, locationId }) {
-    return await sequelize.transaction(async (t) => {
-      try {
-        // Validate buyer exists
-        const buyer = await User.findByPk(buyerId, { 
-          transaction: t, 
-          lock: t.LOCK.UPDATE 
-        });
-        if (!buyer) {
-          throw new Error('Buyer not found');
-        }
-
-        // Get or create ownership record
-        let ownership = await LocationOwnership.findOne({ 
-          where: { locationId }, 
-          transaction: t, 
-          lock: t.LOCK.UPDATE 
-        });
-
-        if (!ownership) {
-          // Create initial ownership if it doesn't exist
-          const location = await Location.findByPk(locationId, { transaction: t });
-          if (!location) {
-            throw new Error('Location not found');
-          }
-
-          ownership = await LocationOwnership.create({
-            locationId,
-            ownerId: location.creatorId,
-            currentPrice: PriceCalculationService.BASE_PRICE,
-            purchaseCount: 0,
-            isOfficial: false
-          }, { transaction: t });
-        }
-
-        // Check if buyer already owns the location
-        if (ownership.ownerId === buyerId) {
-          throw new Error('You already own this location');
-        }
-
-        // Calculate current price using PriceCalculationService
-        const currentPrice = PriceCalculationService.calculatePrice(ownership.purchaseCount);
-        
-        // Validate price is reasonable
-        if (!PriceCalculationService.validatePrice(currentPrice)) {
-          throw new Error('Location price is too high to purchase');
-        }
-        
-        // Validate buyer has sufficient credits
-        if (buyer.credits < currentPrice) {
-          throw new Error(`Insufficient credits. Required: ${PriceCalculationService.formatPrice(currentPrice)}, Available: ${buyer.credits} credits`);
-        }
-
-        // Deduct credits from buyer
-        await creditService.spendCredits(
-          buyerId, 
-          currentPrice, 
-          'location_purchase', 
-          { 
-            locationId,
-            previousOwnerId: ownership.ownerId,
-            purchaseCount: ownership.purchaseCount
-          },
-          { transaction: t }
-        );
-
-        // Add credits to previous owner (if not the original creator)
-        const previousOwner = await User.findByPk(ownership.ownerId, { transaction: t });
-        if (previousOwner && previousOwner.id !== ownership.ownerId) {
-          const sellerProfit = PriceCalculationService.calculateSellerProfit(currentPrice);
-          await creditService.addCredits(
-            ownership.ownerId,
-            sellerProfit,
-            'location_sale',
-            { locationId, buyerId },
-            { transaction: t }
-          );
-        }
-
-        // Log purchase history
-        await LocationOwnershipHistory.create({
-          locationId,
-          buyerId,
-          pricePaid: currentPrice,
-          purchasedAt: new Date()
-        }, { transaction: t });
-
-        // Transfer ownership
-        const newPurchaseCount = ownership.purchaseCount + 1;
-        const newPrice = PriceCalculationService.calculatePrice(newPurchaseCount);
-
-        await ownership.update({
-          ownerId: buyerId,
-          purchaseCount: newPurchaseCount,
-          currentPrice: newPrice
-        }, { transaction: t });
-
-        // Reload ownership with associations
-        await ownership.reload({
-          include: [
-            { model: Location, as: 'location' },
-            { model: User, as: 'owner' }
-          ],
-          transaction: t
-        });
-
-        return {
-          success: true,
-          ownership: ownership.toJSON(),
-          pricePaid: currentPrice,
-          nextPrice: newPrice,
-          purchaseCount: newPurchaseCount,
-          priceInfo: PriceCalculationService.getPriceInfo(newPurchaseCount)
-        };
-      } catch (error) {
-        console.error('Error in purchaseLocation:', error);
-        throw error;
+  async purchaseLocation({ buyerId, locationId, transaction }) {
+    try {
+      // Validate buyer exists
+      const buyer = await User.findByPk(buyerId, { 
+        transaction, 
+        lock: transaction.LOCK.UPDATE 
+      });
+      if (!buyer) {
+        throw new Error('Buyer not found');
       }
-    });
+
+      // Get or create ownership record
+      let ownership = await LocationOwnership.findOne({ 
+        where: { locationId }, 
+        transaction, 
+        lock: transaction.LOCK.UPDATE 
+      });
+
+      if (!ownership) {
+        // Create initial ownership if it doesn't exist
+        const location = await Location.findByPk(locationId, { transaction });
+        if (!location) {
+          throw new Error('Location not found');
+        }
+
+        ownership = await LocationOwnership.create({
+          locationId,
+          ownerId: location.creatorId,
+          currentPrice: PriceCalculationService.BASE_PRICE,
+          purchaseCount: 0,
+          isOfficial: false
+        }, { transaction });
+      }
+
+      // Check if buyer already owns the location
+      if (ownership.ownerId === buyerId) {
+        throw new Error('You already own this location');
+      }
+
+      // Calculate current price using PriceCalculationService
+      const currentPrice = PriceCalculationService.calculatePrice(ownership.purchaseCount);
+      
+      // Validate price is reasonable
+      if (!PriceCalculationService.validatePrice(currentPrice)) {
+        throw new Error('Location price is too high to purchase');
+      }
+      
+      // Validate buyer has sufficient credits
+      if (buyer.credits < currentPrice) {
+        throw new Error(`Insufficient credits. Required: ${PriceCalculationService.formatPrice(currentPrice)}, Available: ${buyer.credits} credits`);
+      }
+
+      // Deduct credits from buyer
+      await creditService.spendCredits(
+        buyerId, 
+        currentPrice, 
+        'spend', 
+        { 
+          locationId,
+          previousOwnerId: ownership.ownerId,
+          purchaseCount: ownership.purchaseCount
+        },
+        { transaction }
+      );
+
+      // Add credits to previous owner (if not the original creator)
+      const previousOwner = await User.findByPk(ownership.ownerId, { transaction });
+      if (previousOwner && previousOwner.id !== ownership.ownerId) {
+        const sellerProfit = PriceCalculationService.calculateSellerProfit(currentPrice);
+        await creditService.addCredits(
+          ownership.ownerId,
+          sellerProfit,
+          'bonus',
+          { locationId, buyerId },
+          { transaction }
+        );
+      }
+
+      // Log purchase history
+      await LocationOwnershipHistory.create({
+        locationId,
+        buyerId,
+        pricePaid: currentPrice,
+        purchasedAt: new Date()
+      }, { transaction });
+
+      // Transfer ownership
+      const newPurchaseCount = ownership.purchaseCount + 1;
+      const newPrice = PriceCalculationService.calculatePrice(newPurchaseCount);
+
+      await ownership.update({
+        ownerId: buyerId,
+        purchaseCount: newPurchaseCount,
+        currentPrice: newPrice
+      }, { transaction });
+
+      // Reload ownership with associations
+      await ownership.reload({
+        include: [
+          { model: Location, as: 'location' },
+          { model: User, as: 'owner' }
+        ],
+        transaction
+      });
+
+      return {
+        success: true,
+        ownership: ownership.toJSON(),
+        pricePaid: currentPrice,
+        nextPrice: newPrice,
+        purchaseCount: newPurchaseCount,
+        priceInfo: PriceCalculationService.getPriceInfo(newPurchaseCount)
+      };
+    } catch (error) {
+      console.error('Error in purchaseLocation:', error);
+      throw error;
+    }
   }
 
   /**

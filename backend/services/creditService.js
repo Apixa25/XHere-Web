@@ -33,12 +33,13 @@ class CreditService {
    * @param {string} userId - User ID
    * @param {number} amount - Amount of credits to add
    * @param {string} transactionType - Type of transaction
-   * @param {string} description - Transaction description
    * @param {Object} metadata - Additional transaction data
+   * @param {Object} options - Options including transaction
    * @returns {Promise<Object>} Updated user and transaction
    */
-  async addCredits(userId, amount, transactionType, description = null, metadata = {}) {
-    const transaction = await User.sequelize.transaction();
+  async addCredits(userId, amount, transactionType, metadata = {}, options = {}) {
+    const shouldCommit = !options.transaction;
+    const transaction = options.transaction || await User.sequelize.transaction();
     
     try {
       // Validate amount
@@ -65,7 +66,7 @@ class CreditService {
         userId,
         transactionType,
         amount,
-        description,
+        description: metadata.description || `Added ${amount} credits`,
         status: 'completed',
         metadata
       }, { transaction });
@@ -73,14 +74,18 @@ class CreditService {
       // Update user credit stats
       await this.updateUserCreditStats(userId, amount, transactionType, transaction);
 
-      await transaction.commit();
+      if (shouldCommit) {
+        await transaction.commit();
+      }
 
       return {
         user: await User.findByPk(userId),
         transaction: creditTransaction
       };
     } catch (error) {
-      await transaction.rollback();
+      if (shouldCommit) {
+        await transaction.rollback();
+      }
       console.error('Error adding credits:', error);
       throw error;
     }
@@ -90,12 +95,14 @@ class CreditService {
    * Spend credits from user account
    * @param {string} userId - User ID
    * @param {number} amount - Amount of credits to spend
-   * @param {string} description - Transaction description
+   * @param {string} transactionType - Type of transaction
    * @param {Object} metadata - Additional transaction data
+   * @param {Object} options - Options including transaction
    * @returns {Promise<Object>} Updated user and transaction
    */
-  async spendCredits(userId, amount, description = null, metadata = {}) {
-    const transaction = await User.sequelize.transaction();
+  async spendCredits(userId, amount, transactionType, metadata = {}, options = {}) {
+    const shouldCommit = !options.transaction;
+    const transaction = options.transaction || await User.sequelize.transaction();
     
     try {
       // Validate amount
@@ -125,24 +132,28 @@ class CreditService {
       // Use TransactionService to log transaction
       const creditTransaction = await transactionService.logTransaction({
         userId,
-        transactionType: 'spend',
+        transactionType,
         amount: -amount,
-        description,
+        description: metadata.description || `Spent ${amount} credits`,
         status: 'completed',
         metadata
       }, { transaction });
 
       // Update user credit stats
-      await this.updateUserCreditStats(userId, amount, 'spend', transaction);
+      await this.updateUserCreditStats(userId, amount, transactionType, transaction);
 
-      await transaction.commit();
+      if (shouldCommit) {
+        await transaction.commit();
+      }
 
       return {
         user: await User.findByPk(userId),
         transaction: creditTransaction
       };
     } catch (error) {
-      await transaction.rollback();
+      if (shouldCommit) {
+        await transaction.rollback();
+      }
       console.error('Error spending credits:', error);
       throw error;
     }
