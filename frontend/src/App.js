@@ -36,6 +36,7 @@ import OwnershipStatus from './components/OwnershipStatus';
 import PurchaseHistory from './components/PurchaseHistory';
 import UserOwnedLocations from './components/UserOwnedLocations';
 import OfficialLocationsPage from './components/OfficialLocationsPage';
+import MakeOfficialButton from './components/MakeOfficialButton';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -236,6 +237,59 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
         />
       </div>
       
+      {/* Official Status Indicator */}
+      {marker.isOfficial && (
+        <div style={{
+          marginBottom: '16px',
+          padding: '12px',
+          backgroundColor: '#E3F2FD',
+          borderRadius: '8px',
+          border: '2px solid #2196F3',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '4px'
+          }}>
+            <span style={{ fontSize: '20px' }}>🔵</span>
+            <span style={{
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#1976D2'
+            }}>
+              Official Location
+            </span>
+            <span style={{ fontSize: '20px' }}>✓</span>
+          </div>
+          <div style={{
+            fontSize: '12px',
+            color: '#666',
+            marginBottom: '4px'
+          }}>
+            Made official by: {marker.officialOwner?.profile?.name || marker.officialOwner?.email || 'Unknown'}
+          </div>
+          {marker.officializedAt && (
+            <div style={{
+              fontSize: '11px',
+              color: '#888'
+            }}>
+              Date: {new Date(marker.officializedAt).toLocaleDateString()}
+            </div>
+          )}
+          <div style={{
+            fontSize: '11px',
+            color: '#1976D2',
+            marginTop: '4px',
+            fontWeight: 'bold'
+          }}>
+            🔒 150-foot protected boundary
+          </div>
+        </div>
+      )}
+      
       <div className="marker-header">
         <div className="poster-info">
           <p className="poster-name">
@@ -305,6 +359,36 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           onError={handlePurchaseError}
           compact={false}
         />
+        
+        {/* Make Official Button - Show for non-official locations */}
+        {!marker.isOfficial && (
+          <MakeOfficialButton
+            location={marker}
+            onSuccess={(result) => {
+              console.log('Location made official:', result);
+              // Update the marker data to reflect the new official status
+              if (result.location) {
+                // Update the marker with the new official status
+                Object.assign(marker, result.location);
+                // Force a re-render by updating state
+                // This will trigger the InfoBoxModal to re-render with updated data
+                setTimeout(() => {
+                  window.location.reload(); // Simple refresh for now
+                }, 1000);
+              }
+            }}
+            onError={(error) => {
+              console.error('Error making location official:', error);
+              // If the error is about location already being official, refresh the data
+              if (error.response?.data?.message?.includes('already official')) {
+                alert('This location is already official. Refreshing data...');
+                // Refresh the location data to sync with backend
+                fetchLocations();
+              }
+            }}
+            compact={false}
+          />
+        )}
         
         {/* Purchase History Button */}
         <button
@@ -1130,7 +1214,7 @@ function App() {
       }
 
       const markerElement = document.createElement('div');
-      markerElement.className = 'custom-marker';
+      markerElement.className = `custom-marker ${location.isOfficial ? 'official' : ''}`;
       
       const shortText = location.content?.text?.substring(0, 25) + 
         (location.content?.text?.length > 25 ? '...' : '');
@@ -1149,6 +1233,7 @@ function App() {
           <div class="marker-text">${shortText}</div>
           <div class="marker-stats" style="display: flex; align-items: center; gap: 10px; flex-direction: row;">
             <span class="votes" style="display: inline-flex; align-items: center;">⬆️ ${location.upvotes || 0}</span>${location.credits > 0 ? `<span class="credits" style="display: inline-flex; align-items: center;">💵 ${location.credits}</span>` : ''}
+            ${location.isOfficial ? '<span style="color: #2196F3; font-size: 16px; margin-left: 4px;" title="Official Location">🔵</span>' : ''}
           </div>
         </div>
       `;

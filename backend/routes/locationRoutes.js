@@ -18,6 +18,10 @@ router.get('/', authenticateToken, async (req, res) => {
         model: User,
         as: 'creator',
         attributes: ['email', 'profile', 'id']
+      }, {
+        model: User,
+        as: 'officialOwner',
+        attributes: ['email', 'profile', 'id']
       }],
       order: [['createdAt', 'DESC']],
       limit: 25 // Limit to 25 locations maximum
@@ -73,10 +77,22 @@ router.get('/', authenticateToken, async (req, res) => {
       const hasCreator = query.include.some(
         inc => inc.model === User && inc.as === 'creator'
       );
+      const hasOfficialOwner = query.include.some(
+        inc => inc.model === User && inc.as === 'officialOwner'
+      );
+      
       if (!hasCreator) {
         query.include.push({
           model: User,
           as: 'creator',
+          attributes: ['email', 'profile', 'id']
+        });
+      }
+      
+      if (!hasOfficialOwner) {
+        query.include.push({
+          model: User,
+          as: 'officialOwner',
           attributes: ['email', 'profile', 'id']
         });
       }

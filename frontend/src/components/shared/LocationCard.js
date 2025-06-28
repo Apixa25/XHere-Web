@@ -17,17 +17,9 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
     // Show official status first if location is official
     if (location.isOfficial) {
       return (
-        <div style={{
-          backgroundColor: '#2196F3',
-          color: 'white',
-          padding: '4px 8px',
-          borderRadius: '12px',
-          fontSize: '12px',
-          display: 'inline-block',
-          fontWeight: 'bold'
-        }}>
-          ✓ Official
-        </div>
+        <span className="official-badge" style={{ marginLeft: '8px' }}>
+          <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>✔️</span> Official
+        </span>
       );
     }
 
@@ -189,6 +181,13 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
             {getStatusBadge()}
           </div>
 
+          {/* Show MakeOfficialButton if not official */}
+          {!location.isOfficial && (
+            <div style={{ marginTop: '10px' }}>
+              <MakeOfficialButton location={location} />
+            </div>
+          )}
+
           {/* Voting and Message row */}
           <div style={{
             display: 'flex',
@@ -225,14 +224,6 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
               location={location}
               onPurchaseSuccess={handlePurchaseSuccess}
               onError={handlePurchaseError}
-              compact={compact}
-            />
-            
-            {/* Make Official Button */}
-            <MakeOfficialButton
-              location={location}
-              onSuccess={handleMakeOfficialSuccess}
-              onError={handleMakeOfficialError}
               compact={compact}
             />
             

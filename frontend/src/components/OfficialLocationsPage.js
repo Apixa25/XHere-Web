@@ -97,8 +97,41 @@ const OfficialLocationsPage = () => {
     <div className="official-locations-page">
       {/* Header */}
       <div className="official-locations-header">
-        <h1>🔵 Official Locations</h1>
-        <p>Verified locations with blue checkmarks and protected boundaries</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+          <div>
+            <h1>🔵 Official Locations</h1>
+            <p>Verified locations with blue checkmarks and protected boundaries</p>
+          </div>
+          
+          {/* Back to Map Button - Top Right */}
+          <button
+            onClick={() => window.history.back()}
+            className="back-button"
+            style={{
+              padding: '10px 16px',
+              background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)',
+              marginTop: '10px'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
+            }}
+          >
+            ← Back to Map
+          </button>
+        </div>
         
         {/* Stats */}
         {stats && (
@@ -178,16 +211,6 @@ const OfficialLocationsPage = () => {
             </div>
           </>
         )}
-      </div>
-
-      {/* Back to Map Button */}
-      <div className="back-to-map">
-        <button
-          onClick={() => window.history.back()}
-          className="back-button"
-        >
-          ← Back to Map
-        </button>
       </div>
     </div>
   );

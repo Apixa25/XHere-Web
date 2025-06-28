@@ -30,7 +30,8 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
       }
     };
 
-    if (location && !location.isOfficial) {
+    // Always check backend status to ensure data synchronization
+    if (location) {
       checkCanMakeOfficial();
     }
   }, [location]);
@@ -46,7 +47,11 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
           onSuccess(response.data);
         }
         // Show success message
-        alert(`🎉 Location made official! Spent 3 credits.`);
+        if (currentUserId === creatorId) {
+          alert(`🎉 Location protected! Your business location is now official and secure. Spent 3 credits.`);
+        } else {
+          alert(`🎉 Location made official! Spent 3 credits.`);
+        }
       }
     } catch (error) {
       console.error('Error making location official:', error);
@@ -85,13 +90,33 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
     return null;
   }
 
-  // Don't show button if user is the creator (only non-creators can make locations official)
-  if (currentUserId === creatorId) {
-    return null;
+  // Allow both creators and other users to make locations official
+  // This enables business owners to protect their own locations
+  // and allows community members to verify important locations
+
+  // Show loading state while checking if can make official
+  if (canMakeOfficial === null) {
+    return (
+      <button
+        disabled
+        style={{
+          padding: compact ? '4px 6px' : '6px 10px',
+          backgroundColor: '#ccc',
+          color: '#666',
+          border: 'none',
+          borderRadius: '12px',
+          fontSize: compact ? '10px' : '12px',
+          cursor: 'not-allowed',
+          opacity: 0.6
+        }}
+      >
+        Checking...
+      </button>
+    );
   }
 
   // Don't show button if location cannot be made official
-  if (canMakeOfficial && !canMakeOfficial.canMake) {
+  if (!canMakeOfficial.canMake) {
     return (
       <button
         disabled
@@ -107,7 +132,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
         }}
         title={canMakeOfficial.reason}
       >
-        Make Official
+        {canMakeOfficial.reason === 'Location is already official' ? 'Already Official' : 'Make Official'}
       </button>
     );
   }
@@ -119,7 +144,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
         disabled={isLoading}
         style={{
           padding: compact ? '4px 6px' : '6px 10px',
-          backgroundColor: '#FF9800',
+          backgroundColor: currentUserId === creatorId ? '#1976D2' : '#FF9800',
           color: 'white',
           border: 'none',
           borderRadius: '12px',
@@ -129,7 +154,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
           fontWeight: 'bold'
         }}
       >
-        {isLoading ? 'Processing...' : 'Make Official'}
+        {isLoading ? 'Processing...' : (currentUserId === creatorId ? 'Protect Location' : 'Make Official')}
       </button>
 
       {/* Confirmation Modal */}
@@ -154,25 +179,45 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
             width: '90%',
             textAlign: 'center'
           }}>
-            <h3 style={{ marginTop: 0, color: '#FF9800' }}>🔵 Make Location Official</h3>
+            <h3 style={{ marginTop: 0, color: currentUserId === creatorId ? '#1976D2' : '#FF9800' }}>
+              {currentUserId === creatorId ? '🔒 Protect Your Location' : '🔵 Make Location Official'}
+            </h3>
             
             <p style={{ marginBottom: '20px' }}>
               Make this location official for <strong>3 credits</strong>?
             </p>
             
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#666', 
-              backgroundColor: '#f5f5f5', 
-              padding: '10px', 
-              borderRadius: '4px',
-              marginBottom: '20px'
-            }}>
-              <strong>Benefits:</strong><br/>
-              • Blue checkmark verification<br/>
-              • 150-foot protected boundary<br/>
-              • Enhanced visibility and trust
-            </p>
+            {/* Show different messaging based on user role */}
+            {currentUserId === creatorId ? (
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#1976D2', 
+                backgroundColor: '#E3F2FD', 
+                padding: '10px', 
+                borderRadius: '4px',
+                marginBottom: '20px',
+                border: '1px solid #2196F3'
+              }}>
+                <strong>Business Protection:</strong><br/>
+                • Protect your location from being bought by others<br/>
+                • Establish official ownership and control<br/>
+                • Add blue checkmark verification
+              </p>
+            ) : (
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                backgroundColor: '#f5f5f5', 
+                padding: '10px', 
+                borderRadius: '4px',
+                marginBottom: '20px'
+              }}>
+                <strong>Benefits:</strong><br/>
+                • Blue checkmark verification<br/>
+                • 150-foot protected boundary<br/>
+                • Enhanced visibility and trust
+              </p>
+            )}
 
             <div style={{
               display: 'flex',
@@ -197,7 +242,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
                 disabled={isLoading}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#FF9800',
+                  backgroundColor: currentUserId === creatorId ? '#1976D2' : '#FF9800',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
@@ -206,7 +251,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
                   fontWeight: 'bold'
                 }}
               >
-                {isLoading ? 'Processing...' : 'Make Official (3 credits)'}
+                {isLoading ? 'Processing...' : (currentUserId === creatorId ? 'Protect Location (3 credits)' : 'Make Official (3 credits)')}
               </button>
             </div>
           </div>

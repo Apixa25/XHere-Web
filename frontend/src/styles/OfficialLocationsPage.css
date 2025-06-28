@@ -180,8 +180,23 @@
     padding: 15px;
   }
 
+  .official-locations-header {
+    text-align: left;
+  }
+
+  .official-locations-header > div:first-child {
+    flex-direction: column;
+    gap: 15px;
+  }
+
   .official-locations-header h1 {
     font-size: 2rem;
+    margin-bottom: 5px;
+  }
+
+  .official-locations-header p {
+    font-size: 1rem;
+    margin-bottom: 0;
   }
 
   .official-stats {
@@ -221,7 +236,17 @@
   }
 
   .official-locations-header p {
-    font-size: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .official-locations-header > div:first-child {
+    gap: 10px;
+  }
+
+  .official-locations-header button {
+    padding: 8px 12px;
+    font-size: 12px;
+    margin-top: 5px;
   }
 
   .stat-number {

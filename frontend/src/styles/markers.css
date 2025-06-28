@@ -83,6 +83,26 @@
   border-style: dashed;
 }
 
+/* Official location marker styling */
+.custom-marker.official {
+  border-color: #2196F3 !important;
+  background: #E3F2FD !important;
+}
+
+.custom-marker.official .marker-content {
+  border-color: #2196F3;
+  background: #E3F2FD;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.custom-marker.official .marker-content:after {
+  border-top-color: #2196F3;
+}
+
+.custom-marker.official .marker-content:before {
+  border-top-color: #E3F2FD;
+}
+
 /* Pulse animation on hover */
 .custom-marker.pulse {
   animation: pulse 0.5s ease-out;
