@@ -15,6 +15,8 @@ import { jwtDecode } from 'jwt-decode';
 import { createBrowserRouter, RouterProvider, Link, Navigate } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 import AuthPage from './components/AuthPage';
+import CreditsPage from './components/CreditsPage';
+import CreditSystemTest from './components/CreditSystemTest';
 import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -1476,6 +1478,14 @@ function App() {
     {
       path: "/profile",
       element: user ? <ProfilePage user={user} onLocationUpdate={fetchLocations} /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/credits",
+      element: user ? <CreditsPage /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/credits-test",
+      element: user ? <CreditSystemTest /> : <Navigate to="/auth" />,
     },
     {
       path: "/admin",

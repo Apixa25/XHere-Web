@@ -3,6 +3,7 @@ const router = express.Router();
 const creditService = require('../services/creditService');
 const { authenticateToken } = require('../middleware/auth');
 const stripe = require('../utils/stripe');
+const { validateSufficientCredits } = require('../middleware/credit');
 
 /**
  * @route   GET /api/credits/balance
@@ -156,7 +157,7 @@ router.post('/add', authenticateToken, async (req, res) => {
  * @desc    Spend credits from user account
  * @access  Private
  */
-router.post('/spend', authenticateToken, async (req, res) => {
+router.post('/spend', authenticateToken, validateSufficientCredits, async (req, res) => {
   try {
     const { amount, description, metadata } = req.body;
 
@@ -303,12 +304,12 @@ router.post('/create-payment-intent', authenticateToken, async (req, res) => {
 });
 
 /**
- * @route   GET /api/credits/stripe-publishable-key
+ * @route   GET /api/credits/stripe-key
  * @desc    Get Stripe publishable key for frontend
  * @access  Public
  */
-router.get('/stripe-publishable-key', (req, res) => {
-  res.json({ key: process.env.STRIPE_PUBLISHABLE_KEY });
+router.get('/stripe-key', (req, res) => {
+  res.json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY });
 });
 
 // Stripe webhook endpoint

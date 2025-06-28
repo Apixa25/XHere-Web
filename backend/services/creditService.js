@@ -2,6 +2,7 @@ const User = require('../models/User');
 const CreditTransaction = require('../models/CreditTransaction');
 const UserCreditStats = require('../models/UserCreditStats');
 const { Op } = require('sequelize');
+const transactionService = require('./transactionService');
 
 class CreditService {
   /**
@@ -54,8 +55,8 @@ class CreditService {
       const newBalance = user.credits + amount;
       await user.update({ credits: newBalance }, { transaction });
 
-      // Create transaction record
-      const creditTransaction = await CreditTransaction.create({
+      // Use TransactionService to log transaction
+      const creditTransaction = await transactionService.logTransaction({
         userId,
         transactionType,
         amount,
@@ -116,8 +117,8 @@ class CreditService {
       const newBalance = user.credits - amount;
       await user.update({ credits: newBalance }, { transaction });
 
-      // Create transaction record (negative amount for spending)
-      const creditTransaction = await CreditTransaction.create({
+      // Use TransactionService to log transaction
+      const creditTransaction = await transactionService.logTransaction({
         userId,
         transactionType: 'spend',
         amount: -amount,
@@ -150,21 +151,8 @@ class CreditService {
    */
   async getTransactionHistory(userId, options = {}) {
     try {
-      const { limit = 50, offset = 0, type = null } = options;
-      
-      const whereClause = { userId };
-      if (type) {
-        whereClause.transactionType = type;
-      }
-
-      const transactions = await CreditTransaction.findAll({
-        where: whereClause,
-        order: [['createdAt', 'DESC']],
-        limit,
-        offset
-      });
-
-      return transactions;
+      // Use TransactionService to get user transactions
+      return await transactionService.getUserTransactions(userId, options);
     } catch (error) {
       console.error('Error getting transaction history:', error);
       throw error;

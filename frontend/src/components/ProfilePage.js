@@ -13,6 +13,8 @@ import messageService from '../services/messageService';
 import MessagingPanel from './messaging/MessagingPanel';
 import KeywordsDisplay from '../components/KeywordsDisplay';
 import LOCATION_TYPES from '../constants/locationTypes';
+import CreditBalance from './CreditBalance';
+import CreditsPage from './CreditsPage';
 
 const AdminBadge = () => (
   <div style={{
@@ -762,10 +764,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         navigate={navigate}
       />
 
-      {/* Messages Button */}
+      {/* Messages and Credits Buttons */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
+        gap: '15px',
         marginBottom: '20px'
       }}>
         <button
@@ -819,6 +822,35 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
             </span>
           )}
         </button>
+
+        <button
+          onClick={() => navigate('/credits')}
+          style={{
+            background: '#FF9800',
+            color: 'white',
+            border: 'none',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 4px 12px rgba(255, 152, 0, 0.4)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 2px 8px rgba(255, 152, 0, 0.3)';
+          }}
+        >
+          💰 Manage Credits
+        </button>
       </div>
 
       <BadgeDisplay 
@@ -837,6 +869,13 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '20px'
         }}>
+          <CreditBalance onBalanceUpdate={(newBalance) => {
+            setUserData(prevData => ({
+              ...prevData,
+              credits: newBalance
+            }));
+          }} />
+          
           <div className="stat-card" style={{
             backgroundColor: 'white',
             padding: '15px',
