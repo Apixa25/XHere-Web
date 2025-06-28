@@ -31,6 +31,10 @@ import KeywordsDisplay from './components/KeywordsDisplay';
 import KeywordSearch from './components/KeywordSearch';
 import KeywordSearchCompact from './components/KeywordSearchCompact';
 import LocationShareModal from './components/shared/LocationShareModal';
+import BuyLocationButton from './components/BuyLocationButton';
+import OwnershipStatus from './components/OwnershipStatus';
+import PurchaseHistory from './components/PurchaseHistory';
+import UserOwnedLocations from './components/UserOwnedLocations';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -164,7 +168,20 @@ function GoogleMapsProvider({ children }) {
 
 function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteUpdate, API_URL }) {
   const [showShare, setShowShare] = useState(false);
+  const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
+  
   if (!marker) return null;
+  
+  const handlePurchaseSuccess = (result) => {
+    console.log('Location purchased successfully:', result);
+    // You can add additional logic here, like refreshing the location data
+  };
+
+  const handlePurchaseError = (error) => {
+    console.error('Purchase error:', error);
+    // You can add error handling logic here
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -200,6 +217,24 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
       >
         ×
       </button>
+      
+      {/* Location Trading Status Indicators */}
+      <div style={{
+        marginBottom: '16px',
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #e9ecef'
+      }}>
+        <OwnershipStatus 
+          location={marker} 
+          compact={false}
+          onStatusUpdate={() => {
+            // Refresh ownership status if needed
+          }}
+        />
+      </div>
+      
       <div className="marker-header">
         <div className="poster-info">
           <p className="poster-name">
@@ -250,6 +285,55 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
         </div>
         <div className="marker-stats"></div>
       </div>
+      
+      {/* Location Trading Actions */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: '8px',
+        margin: '12px 0',
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #e9ecef'
+      }}>
+        <BuyLocationButton
+          location={marker}
+          onPurchaseSuccess={handlePurchaseSuccess}
+          onError={handlePurchaseError}
+          compact={false}
+        />
+        
+        {/* Purchase History Button */}
+        <button
+          onClick={() => setShowPurchaseHistory(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '8px 12px',
+            backgroundColor: '#f5f5f5',
+            color: '#666',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.backgroundColor = '#e0e0e0';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.backgroundColor = '#f5f5f5';
+          }}
+        >
+          <span>📜</span>
+          <span>History</span>
+        </button>
+      </div>
+      
       <div style={{ position: 'relative' }}>
         <div className="location-badges-container">
           <div className="marker-stats-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
@@ -311,6 +395,15 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           }
         }}
       />
+      
+      {/* Purchase History Modal */}
+      {showPurchaseHistory && (
+        <PurchaseHistory
+          locationId={marker.id}
+          isOpen={showPurchaseHistory}
+          onClose={() => setShowPurchaseHistory(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1276,6 +1369,7 @@ function App() {
           <nav className="main-nav">
             <Link to="/">Home</Link>
             {user && <Link to="/profile">Profile</Link>}
+            {user && <Link to="/user-owned-locations">🏠 My Locations</Link>}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
             {cameFromAdmin && user?.isAdmin && (
               <button 
@@ -1494,6 +1588,10 @@ function App() {
     {
       path: "/admin/user/:userId/locations",
       element: user?.isAdmin ? <UserLocationsPage /> : <Navigate to="/" />,
+    },
+    {
+      path: "/user-owned-locations",
+      element: user ? <UserOwnedLocations /> : <Navigate to="/auth" />,
     },
   ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount]);
 

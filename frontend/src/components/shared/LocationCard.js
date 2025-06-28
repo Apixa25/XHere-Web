@@ -94,7 +94,7 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
       style={{
         width: '275px',
         minHeight: '275px',
-        maxHeight: editingLocation?._id === location._id ? 'none' : '275px',
+        maxHeight: '275px',
         padding: '15px',
         border: '1px solid #ddd',
         borderRadius: '8px',
