@@ -4,12 +4,12 @@ import creditService from '../services/creditService';
 
 const LocationPurchaseModal = ({ 
   location, 
+  ownershipInfo,
   isOpen, 
   onClose, 
   onPurchaseSuccess,
   onError 
 }) => {
-  const [priceInfo, setPriceInfo] = useState(null);
   const [userCredits, setUserCredits] = useState(0);
   const [loading, setLoading] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
@@ -17,24 +17,9 @@ const LocationPurchaseModal = ({
 
   useEffect(() => {
     if (isOpen && location) {
-      fetchPriceInfo();
       fetchUserCredits();
     }
   }, [isOpen, location]);
-
-  const fetchPriceInfo = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await locationTradingService.getLocationPriceInfo(location.id);
-      setPriceInfo(response.priceInfo);
-    } catch (err) {
-      console.error('Error fetching price info:', err);
-      setError('Failed to load price information');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchUserCredits = async () => {
     try {
@@ -172,16 +157,7 @@ const LocationPurchaseModal = ({
           </p>
         </div>
 
-        {loading ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '40px 20px',
-            color: '#666'
-          }}>
-            <div style={{ fontSize: '18px', marginBottom: '10px' }}>🔄</div>
-            Loading price information...
-          </div>
-        ) : error ? (
+        {error ? (
           <div style={{
             backgroundColor: '#ffebee',
             color: '#c62828',
@@ -192,7 +168,7 @@ const LocationPurchaseModal = ({
           }}>
             ❌ {error}
           </div>
-        ) : priceInfo ? (
+        ) : ownershipInfo ? (
           <>
             {/* Price Information */}
             <div style={{
@@ -221,7 +197,7 @@ const LocationPurchaseModal = ({
                     fontWeight: 'bold',
                     color: '#4CAF50'
                   }}>
-                    {formatPrice(priceInfo.currentPrice)}
+                    {formatPrice(ownershipInfo.currentPrice)}
                   </div>
                 </div>
                 <div style={{
@@ -239,7 +215,7 @@ const LocationPurchaseModal = ({
                     fontWeight: 'bold',
                     color: '#FF9800'
                   }}>
-                    {formatPrice(priceInfo.nextPrice)}
+                    {formatPrice(ownershipInfo.nextPrice)}
                   </div>
                 </div>
               </div>
@@ -259,12 +235,12 @@ const LocationPurchaseModal = ({
                   color: '#333',
                   fontSize: '16px'
                 }}>
-                  {priceInfo.purchaseCount}
+                  {ownershipInfo.purchaseCount}
                 </span>
               </div>
 
               {/* Price Trend */}
-              {priceInfo.priceTrend && (
+              {ownershipInfo.priceInfo?.priceTrend && (
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -276,73 +252,75 @@ const LocationPurchaseModal = ({
                   </span>
                   <span style={{ 
                     fontWeight: 'bold',
-                    color: getPriceTrendColor(priceInfo.priceTrend.trend),
+                    color: getPriceTrendColor(ownershipInfo.priceInfo.priceTrend.trend),
                     fontSize: '14px',
                     textTransform: 'capitalize'
                   }}>
-                    {priceInfo.priceTrend.trend} Stage
+                    {ownershipInfo.priceInfo.priceTrend.trend} Stage
                   </span>
                 </div>
               )}
 
               {/* Price Increase */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span style={{ color: '#666', fontSize: '14px' }}>
-                  Price Increase:
-                </span>
-                <span style={{ 
-                  fontWeight: 'bold',
-                  color: '#F44336',
-                  fontSize: '16px'
+              {ownershipInfo.priceInfo?.priceIncrease && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}>
-                  +{formatPrice(priceInfo.priceIncrease)} ({priceInfo.priceIncreasePercentage}%)
-                </span>
-              </div>
+                  <span style={{ color: '#666', fontSize: '14px' }}>
+                    Price Increase:
+                  </span>
+                  <span style={{ 
+                    fontWeight: 'bold',
+                    color: '#F44336',
+                    fontSize: '16px'
+                  }}>
+                    +{formatPrice(ownershipInfo.priceInfo.priceIncrease)} ({ownershipInfo.priceInfo.priceIncreasePercentage}%)
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* User Credits */}
             <div style={{
-              backgroundColor: '#fff3e0',
+              backgroundColor: '#f0f8ff',
               padding: '16px',
               borderRadius: '8px',
               marginBottom: '20px',
-              border: '1px solid #ffcc02'
+              border: '1px solid #2196F3'
             }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                marginBottom: '8px'
               }}>
                 <span style={{ color: '#666', fontSize: '14px' }}>
                   Your Credits:
                 </span>
                 <span style={{ 
                   fontWeight: 'bold',
-                  color: '#FF9800',
+                  color: '#2196F3',
                   fontSize: '18px'
                 }}>
                   {userCredits} credits
                 </span>
               </div>
               
-              {userCredits < priceInfo.currentPrice && (
+              {userCredits < ownershipInfo.currentPrice && (
                 <div style={{
                   color: '#F44336',
                   fontSize: '14px',
-                  marginTop: '8px',
                   textAlign: 'center'
                 }}>
-                  ⚠️ Insufficient credits. You need {formatPrice(priceInfo.currentPrice - userCredits)} more.
+                  ⚠️ Insufficient credits. You need {formatPrice(ownershipInfo.currentPrice - userCredits)} more.
                 </div>
               )}
             </div>
 
             {/* Official Status */}
-            {priceInfo.isOfficial && (
+            {ownershipInfo.isOfficial && (
               <div style={{
                 backgroundColor: '#e3f2fd',
                 padding: '12px',
@@ -368,7 +346,7 @@ const LocationPurchaseModal = ({
             )}
 
             {/* Owner Information */}
-            {priceInfo.owner && (
+            {ownershipInfo.owner && (
               <div style={{
                 backgroundColor: '#f5f5f5',
                 padding: '12px',
@@ -387,27 +365,37 @@ const LocationPurchaseModal = ({
                   fontWeight: 'bold',
                   color: '#333'
                 }}>
-                  {priceInfo.owner.username || priceInfo.owner.email}
+                  {ownershipInfo.owner.profile?.name || ownershipInfo.owner.email}
                 </div>
               </div>
             )}
           </>
-        ) : null}
+        ) : (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            color: '#666'
+          }}>
+            <div style={{ fontSize: '18px', marginBottom: '10px' }}>🔄</div>
+            Loading ownership information...
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div style={{
           display: 'flex',
           gap: '12px',
-          justifyContent: 'flex-end'
+          justifyContent: 'flex-end',
+          marginTop: '20px'
         }}>
           <button
             onClick={onClose}
             disabled={purchasing}
             style={{
               padding: '12px 24px',
-              backgroundColor: '#f5f5f5',
-              color: '#666',
-              border: '1px solid #ddd',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
               borderRadius: '8px',
               cursor: purchasing ? 'not-allowed' : 'pointer',
               fontSize: '16px',
@@ -417,20 +405,19 @@ const LocationPurchaseModal = ({
           >
             Cancel
           </button>
-          
           <button
             onClick={handlePurchase}
-            disabled={purchasing || !priceInfo || userCredits < priceInfo.currentPrice}
+            disabled={purchasing || !ownershipInfo || userCredits < ownershipInfo.currentPrice}
             style={{
               padding: '12px 24px',
-              backgroundColor: userCredits >= (priceInfo?.currentPrice || 0) ? '#4CAF50' : '#ccc',
+              backgroundColor: userCredits >= (ownershipInfo?.currentPrice || 0) ? '#4CAF50' : '#ccc',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
-              cursor: (purchasing || !priceInfo || userCredits < (priceInfo?.currentPrice || 0)) ? 'not-allowed' : 'pointer',
+              cursor: (purchasing || !ownershipInfo || userCredits < (ownershipInfo?.currentPrice || 0)) ? 'not-allowed' : 'pointer',
               fontSize: '16px',
               fontWeight: 'bold',
-              opacity: (purchasing || !priceInfo || userCredits < (priceInfo?.currentPrice || 0)) ? 0.6 : 1
+              opacity: (purchasing || !ownershipInfo || userCredits < (ownershipInfo?.currentPrice || 0)) ? 0.6 : 1
             }}
           >
             {purchasing ? (
@@ -441,7 +428,7 @@ const LocationPurchaseModal = ({
             ) : (
               <>
                 <span style={{ marginRight: '8px' }}>💰</span>
-                Purchase for {priceInfo ? formatPrice(priceInfo.currentPrice) : '...'}
+                Purchase for {ownershipInfo ? formatPrice(ownershipInfo.currentPrice) : '...'}
               </>
             )}
           </button>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import locationTradingService from '../services/locationTradingService';
 
-const OwnershipStatus = ({ location, compact = false, onStatusUpdate }) => {
+const OwnershipStatus = ({ location, compact = false, onStatusUpdate, refreshTrigger = 0 }) => {
   const [ownershipInfo, setOwnershipInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,7 +19,7 @@ const OwnershipStatus = ({ location, compact = false, onStatusUpdate }) => {
     if (location?.id) {
       fetchOwnershipInfo();
     }
-  }, [location?.id]);
+  }, [location?.id, refreshTrigger]);
 
   const fetchOwnershipInfo = async () => {
     try {

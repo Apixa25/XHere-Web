@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import locationTradingService from '../services/locationTradingService';
 import LocationPurchaseModal from './LocationPurchaseModal';
 
-const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = false }) => {
-  const [priceInfo, setPriceInfo] = useState(null);
+const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = false, refreshTrigger = 0 }) => {
+  const [ownershipInfo, setOwnershipInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -19,30 +19,31 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
 
   useEffect(() => {
     if (location?.id) {
-      fetchPriceInfo();
+      fetchOwnershipInfo();
     }
-  }, [location?.id]);
+  }, [location?.id, refreshTrigger]);
 
-  const fetchPriceInfo = async () => {
+  const fetchOwnershipInfo = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await locationTradingService.getLocationPriceInfo(location.id);
-      setPriceInfo(response.priceInfo);
+      const response = await locationTradingService.getLocationOwnership(location.id);
+      setOwnershipInfo(response.ownership);
     } catch (err) {
-      console.error('Error fetching price info:', err);
-      setError('Failed to load price information');
+      console.error('Error fetching ownership info:', err);
+      setError('Failed to load ownership information');
     } finally {
       setLoading(false);
     }
   };
 
   const handlePurchaseSuccess = (result) => {
+    console.log('💰 Purchase successful, refreshing ownership info...');
     if (onPurchaseSuccess) {
       onPurchaseSuccess(result);
     }
-    // Refresh price info after purchase
-    fetchPriceInfo();
+    // Refresh ownership info after purchase
+    fetchOwnershipInfo();
   };
 
   const handleError = (err) => {
@@ -59,11 +60,11 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
   };
 
   const isOwnedByCurrentUser = () => {
-    return priceInfo?.owner?.id === currentUserId;
+    return ownershipInfo?.ownerId === currentUserId;
   };
 
   const canPurchase = () => {
-    return priceInfo && !isOwnedByCurrentUser() && !loading && !error;
+    return ownershipInfo && !isOwnedByCurrentUser() && !loading && !error;
   };
 
   const getButtonStyle = () => {
@@ -92,7 +93,7 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
       };
     }
 
-    if (error || !priceInfo) {
+    if (error || !ownershipInfo) {
       return {
         ...baseStyle,
         backgroundColor: '#f5f5f5',
@@ -130,7 +131,7 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
       );
     }
 
-    if (error || !priceInfo) {
+    if (error || !ownershipInfo) {
       return (
         <>
           <span>❌</span>
@@ -151,7 +152,7 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
     return (
       <>
         <span>💰</span>
-        <span>Buy {formatPrice(priceInfo.currentPrice)}</span>
+        <span>Buy {formatPrice(ownershipInfo.currentPrice)}</span>
       </>
     );
   };
@@ -183,7 +184,7 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
       </button>
 
       {/* Price Tooltip for compact mode */}
-      {compact && priceInfo && !isOwnedByCurrentUser() && (
+      {compact && ownershipInfo && !isOwnedByCurrentUser() && (
         <div style={{
           position: 'absolute',
           top: '-30px',
@@ -203,7 +204,7 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
         onMouseEnter={(e) => e.target.style.opacity = 1}
         onMouseLeave={(e) => e.target.style.opacity = 0}
         >
-          {formatPrice(priceInfo.currentPrice)} credits
+          {formatPrice(ownershipInfo.currentPrice)} credits
         </div>
       )}
 
@@ -211,6 +212,7 @@ const BuyLocationButton = ({ location, onPurchaseSuccess, onError, compact = fal
       {showPurchaseModal && (
         <LocationPurchaseModal
           location={location}
+          ownershipInfo={ownershipInfo}
           isOpen={showPurchaseModal}
           onClose={() => setShowPurchaseModal(false)}
           onPurchaseSuccess={handlePurchaseSuccess}

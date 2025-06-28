@@ -172,12 +172,18 @@ function GoogleMapsProvider({ children }) {
 function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteUpdate, API_URL }) {
   const [showShare, setShowShare] = useState(false);
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   if (!marker) return null;
   
   const handlePurchaseSuccess = (result) => {
     console.log('Location purchased successfully:', result);
-    // You can add additional logic here, like refreshing the location data
+    // Show success message
+    alert('Location purchased successfully!');
+    
+    // Force a re-render of the InfoBoxModal to update ownership status
+    // This will trigger the BuyLocationButton and OwnershipStatus to refresh
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handlePurchaseError = (error) => {
@@ -232,6 +238,7 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
         <OwnershipStatus 
           location={marker} 
           compact={false}
+          refreshTrigger={refreshTrigger}
           onStatusUpdate={() => {
             // Refresh ownership status if needed
           }}
@@ -356,6 +363,7 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
       }}>
         <BuyLocationButton
           location={marker}
+          refreshTrigger={refreshTrigger}
           onPurchaseSuccess={handlePurchaseSuccess}
           onError={handlePurchaseError}
           compact={false}
@@ -374,10 +382,7 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
                   // Update the marker with the new official status
                   Object.assign(marker, result.location);
                   // Force a re-render by updating state
-                  // This will trigger the InfoBoxModal to re-render with updated data
-                  setTimeout(() => {
-                    window.location.reload(); // Simple refresh for now
-                  }, 1000);
+                  setRefreshTrigger(prev => prev + 1);
                 }
               } else if (result.type === 'nomination_created') {
                 // Show success message for nomination
