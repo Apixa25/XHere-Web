@@ -875,7 +875,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
               credits: newBalance
             }));
           }} />
-          
           <div className="stat-card" style={{
             backgroundColor: 'white',
             padding: '15px',
@@ -893,7 +892,6 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
               Total upvotes minus downvotes across all your locations
             </p>
           </div>
-          
           <div className="stat-card" style={{
             backgroundColor: 'white',
             padding: '15px',

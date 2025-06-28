@@ -1,19 +1,18 @@
 import React from 'react';
 
-const BadgeDisplay = ({ badges = [], credits = 0 }) => {
+const BadgeDisplay = ({ badges = [] }) => {
   // Parse badges if they're a string
   const parsedBadges = typeof badges === 'string' ? JSON.parse(badges) : badges;
   
   console.debug('BadgeDisplay received:', { 
     badges: parsedBadges,
-    credits,
     badgeCount: parsedBadges?.length || 0
   });
 
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
+      gridTemplateColumns: 'repeat(1, 1fr)',
       gap: '15px',
       marginBottom: '15px'
     }}>
@@ -77,36 +76,6 @@ const BadgeDisplay = ({ badges = [], credits = 0 }) => {
           </div>
         </div>
       )}
-
-      {/* Credits Card */}
-      <div style={{
-        backgroundColor: '#f5f5f5',
-        padding: '12px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        textAlign: 'center',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        minHeight: '150px'
-      }}>
-        <div>
-          <h3 style={{ 
-            margin: '0 0 8px 0',
-            fontSize: '1.1rem',
-            color: '#333'
-          }}>
-            Credits
-          </h3>
-          <div style={{ 
-            fontSize: '1.8rem',
-            fontWeight: 'bold',
-            color: '#4CAF50'
-          }}>
-            {credits}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
