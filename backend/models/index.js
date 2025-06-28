@@ -5,6 +5,8 @@ const Message = require('./Message');
 const Badge = require('./Badge');
 const CreditTransaction = require('./CreditTransaction');
 const UserCreditStats = require('./UserCreditStats');
+const LocationOwnership = require('./LocationOwnership');
+const LocationOwnershipHistory = require('./LocationOwnershipHistory');
 
 // Set up associations
 const models = {
@@ -14,7 +16,9 @@ const models = {
   Message,
   Badge,
   CreditTransaction,
-  UserCreditStats
+  UserCreditStats,
+  LocationOwnership,
+  LocationOwnershipHistory
 };
 
 // Call associate function for each model if it exists
