@@ -1,14 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const creditService = require('../services/creditService');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
+const stripe = require('../utils/stripe');
 
 /**
  * @route   GET /api/credits/balance
  * @desc    Get user's current credit balance
  * @access  Private
  */
-router.get('/balance', auth, async (req, res) => {
+router.get('/balance', authenticateToken, async (req, res) => {
   try {
     const balance = await creditService.getBalance(req.user.id);
     res.json({
@@ -31,7 +32,7 @@ router.get('/balance', auth, async (req, res) => {
  * @desc    Get user's transaction history
  * @access  Private
  */
-router.get('/transactions', auth, async (req, res) => {
+router.get('/transactions', authenticateToken, async (req, res) => {
   try {
     const { limit = 50, offset = 0, type = null } = req.query;
     
@@ -61,7 +62,7 @@ router.get('/transactions', auth, async (req, res) => {
  * @desc    Get user's credit statistics
  * @access  Private
  */
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const stats = await creditService.getCreditStats(req.user.id);
     res.json({
@@ -107,7 +108,7 @@ router.get('/packages', async (req, res) => {
  * @desc    Add credits to user account (admin only)
  * @access  Private (Admin)
  */
-router.post('/add', auth, async (req, res) => {
+router.post('/add', authenticateToken, async (req, res) => {
   try {
     // Check if user is admin
     if (!req.user.isAdmin) {
@@ -155,7 +156,7 @@ router.post('/add', auth, async (req, res) => {
  * @desc    Spend credits from user account
  * @access  Private
  */
-router.post('/spend', auth, async (req, res) => {
+router.post('/spend', authenticateToken, async (req, res) => {
   try {
     const { amount, description, metadata } = req.body;
 
@@ -203,7 +204,7 @@ router.post('/spend', auth, async (req, res) => {
  * @desc    Validate if user has sufficient credits
  * @access  Private
  */
-router.post('/validate', auth, async (req, res) => {
+router.post('/validate', authenticateToken, async (req, res) => {
   try {
     const { amount } = req.body;
 
@@ -239,7 +240,7 @@ router.post('/validate', auth, async (req, res) => {
  * @desc    Get comprehensive credit summary for user
  * @access  Private
  */
-router.get('/summary', auth, async (req, res) => {
+router.get('/summary', authenticateToken, async (req, res) => {
   try {
     const [balance, stats, recentTransactions] = await Promise.all([
       creditService.getBalance(req.user.id),
@@ -264,6 +265,50 @@ router.get('/summary', auth, async (req, res) => {
       error: error.message
     });
   }
+});
+
+/**
+ * @route   POST /api/credits/create-payment-intent
+ * @desc    Create a Stripe PaymentIntent for buying credits
+ * @access  Private
+ */
+router.post('/create-payment-intent', authenticateToken, async (req, res) => {
+  try {
+    const { credits } = req.body;
+    if (!credits || credits <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid credits amount' });
+    }
+
+    // Example: $1 per credit (adjust as needed)
+    const amount = credits * 100; // in cents
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      metadata: {
+        userId: req.user.id,
+        credits,
+      },
+    });
+
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      message: 'Payment intent created',
+    });
+  } catch (error) {
+    console.error('Error creating payment intent:', error);
+    res.status(500).json({ success: false, message: 'Failed to create payment intent', error: error.message });
+  }
+});
+
+/**
+ * @route   GET /api/credits/stripe-publishable-key
+ * @desc    Get Stripe publishable key for frontend
+ * @access  Public
+ */
+router.get('/stripe-publishable-key', (req, res) => {
+  res.json({ key: process.env.STRIPE_PUBLISHABLE_KEY });
 });
 
 module.exports = router; 

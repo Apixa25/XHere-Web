@@ -22,7 +22,7 @@
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.1",
-    "stripe": "^14.21.0"
+    "stripe": "^14.25.0"
   },
   "engines": {
     "node": "22.x"
