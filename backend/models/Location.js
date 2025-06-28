@@ -85,6 +85,31 @@ const Location = sequelize.define('Location', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
     allowNull: false
+  },
+  // Official Location System Fields
+  isOfficial: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  officialBoundary: {
+    type: DataTypes.GEOMETRY('POINT'),
+    allowNull: true,
+    comment: 'Center point of the 150-foot official boundary'
+  },
+  officialOwnerId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    },
+    comment: 'User who made this location official'
+  },
+  officializedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the location was made official'
   }
 });
 
@@ -97,6 +122,10 @@ Location.associate = (models) => {
   Location.belongsTo(models.User, {
     foreignKey: 'creatorId',
     as: 'creator'
+  });
+  Location.belongsTo(models.User, {
+    foreignKey: 'officialOwnerId',
+    as: 'officialOwner'
   });
 };
 

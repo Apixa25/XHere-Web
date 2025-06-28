@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { getEnvironmentConfig } from '../config/environments.js';
 
 // Use the environment configuration system
@@ -9,179 +10,197 @@ console.log('   Environment:', process.env.NODE_ENV);
 console.log('   API_URL:', API_URL);
 console.log('   Config:', config);
 
-const handleResponse = async (response) => {
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API request failed');
+// Create Axios instance
+const api = axios.create({
+  baseURL: `${API_URL}/api`,
+  timeout: 10000, // 10 second timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return response.json();
+);
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => {
+    return response.data;
+  },
+  (error) => {
+    console.error('API Error:', error.response?.data || error.message);
+    if (error.response?.status === 401) {
+      // Handle unauthorized - could redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+    throw new Error(error.response?.data?.message || error.message || 'API request failed');
+  }
+);
+
+// Helper function for FormData requests
+const createFormDataRequest = (data) => {
+  const formData = new FormData();
+  
+  Object.entries(data).forEach(([key, value]) => {
+    if (key === 'media' && Array.isArray(value)) {
+      value.forEach(file => formData.append('media', file));
+    } else if (key === 'deleteMediaIndexes') {
+      formData.append('deleteMediaIndexes', JSON.stringify(value));
+    } else if (value !== undefined && value !== null) {
+      formData.append(key, value);
+    }
+  });
+  
+  return formData;
 };
 
-const api = {
+// API methods
+const apiService = {
   // Auth endpoints
   register: async (userData) => {
-    const response = await fetch(`${API_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData)
-    });
-    return handleResponse(response);
+    return api.post('/auth/register', userData);
   },
 
   login: async (credentials) => {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials)
-    });
-    return handleResponse(response);
+    return api.post('/auth/login', credentials);
   },
 
   // Location endpoints
-  getLocations: async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/locations`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    const data = await handleResponse(response);
-    return data;
+  getLocations: async (params = {}) => {
+    return api.get('/locations', { params });
   },
   
   addLocation: async (formData) => {
-    const token = localStorage.getItem('token');
-    
     // Log the FormData contents before sending
     console.log('Sending FormData contents:');
     for (let pair of formData.entries()) {
       console.log(pair[0] + ': ' + pair[1]);
     }
 
-    const response = await fetch(`${API_URL}/api/locations`, {
-      method: 'POST',
+    return api.post('/locations', formData, {
       headers: {
-        'Authorization': `Bearer ${token}`
-        // Remove Content-Type header to let browser set it with boundary for FormData
+        'Content-Type': 'multipart/form-data',
       },
-      body: formData
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create location');
-    }
-
-    return response.json();
   },
 
   updateLocation: async (id, updateData) => {
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
+    const formData = createFormDataRequest(updateData);
     
-    Object.entries(updateData).forEach(([key, value]) => {
-      if (key !== 'media' && key !== 'deleteMediaIndexes') {
-        formData.append(key, value);
-      }
-    });
-
-    if (updateData.media) {
-      updateData.media.forEach(file => {
-        formData.append('media', file);
-      });
-    }
-
-    if (updateData.deleteMediaIndexes) {
-      formData.append('deleteMediaIndexes', JSON.stringify(updateData.deleteMediaIndexes));
-    }
-
-    const response = await fetch(`${API_URL}/api/locations/${id}`, {
-      method: 'PUT',
+    return api.put(`/locations/${id}`, formData, {
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'multipart/form-data',
       },
-      body: formData
     });
-    const data = await handleResponse(response);
-    return {
-      ...data,
-      id: data.id
-    };
   },
 
   deleteLocation: async (id) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/locations/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return handleResponse(response);
+    return api.delete(`/locations/${id}`);
   },
 
   // Vote on a location
   voteLocation: async (locationId, voteType) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/votes/${locationId}/vote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ voteType })
-    });
-    return handleResponse(response);
+    return api.post(`/votes/${locationId}/vote`, { voteType });
   },
 
   // Get user badges
   getUserBadges: async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/badges/user/badges`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return handleResponse(response);
+    return api.get('/badges/user/badges');
   },
 
   // Check for new badges
   checkBadges: async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/badges/check`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return handleResponse(response);
+    return api.post('/badges/check');
   },
 
   // Get user profile
   getUserProfile: async (userId) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/users/profile/${userId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return handleResponse(response);
+    return api.get(`/users/profile/${userId}`);
   },
 
   // Search users for messaging
   searchUsers: async (query) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/users/search?query=${encodeURIComponent(query)}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return handleResponse(response);
-  }
+    return api.get('/users/search', { params: { query } });
+  },
+
+  // Credit system endpoints
+  getCredits: async () => {
+    return api.get('/credits/balance');
+  },
+
+  purchaseCredits: async (packageId) => {
+    return api.post('/credits/purchase', { packageId });
+  },
+
+  getTransactionHistory: async (params = {}) => {
+    return api.get('/credits/transactions', { params });
+  },
+
+  // Location trading endpoints
+  buyLocation: async (locationId) => {
+    return api.post(`/locations/${locationId}/buy`);
+  },
+
+  getOwnedLocations: async () => {
+    return api.get('/locations/owned');
+  },
+
+  // Official location endpoints
+  makeLocationOfficial: async (locationId) => {
+    return api.post(`/locations/${locationId}/make-official`);
+  },
+
+  canMakeOfficial: async (locationId) => {
+    return api.get(`/locations/${locationId}/can-make-official`);
+  },
+
+  getOfficialLocations: async (params = {}) => {
+    return api.get('/locations/official/all', { params });
+  },
+
+  getUserOfficialLocations: async (userId) => {
+    return api.get(`/locations/official/user/${userId}`);
+  },
+
+  getOfficialLocationStats: async () => {
+    return api.get('/locations/official/stats');
+  },
+
+  // Messaging endpoints
+  sendMessage: async (messageData) => {
+    return api.post('/messages', messageData);
+  },
+
+  getMessages: async (params = {}) => {
+    return api.get('/messages', { params });
+  },
+
+  // Comments endpoints
+  getComments: async (locationId) => {
+    return api.get(`/locations/${locationId}/comments`);
+  },
+
+  addComment: async (locationId, commentData) => {
+    return api.post(`/locations/${locationId}/comments`, commentData);
+  },
+
+  // Generic methods for direct API access
+  get: (url, config = {}) => api.get(url, config),
+  post: (url, data = {}, config = {}) => api.post(url, data, config),
+  put: (url, data = {}, config = {}) => api.put(url, data, config),
+  delete: (url, config = {}) => api.delete(url, config),
 };
 
-export default api; 
+export default apiService; 

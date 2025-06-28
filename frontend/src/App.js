@@ -35,6 +35,7 @@ import BuyLocationButton from './components/BuyLocationButton';
 import OwnershipStatus from './components/OwnershipStatus';
 import PurchaseHistory from './components/PurchaseHistory';
 import UserOwnedLocations from './components/UserOwnedLocations';
+import OfficialLocationsPage from './components/OfficialLocationsPage';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1370,6 +1371,7 @@ function App() {
             <Link to="/">Home</Link>
             {user && <Link to="/profile">Profile</Link>}
             {user && <Link to="/user-owned-locations">🏠 My Locations</Link>}
+            {user && <Link to="/official-locations">🔵 Official Locations</Link>}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
             {cameFromAdmin && user?.isAdmin && (
               <button 
@@ -1592,6 +1594,10 @@ function App() {
     {
       path: "/user-owned-locations",
       element: user ? <UserOwnedLocations /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/official-locations",
+      element: user ? <OfficialLocationsPage /> : <Navigate to="/auth" />,
     },
   ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount]);
 

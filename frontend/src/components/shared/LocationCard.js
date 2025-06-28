@@ -4,6 +4,7 @@ import KeywordsDisplay from '../KeywordsDisplay';
 import BuyLocationButton from '../BuyLocationButton';
 import OwnershipStatus from '../OwnershipStatus';
 import PurchaseHistory from '../PurchaseHistory';
+import MakeOfficialButton from '../MakeOfficialButton';
 import React, { useState } from "react";
 import LocationShareModal from "./LocationShareModal";
 
@@ -13,11 +14,28 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   const locationLink = `${window.location.origin}/location/${location.id}`;
 
   const getStatusBadge = () => {
+    // Show official status first if location is official
+    if (location.isOfficial) {
+      return (
+        <div style={{
+          backgroundColor: '#2196F3',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '12px',
+          fontSize: '12px',
+          display: 'inline-block',
+          fontWeight: 'bold'
+        }}>
+          ✓ Official
+        </div>
+      );
+    }
+
     switch(location.verificationStatus) {
       case 'verified':
         return (
           <div style={{
-            backgroundColor: '#2196F3',
+            backgroundColor: '#4CAF50',
             color: 'white',
             padding: '4px 8px',
             borderRadius: '12px',
@@ -88,6 +106,19 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
     // You can add error handling logic here
   };
 
+  const handleMakeOfficialSuccess = (result) => {
+    console.log('Location made official successfully:', result);
+    // Update the location data if needed
+    if (result.location) {
+      // You can add logic to update the location in the parent component
+    }
+  };
+
+  const handleMakeOfficialError = (error) => {
+    console.error('Make official error:', error);
+    // You can add error handling logic here
+  };
+
   return (
     <div
       key={location.id}
@@ -96,13 +127,13 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
         minHeight: '275px',
         maxHeight: '275px',
         padding: '15px',
-        border: '1px solid #ddd',
+        border: location.isOfficial ? '2px solid #2196F3' : '1px solid #ddd',
         borderRadius: '8px',
-        backgroundColor: 'white',
+        backgroundColor: location.isOfficial ? '#f8fbff' : 'white',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'visible',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: location.isOfficial ? '0 4px 12px rgba(33, 150, 243, 0.2)' : '0 2px 4px rgba(0,0,0,0.1)',
         margin: '0 auto',
         position: 'relative',
         marginBottom: '20px'
@@ -117,7 +148,8 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
         <div style={{ flex: 1 }}>
           <div style={{ 
             fontSize: compact ? '14px' : '16px',
-            marginBottom: '4px'
+            marginBottom: '4px',
+            fontWeight: location.isOfficial ? 'bold' : 'normal'
           }}>
             {location.content.text}
           </div>
@@ -186,7 +218,8 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
             flexDirection: 'row',
             alignItems: 'center',
             gap: '8px',
-            margin: '8px 0'
+            margin: '8px 0',
+            flexWrap: 'wrap'
           }}>
             <BuyLocationButton
               location={location}
@@ -195,111 +228,151 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
               compact={compact}
             />
             
+            {/* Make Official Button */}
+            <MakeOfficialButton
+              location={location}
+              onSuccess={handleMakeOfficialSuccess}
+              onError={handleMakeOfficialError}
+              compact={compact}
+            />
+            
             {/* Purchase History Button */}
             <button
               onClick={() => setShowPurchaseHistory(true)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: compact ? '6px 10px' : '8px 12px',
-                backgroundColor: '#f5f5f5',
-                color: '#666',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: compact ? '11px' : '12px',
-                fontWeight: 'bold',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = '#e0e0e0';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = '#f5f5f5';
+                padding: compact ? '4px 6px' : '6px 10px',
+                backgroundColor: '#9C27B0',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: compact ? '10px' : '12px',
+                cursor: 'pointer'
               }}
             >
-              <span>📜</span>
-              <span>History</span>
+              History
             </button>
           </div>
-          
-          {/* ... rest of the existing code ... */}
 
-          {location.autoDelete && (
+          {/* Official Location Info */}
+          {location.isOfficial && (
             <div style={{
-              fontSize: '12px',
-              color: '#ff6b6b',
-              marginTop: '4px'
+              marginTop: '8px',
+              padding: '8px',
+              backgroundColor: '#E3F2FD',
+              borderRadius: '6px',
+              border: '1px solid #2196F3',
+              fontSize: '11px',
+              color: '#1976D2'
             }}>
-              ⏳ {getRemainingTime()}
+              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
+                ✓ Official Location
+              </div>
+              <div>
+                Made official by: {location.officialOwner?.profile?.name || location.officialOwner?.email || 'Unknown'}
+              </div>
+              {location.officializedAt && (
+                <div>
+                  Date: {new Date(location.officializedAt).toLocaleDateString()}
+                </div>
+              )}
             </div>
           )}
 
-          {location.credits > 0 && (
+          {/* Remaining time for auto-delete locations */}
+          {location.autoDelete && getRemainingTime() && (
             <div style={{
-              backgroundColor: '#4CAF50',
-              color: 'white',
+              marginTop: '8px',
               padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              display: 'inline-block',
-              marginLeft: '8px'
+              backgroundColor: '#FFF3E0',
+              borderRadius: '4px',
+              fontSize: '11px',
+              color: '#E65100'
             }}>
-              $ {location.credits} Credits Available
+              ⏰ {getRemainingTime()}
             </div>
           )}
 
+          {/* Action buttons */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginTop: 'auto',
-            paddingTop: '10px'
+            marginTop: '12px'
           }}>
-            {getStatusBadge()}
-            {getRemainingTime() && (
-              <div style={{
-                color: '#666',
-                fontSize: '12px'
-              }}>
-                {getRemainingTime()}
-              </div>
-            )}
+            <div style={{
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => setShowShare(true)}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#607D8B',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                Share
+              </button>
+              
+              {/* Edit/Delete buttons for creator */}
+              {currentUserId && creatorId && currentUserId === creatorId && (
+                <>
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit(location)}
+                      style={{
+                        padding: '4px 8px',
+                        backgroundColor: '#FF9800',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      onClick={() => onDelete(location.id)}
+                      style={{
+                        padding: '4px 8px',
+                        backgroundColor: '#f44336',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
-      
-      {/* Share Button */}
-      <button 
-        onClick={() => setShowShare(true)}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: '#2196F3',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          marginTop: '10px',
-          transition: 'background-color 0.2s'
-        }}
-        onMouseOver={(e) => e.target.style.backgroundColor = '#1976D2'}
-        onMouseOut={(e) => e.target.style.backgroundColor = '#2196F3'}
-      >
-        Share
-      </button>
-      
-      {/* Modals */}
+
+      {/* Share Modal */}
       {showShare && (
-        <LocationShareModal link={locationLink} onClose={() => setShowShare(false)} />
+        <LocationShareModal
+          location={location}
+          locationLink={locationLink}
+          onClose={() => setShowShare(false)}
+        />
       )}
-      
+
+      {/* Purchase History Modal */}
       {showPurchaseHistory && (
         <PurchaseHistory
           locationId={location.id}
-          isOpen={showPurchaseHistory}
           onClose={() => setShowPurchaseHistory(false)}
         />
       )}

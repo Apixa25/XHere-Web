@@ -8,6 +8,7 @@ const upload = multer({ dest: 'uploads/' });
 const { checkAndAwardBadges } = require('../utils/badgeChecker');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const officialLocationService = require('../services/officialLocationService');
 
 // Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
@@ -453,6 +454,129 @@ router.post('/:locationId/verify', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error verifying location:', error);
     res.status(500).json({ error: 'Error verifying location' });
+  }
+});
+
+// Official Location System Routes
+
+// Make a location official
+router.post('/:id/make-official', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    console.log('🔵 Making location official:', { locationId: id, userId });
+
+    const result = await officialLocationService.makeLocationOfficial(id, userId);
+
+    res.json({
+      success: true,
+      message: result.message,
+      location: result.location,
+      creditsSpent: result.creditsSpent
+    });
+
+  } catch (error) {
+    console.error('Error making location official:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Check if location can be made official
+router.get('/:id/can-make-official', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const result = await officialLocationService.canMakeOfficial(id, userId);
+
+    res.json({
+      success: true,
+      ...result
+    });
+
+  } catch (error) {
+    console.error('Error checking if can make official:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Get all official locations
+router.get('/official/all', authenticateToken, async (req, res) => {
+  try {
+    const { limit, offset } = req.query;
+    const options = {};
+    
+    if (limit) options.limit = parseInt(limit);
+    if (offset) options.offset = parseInt(offset);
+
+    const officialLocations = await officialLocationService.getOfficialLocations(options);
+
+    res.json({
+      success: true,
+      locations: officialLocations
+    });
+
+  } catch (error) {
+    console.error('Error getting official locations:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Get user's official locations
+router.get('/official/user/:userId', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Only allow users to see their own official locations or admins to see any
+    if (req.user.id !== userId && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to view other users\' official locations'
+      });
+    }
+
+    const officialLocations = await officialLocationService.getOfficialLocationsByUser(userId);
+
+    res.json({
+      success: true,
+      locations: officialLocations
+    });
+
+  } catch (error) {
+    console.error('Error getting user official locations:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Get official location statistics
+router.get('/official/stats', authenticateToken, async (req, res) => {
+  try {
+    const stats = await officialLocationService.getOfficialLocationStats();
+
+    res.json({
+      success: true,
+      stats
+    });
+
+  } catch (error) {
+    console.error('Error getting official location stats:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
 });
 
