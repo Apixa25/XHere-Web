@@ -382,38 +382,6 @@ const UserOwnedLocations = () => {
                     flexDirection: 'column',
                     gap: '8px'
                   }}>
-                    {/* Make Official Button */}
-                    {!ownedLocation.isOfficial && (
-                      <button
-                        onClick={() => handleMakeOfficial(location.id)}
-                        disabled={userCredits < 3}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: userCredits >= 3 ? '#2196F3' : '#ccc',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: userCredits >= 3 ? 'pointer' : 'not-allowed',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseOver={(e) => {
-                          if (userCredits >= 3) {
-                            e.target.style.backgroundColor = '#1976D2';
-                          }
-                        }}
-                        onMouseOut={(e) => {
-                          if (userCredits >= 3) {
-                            e.target.style.backgroundColor = '#2196F3';
-                          }
-                        }}
-                        title={userCredits < 3 ? 'Need 3 credits to make official' : 'Make location official (3 credits)'}
-                      >
-                        ✅ Official
-                      </button>
-                    )}
-                    
                     {/* Current Price Display */}
                     <div style={{
                       backgroundColor: '#4CAF50',

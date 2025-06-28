@@ -14,15 +14,6 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   const locationLink = `${window.location.origin}/location/${location.id}`;
 
   const getStatusBadge = () => {
-    // Show official status first if location is official
-    if (location.isOfficial) {
-      return (
-        <span className="official-badge" style={{ marginLeft: '8px' }}>
-          <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>✔️</span> Official
-        </span>
-      );
-    }
-
     switch(location.verificationStatus) {
       case 'verified':
         return (
