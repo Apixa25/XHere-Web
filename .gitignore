@@ -67,3 +67,4 @@ uploads/*
 # production
 /build
 
+backend/.env
