@@ -61,4 +61,18 @@ const User = sequelize.define('User', {
   timestamps: true
 });
 
+// Define associations
+User.associate = (models) => {
+  // Credit system associations
+  User.hasMany(models.CreditTransaction, {
+    foreignKey: 'userId',
+    as: 'creditTransactions'
+  });
+  
+  User.hasOne(models.UserCreditStats, {
+    foreignKey: 'userId',
+    as: 'creditStats'
+  });
+};
+
 module.exports = User; 

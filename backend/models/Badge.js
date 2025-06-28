@@ -1,42 +1,35 @@
-const { Model } = require('objection');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-class Badge extends Model {
-  static get tableName() {
-    return 'badges';
+const Badge = sequelize.define('Badge', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  name: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+    unique: true
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  criteria: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    comment: 'Badge earning criteria'
+  },
+  iconUrl: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'icon_url'
   }
-
-  static get jsonSchema() {
-    return {
-      type: 'object',
-      required: ['name', 'criteria'],
-      properties: {
-        id: { type: 'integer' },
-        name: { type: 'string', minLength: 1, maxLength: 100 },
-        description: { type: 'string' },
-        criteria: { type: 'object' },
-        icon_url: { type: 'string', maxLength: 255 },
-        created_at: { type: 'string', format: 'date-time' }
-      }
-    };
-  }
-
-  static get relationMappings() {
-    const User = require('./User');
-    return {
-      users: {
-        relation: Model.ManyToManyRelation,
-        modelClass: User,
-        join: {
-          from: 'badges.id',
-          through: {
-            from: 'user_badges.badge_id',
-            to: 'user_badges.user_id'
-          },
-          to: 'users.id'
-        }
-      }
-    };
-  }
-}
+}, {
+  timestamps: true,
+  tableName: 'badges',
+  underscored: true
+});
 
 module.exports = Badge; 
