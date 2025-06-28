@@ -85,9 +85,6 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   // Get creator id safely (prefer creator.id, fallback to creatorId)
   const creatorId = location.creator?.id || location.creatorId;
 
-  // Debug log
-  console.log('DEBUG: Current user id:', currentUserId, 'Creator id:', creatorId);
-
   const handlePurchaseSuccess = (result) => {
     console.log('Location purchased successfully:', result);
     // You can add additional logic here, like refreshing the location list

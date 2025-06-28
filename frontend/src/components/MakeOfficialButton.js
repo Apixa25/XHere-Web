@@ -6,6 +6,11 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
   const [canMakeOfficial, setCanMakeOfficial] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
+  // Safety check - don't render if location is not provided
+  if (!location) {
+    return null;
+  }
+
   // Get current user id safely
   const currentUserId = (() => {
     try {
@@ -116,7 +121,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
   }
 
   // Don't show button if location cannot be made official
-  if (!canMakeOfficial.canMake) {
+  if (!canMakeOfficial || !canMakeOfficial.canMake) {
     return (
       <button
         disabled
@@ -130,9 +135,9 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
           cursor: 'not-allowed',
           opacity: 0.6
         }}
-        title={canMakeOfficial.reason}
+        title={canMakeOfficial?.reason || 'Checking availability...'}
       >
-        {canMakeOfficial.reason === 'Location is already official' ? 'Already Official' : 'Make Official'}
+        {canMakeOfficial?.reason === 'Location is already official' ? 'Already Official' : 'Make Official'}
       </button>
     );
   }

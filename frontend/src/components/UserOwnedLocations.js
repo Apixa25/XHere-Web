@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import locationTradingService from '../services/locationTradingService';
 import creditService from '../services/creditService';
 import LocationCard from './shared/LocationCard';
 import CreditBalance from './CreditBalance';
+import MakeOfficialButton from './MakeOfficialButton';
 
 const UserOwnedLocations = () => {
   const [ownedLocations, setOwnedLocations] = useState([]);
@@ -14,6 +16,8 @@ const UserOwnedLocations = () => {
     totalValue: 0,
     officialLocations: 0
   });
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchOwnedLocations();
@@ -135,7 +139,7 @@ const UserOwnedLocations = () => {
         
         {/* Back to Map Button */}
         <button
-          onClick={() => window.location.href = '/'}
+          onClick={() => navigate('/')}
           style={{
             padding: '12px 24px',
             backgroundColor: '#4CAF50',
@@ -257,7 +261,7 @@ const UserOwnedLocations = () => {
             gap: '10px'
           }}>
             <button
-              onClick={() => window.location.href = '/credits'}
+              onClick={() => navigate('/credits')}
               style={{
                 padding: '10px 16px',
                 backgroundColor: '#FF9800',
@@ -275,7 +279,7 @@ const UserOwnedLocations = () => {
               💰 Buy More Credits
             </button>
             <button
-              onClick={() => window.location.href = '/locations'}
+              onClick={() => navigate('/locations')}
               style={{
                 padding: '10px 16px',
                 backgroundColor: '#2196F3',
@@ -322,7 +326,7 @@ const UserOwnedLocations = () => {
             Start building your location portfolio by purchasing locations from the marketplace!
           </p>
           <button
-            onClick={() => window.location.href = '/locations'}
+            onClick={() => navigate('/locations')}
             style={{
               padding: '12px 24px',
               backgroundColor: '#4CAF50',

@@ -1426,7 +1426,11 @@ function App() {
   useEffect(() => {
     if (user) {
       console.log('Fetching locations for user:', user);
-      fetchLocations();
+      // Add a small delay to prevent rapid successive calls
+      const timeoutId = setTimeout(() => {
+        fetchLocations();
+      }, 100);
+      return () => clearTimeout(timeoutId);
     }
   }, [user, fetchLocations]);
 
@@ -1434,7 +1438,11 @@ function App() {
   useEffect(() => {
     if (user && map) {
       console.log('🔍 Location type changed, fetching locations');
-      fetchLocations();
+      // Add a small delay to prevent rapid successive calls
+      const timeoutId = setTimeout(() => {
+        fetchLocations();
+      }, 100);
+      return () => clearTimeout(timeoutId);
     }
   }, [selectedLocationType, user, map, fetchLocations]);
 
@@ -1442,9 +1450,41 @@ function App() {
   useEffect(() => {
     if (user && map) {
       console.log('🔍 Keyword search changed, fetching locations');
-      fetchLocations();
+      // Add a small delay to prevent rapid successive calls
+      const timeoutId = setTimeout(() => {
+        fetchLocations();
+      }, 100);
+      return () => clearTimeout(timeoutId);
     }
   }, [keywordSearch, user, map, fetchLocations]);
+
+  // Consolidated location fetching effect (replaces multiple individual useEffect hooks)
+  useEffect(() => {
+    // Only fetch if we have a user and map
+    if (!user || !map) {
+      return;
+    }
+
+    // Use a ref to track if we're already fetching to prevent duplicate calls
+    if (isFetchingLocations) {
+      console.log('🔄 Skipping location fetch - already in progress');
+      return;
+    }
+
+    console.log('🗺️ Triggering location fetch due to:', {
+      user: !!user,
+      map: !!map,
+      selectedLocationType,
+      keywordSearch: keywordSearch.trim()
+    });
+
+    // Add a small delay to prevent rapid successive calls
+    const timeoutId = setTimeout(() => {
+      fetchLocations();
+    }, 200); // Increased delay to prevent excessive calls
+
+    return () => clearTimeout(timeoutId);
+  }, [user, map, selectedLocationType, keywordSearch]); // Removed fetchLocations from dependencies
 
   // Memoize the router so it doesn't re-create on every render
   const router = useMemo(() => createBrowserRouter([
@@ -1686,7 +1726,10 @@ function App() {
     },
   ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount]);
 
-  console.log("Render App:", { selectedMarker: selectedMarker, selectedLocation, routerPath});
+  // Reduced frequency logging to prevent console spam
+  useEffect(() => {
+    console.log("Render App:", { selectedMarker: selectedMarker?.id, selectedLocation: !!selectedLocation, routerPath});
+  }, [selectedMarker?.id, selectedLocation, routerPath]);
 
   // Measure info box height after render
   useEffect(() => {
@@ -1752,7 +1795,7 @@ function App() {
     <ErrorBoundary>
       <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
         <GoogleMapsProvider>
-          <RouterProvider router={router} />
+          <RouterProvider router={router} future={{ v7_startTransition: true }} />
         </GoogleMapsProvider>
       </GoogleOAuthProvider>
     </ErrorBoundary>

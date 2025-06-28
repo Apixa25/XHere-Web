@@ -12,7 +12,6 @@ const VoteButtons = ({ location, onVoteUpdate }) => {
       if (location?.voters) {
         const userId = JSON.parse(localStorage.getItem('user'))?.userId;
         const existingVote = location.voters.find(v => v.userId === userId);
-        console.log('Current user vote:', existingVote);
         setUserVoteType(existingVote ? existingVote.voteType : null);
       }
     };
@@ -27,9 +26,6 @@ const VoteButtons = ({ location, onVoteUpdate }) => {
       setIsVoting(true);
       setError(null);
       
-      console.log('Attempting to vote:', voteType);
-      console.log('Current user vote:', userVoteType);
-      
       const response = await api.voteLocation(location.id, voteType);
       
       if (response.error) {
@@ -38,7 +34,6 @@ const VoteButtons = ({ location, onVoteUpdate }) => {
         return;
       }
       
-      console.log('Vote response:', response);
       onVoteUpdate(response.location);
       setUserVoteType(voteType);
     } catch (error) {
