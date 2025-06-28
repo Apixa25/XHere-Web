@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CreditBalance from './CreditBalance';
 import TransactionHistory from './TransactionHistory';
 
 const CreditsPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
@@ -16,7 +18,9 @@ const CreditsPage = () => {
         display: 'flex',
         justifyContent: 'center',
         marginBottom: '30px',
-        borderBottom: '2px solid #e0e0e0'
+        borderBottom: '2px solid #e0e0e0',
+        alignItems: 'center',
+        gap: '20px'
       }}>
         <button
           onClick={() => setActiveTab('overview')}
@@ -49,6 +53,27 @@ const CreditsPage = () => {
           }}
         >
           Transaction History
+        </button>
+        <button
+          onClick={() => navigate('/profile')}
+          style={{
+            padding: '12px 20px',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = '#1976D2'}
+          onMouseOut={(e) => e.target.style.backgroundColor = '#2196F3'}
+        >
+          ⬅️ Back to Profile
         </button>
       </div>
 
