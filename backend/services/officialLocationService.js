@@ -9,10 +9,15 @@ class OfficialLocationService {
    * Make a location official (costs 3 credits)
    * @param {string} locationId - Location ID to make official
    * @param {string} userId - User making the location official
+   * @param {Object} transaction - Database transaction (optional)
+   * @param {boolean} adminOverride - Whether this is an admin override (optional)
    * @returns {Promise<Object>} Updated location and transaction details
    */
-  async makeLocationOfficial(locationId, userId) {
-    const transaction = await sequelize.transaction();
+  async makeLocationOfficial(locationId, userId, transaction = null, adminOverride = false) {
+    const shouldCommit = !transaction;
+    if (!transaction) {
+      transaction = await sequelize.transaction();
+    }
     
     try {
       // Get the location
@@ -34,30 +39,33 @@ class OfficialLocationService {
         throw new Error('Location is already official');
       }
 
-      // Check if user has enough credits (3 credits required)
-      const userBalance = await creditService.getBalance(userId);
-      if (userBalance < 3) {
-        throw new Error('Insufficient credits. Making a location official requires 3 credits.');
-      }
+      // For non-admin actions, check credits and boundaries
+      if (!adminOverride) {
+        // Check if user has enough credits (3 credits required)
+        const userBalance = await creditService.getBalance(userId);
+        if (userBalance < 3) {
+          throw new Error('Insufficient credits. Making a location official requires 3 credits.');
+        }
 
-      // Check for boundary conflicts (150-foot radius)
-      const conflicts = await this.checkBoundaryConflicts(location.location, transaction);
-      if (conflicts.length > 0) {
-        throw new Error(`Cannot make location official. There are ${conflicts.length} official locations within 150 feet.`);
-      }
+        // Check for boundary conflicts (150-foot radius)
+        const conflicts = await this.checkBoundaryConflicts(location.location, transaction);
+        if (conflicts.length > 0) {
+          throw new Error(`Cannot make location official. There are ${conflicts.length} official locations within 150 feet.`);
+        }
 
-      // Spend 3 credits
-      await creditService.spendCredits(
-        userId,
-        3,
-        'spend',
-        {
-          description: `Made location "${location.content.text}" official`,
-          locationId: location.id,
-          action: 'make_official'
-        },
-        { transaction }
-      );
+        // Spend 3 credits
+        await creditService.spendCredits(
+          userId,
+          3,
+          'spend',
+          {
+            description: `Made location "${location.content.text}" official`,
+            locationId: location.id,
+            action: 'make_official'
+          },
+          { transaction }
+        );
+      }
 
       // Update location to official
       const officialBoundary = location.location; // Use the same point as boundary center
@@ -68,8 +76,10 @@ class OfficialLocationService {
         officializedAt: new Date()
       }, { transaction });
 
-      // Commit transaction
-      await transaction.commit();
+      // Commit transaction if we created it
+      if (shouldCommit) {
+        await transaction.commit();
+      }
 
       // Return updated location with associations
       const updatedLocation = await Location.findByPk(locationId, {
@@ -89,12 +99,14 @@ class OfficialLocationService {
 
       return {
         location: updatedLocation,
-        message: 'Location made official successfully!',
-        creditsSpent: 3
+        message: adminOverride ? 'Location made official by admin!' : 'Location made official successfully!',
+        creditsSpent: adminOverride ? 0 : 3
       };
 
     } catch (error) {
-      await transaction.rollback();
+      if (shouldCommit) {
+        await transaction.rollback();
+      }
       console.error('Error making location official:', error);
       throw error;
     }

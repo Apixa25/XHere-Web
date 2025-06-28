@@ -7,6 +7,8 @@ const CreditTransaction = require('./CreditTransaction');
 const UserCreditStats = require('./UserCreditStats');
 const LocationOwnership = require('./LocationOwnership');
 const LocationOwnershipHistory = require('./LocationOwnershipHistory');
+const LocationNomination = require('./LocationNomination');
+const NominationVote = require('./NominationVote');
 
 // Set up associations
 const models = {
@@ -18,7 +20,9 @@ const models = {
   CreditTransaction,
   UserCreditStats,
   LocationOwnership,
-  LocationOwnershipHistory
+  LocationOwnershipHistory,
+  LocationNomination,
+  NominationVote
 };
 
 // Call associate function for each model if it exists

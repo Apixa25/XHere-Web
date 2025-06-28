@@ -1,0 +1,77 @@
+.nomination-status {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.nomination-status.compact {
+  padding: 4px 8px;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+.status-text {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.status-description {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.3;
+}
+
+/* Status-specific styles */
+.nomination-status.pending {
+  background: #fff3cd;
+  border-color: #ffeaa7;
+  color: #856404;
+}
+
+.nomination-status.approved {
+  background: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+}
+
+.nomination-status.accepted {
+  background: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.nomination-status.rejected {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.nomination-status.failed {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.nomination-status.expired {
+  background: #e2e3e5;
+  border-color: #d6d8db;
+  color: #383d41;
+}
+
+.nomination-status.unknown {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+  color: #6c757d;
+}
+
+/* Compact mode adjustments */
+.nomination-status.compact .status-text {
+  margin-bottom: 0;
+}
+
+.nomination-status.compact .status-description {
+  display: none;
+} 

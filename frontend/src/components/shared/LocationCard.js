@@ -4,7 +4,7 @@ import KeywordsDisplay from '../KeywordsDisplay';
 import BuyLocationButton from '../BuyLocationButton';
 import OwnershipStatus from '../OwnershipStatus';
 import PurchaseHistory from '../PurchaseHistory';
-import MakeOfficialButton from '../MakeOfficialButton';
+import OfficialLocationControls from '../OfficialLocationControls';
 import React, { useState } from "react";
 import LocationShareModal from "./LocationShareModal";
 
@@ -95,16 +95,19 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
     // You can add error handling logic here
   };
 
-  const handleMakeOfficialSuccess = (result) => {
-    console.log('Location made official successfully:', result);
-    // Update the location data if needed
-    if (result.location) {
-      // You can add logic to update the location in the parent component
+  const handleOfficialControlsSuccess = (result) => {
+    console.log('Official controls action successful:', result);
+    // Handle different types of success
+    if (result.type === 'location_made_official') {
+      // Update the location data if needed
+      if (result.location) {
+        // You can add logic to update the location in the parent component
+      }
     }
   };
 
-  const handleMakeOfficialError = (error) => {
-    console.error('Make official error:', error);
+  const handleOfficialControlsError = (error) => {
+    console.error('Official controls error:', error);
     // You can add error handling logic here
   };
 
@@ -178,12 +181,13 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
             {getStatusBadge()}
           </div>
 
-          {/* Show MakeOfficialButton if not official */}
-          {!location.isOfficial && (
-            <div style={{ marginTop: '10px' }}>
-              <MakeOfficialButton location={location} />
-            </div>
-          )}
+          {/* Official Location Controls */}
+          <OfficialLocationControls
+            location={location}
+            onSuccess={handleOfficialControlsSuccess}
+            onError={handleOfficialControlsError}
+            compact={compact}
+          />
 
           {/* Voting and Message row */}
           <div style={{

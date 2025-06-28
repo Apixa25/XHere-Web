@@ -1,0 +1,339 @@
+.make-official-button {
+  border: none;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 8px;
+}
+
+.make-official-button.creator {
+  background: linear-gradient(135deg, #1976D2 0%, #42a5f5 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+.make-official-button.creator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+}
+
+.make-official-button.admin {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+}
+
+.make-official-button.admin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
+.make-official-button.community {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.make-official-button.community:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.make-official-button:active {
+  transform: translateY(0);
+}
+
+.make-official-button.compact {
+  padding: 4px 8px;
+  font-size: 10px;
+  border-radius: 8px;
+}
+
+.make-official-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Modal Styles */
+.make-official-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.make-official-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.make-official-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 0;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 20px;
+}
+
+.make-official-modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.make-official-modal-content {
+  padding: 0 24px 24px;
+}
+
+.location-info {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.location-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.location-info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Path-specific styles */
+.admin-path,
+.creator-path,
+.community-path {
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.admin-path {
+  background: #fff3e0;
+  border: 1px solid #ffcc02;
+}
+
+.admin-path h4 {
+  color: #e65100;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.creator-path {
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+}
+
+.creator-path h4 {
+  color: #1976d2;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.community-path {
+  background: #f3e5f5;
+  border: 1px solid #9c27b0;
+}
+
+.community-path h4 {
+  color: #7b1fa2;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.path-details ul {
+  margin: 0 0 16px 0;
+  padding-left: 20px;
+  font-size: 13px;
+}
+
+.path-details li {
+  margin-bottom: 6px;
+}
+
+.admin-path .path-details li {
+  color: #e65100;
+}
+
+.creator-path .path-details li {
+  color: #1976d2;
+}
+
+.community-path .path-details li {
+  color: #7b1fa2;
+}
+
+.community-note {
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.action-button {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-action {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+}
+
+.admin-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
+.creator-action {
+  background: linear-gradient(135deg, #1976D2 0%, #42a5f5 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+.creator-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+}
+
+.community-action {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.community-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.action-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid #f5c6cb;
+}
+
+.make-official-modal-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.cancel-button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: #5a6268;
+}
+
+.cancel-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .make-official-modal {
+    margin: 10px;
+    max-width: none;
+  }
+  
+  .make-official-modal-header {
+    padding: 16px 20px 0;
+  }
+  
+  .make-official-modal-content {
+    padding: 0 20px 20px;
+  }
+} 

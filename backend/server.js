@@ -155,6 +155,7 @@ const commentRoutes = require('./routes/commentRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const creditRoutes = require('./routes/creditRoutes');
 const ownershipRoutes = require('./routes/ownershipRoutes');
+const nominationRoutes = require('./routes/nominationRoutes');
 
 // Register the Stripe webhook route BEFORE body parsers (raw body needed)
 app.use('/api/credits/stripe-webhook', express.raw({ type: 'application/json' }), creditRoutes);
@@ -171,6 +172,8 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/credits', creditRoutes);
 // Register ownership routes for location trading
 app.use('/api/ownership', ownershipRoutes);
+// Register nomination routes
+app.use('/api/nominations', nominationRoutes);
 
 // Add this debug log
 console.log('Available routes:', app._router.stack

@@ -596,4 +596,28 @@ router.get('/official/stats', authenticateToken, async (req, res) => {
   }
 });
 
+// Get nominations for a specific location
+router.get('/:locationId/nominations', authenticateToken, async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    
+    // Import nomination service here to avoid circular dependencies
+    const nominationService = require('../services/nominationService');
+    
+    const nominations = await nominationService.getNominationsByLocation(locationId);
+
+    res.json({
+      success: true,
+      nominations: nominations
+    });
+
+  } catch (error) {
+    console.error('Error getting location nominations:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 module.exports = router; 

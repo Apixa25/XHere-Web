@@ -178,6 +178,40 @@ const apiService = {
     return api.get('/locations/official/stats');
   },
 
+  // Admin override for making locations official
+  adminMakeOfficial: async (locationId) => {
+    return api.post(`/locations/${locationId}/admin-make-official`);
+  },
+
+  // Nomination system endpoints
+  createNomination: async (locationId, reason) => {
+    return api.post('/nominations', { locationId, reason });
+  },
+
+  getNominations: async (params = {}) => {
+    return api.get('/nominations', { params });
+  },
+
+  getNomination: async (nominationId) => {
+    return api.get(`/nominations/${nominationId}`);
+  },
+
+  voteOnNomination: async (nominationId, voteType) => {
+    return api.post(`/nominations/${nominationId}/vote`, { voteType });
+  },
+
+  respondToNomination: async (nominationId, response) => {
+    return api.post(`/nominations/${nominationId}/respond`, { response });
+  },
+
+  getLocationNominations: async (locationId) => {
+    return api.get(`/locations/${locationId}/nominations`);
+  },
+
+  getUserNominations: async (userId) => {
+    return api.get(`/users/${userId}/nominations`);
+  },
+
   // Messaging endpoints
   sendMessage: async (messageData) => {
     return api.post('/messages', messageData);
