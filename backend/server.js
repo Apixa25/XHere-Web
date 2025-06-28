@@ -155,7 +155,14 @@ const commentRoutes = require('./routes/commentRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const creditRoutes = require('./routes/creditRoutes');
 
-// Register routes
+// Register the Stripe webhook route BEFORE body parsers
+app.use('/api/credits/stripe-webhook', require('./routes/creditRoutes'));
+
+// Body parsing middleware (for all other routes)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Register all other routes
 app.use('/api/auth', authRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/users', userRoutes);
@@ -163,6 +170,7 @@ app.use('/api/votes', voteRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/messages', messageRoutes);
+// Register credit routes (excluding webhook, already registered above)
 app.use('/api/credits', creditRoutes);
 
 // Add this debug log

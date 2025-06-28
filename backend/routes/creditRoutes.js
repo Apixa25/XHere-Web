@@ -311,4 +311,54 @@ router.get('/stripe-publishable-key', (req, res) => {
   res.json({ key: process.env.STRIPE_PUBLISHABLE_KEY });
 });
 
+// Stripe webhook endpoint
+router.post(
+  '/stripe-webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      const userId = paymentIntent.metadata.userId;
+      const credits = parseInt(paymentIntent.metadata.credits, 10);
+
+      console.log(
+        `Received payment_intent.succeeded for user ${userId} for ${credits} credits`
+      );
+
+      try {
+        await creditService.addCredits(
+          userId,
+          credits,
+          'purchase',
+          'Stripe payment',
+          { paymentIntentId: paymentIntent.id }
+        );
+        console.log(
+          `Credited ${credits} credits to user ${userId} for payment ${paymentIntent.id}`
+        );
+      } catch (error) {
+        console.error('Failed to credit user after payment:', error);
+      }
+    }
+
+    // Respond to Stripe
+    res.status(200).json({ received: true });
+  }
+);
+
 module.exports = router; 
