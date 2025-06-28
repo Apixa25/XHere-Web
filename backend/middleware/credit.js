@@ -2,36 +2,118 @@ const creditService = require('../services/creditService');
 
 /**
  * Middleware to validate if user has sufficient credits
- * Usage: Place after authentication middleware. Expects req.user.id and req.body.amount or req.query.amount
+ * @param {number} requiredCredits - Number of credits required
+ * @returns {Function} Express middleware function
  */
-async function validateSufficientCredits(req, res, next) {
+const validateCredits = (requiredCredits) => {
+  return async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const hasSufficient = await creditService.hasSufficientCredits(userId, requiredCredits);
+      
+      if (!hasSufficient) {
+        const balance = await creditService.getBalance(userId);
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient credits. Required: ${requiredCredits}, Available: ${balance}`,
+          required: requiredCredits,
+          available: balance
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Credit validation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error validating credits'
+      });
+    }
+  };
+};
+
+/**
+ * Middleware to validate location purchase credits
+ * Uses dynamic credit calculation based on location
+ */
+const validateLocationPurchaseCredits = async (req, res, next) => {
   try {
-    const amount = parseInt(req.body.amount || req.query.amount, 10);
-    if (!amount || amount <= 0) {
+    const userId = req.user.id;
+    const { locationId } = req.body;
+    
+    if (!locationId) {
       return res.status(400).json({
         success: false,
-        message: 'Valid amount is required for credit validation.'
+        message: 'Location ID is required'
       });
     }
-    const hasSufficient = await creditService.hasSufficientCredits(req.user.id, amount);
-    if (!hasSufficient) {
-      const balance = await creditService.getBalance(req.user.id);
+
+    // Import locationTradingService here to avoid circular dependencies
+    const locationTradingService = require('../services/locationTradingService');
+    const validation = await locationTradingService.validatePurchase(userId, locationId);
+    
+    if (!validation.canPurchase) {
       return res.status(400).json({
         success: false,
-        message: 'Insufficient credits',
-        balance,
-        required: amount
+        message: validation.reason,
+        validation
       });
     }
+
+    // Add validation info to request for use in route handler
+    req.purchaseValidation = validation;
     next();
   } catch (error) {
-    console.error('Credit validation middleware error:', error);
+    console.error('Location purchase credit validation error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to validate credits',
-      error: error.message
+      message: 'Error validating purchase credits'
     });
   }
-}
+};
 
-module.exports = { validateSufficientCredits }; 
+/**
+ * Middleware to validate official location credits (3 credits)
+ */
+const validateOfficialLocationCredits = validateCredits(3);
+
+/**
+ * Middleware to get user's credit balance and add to request
+ */
+const getUserCredits = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+
+    const balance = await creditService.getBalance(userId);
+    req.userCredits = balance;
+    next();
+  } catch (error) {
+    console.error('Get user credits error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting user credits'
+    });
+  }
+};
+
+module.exports = {
+  validateCredits,
+  validateLocationPurchaseCredits,
+  validateOfficialLocationCredits,
+  getUserCredits
+}; 
