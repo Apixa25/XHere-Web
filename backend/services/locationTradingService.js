@@ -8,9 +8,13 @@ class LocationTradingService {
    * Calculate the current price for a location using the doubling algorithm
    * @param {number} basePrice - Base price (default: 100 credits)
    * @param {number} purchaseCount - Number of times the location has been purchased
+   * @param {boolean} isOfficial - Whether the location is official
    * @returns {number} Calculated price
    */
-  calculatePrice(basePrice = 100, purchaseCount = 0) {
+  calculatePrice(basePrice = 100, purchaseCount = 0, isOfficial = false) {
+    if (isOfficial) {
+      return PriceCalculationService.calculateOfficialPrice(purchaseCount);
+    }
     return PriceCalculationService.calculatePrice(purchaseCount, basePrice);
   }
 
@@ -52,13 +56,17 @@ class LocationTradingService {
         });
       }
 
-      // Calculate next price for display
-      const nextPrice = PriceCalculationService.calculateNextPrice(ownership.purchaseCount);
+      // Calculate next price for display based on official status
+      const nextPrice = ownership.isOfficial 
+        ? PriceCalculationService.calculateNextOfficialPrice(ownership.purchaseCount)
+        : PriceCalculationService.calculateNextPrice(ownership.purchaseCount);
 
       return {
         ...ownership.toJSON(),
         nextPrice,
-        priceInfo: PriceCalculationService.getPriceInfo(ownership.purchaseCount),
+        priceInfo: ownership.isOfficial 
+          ? PriceCalculationService.getOfficialPriceInfo(ownership.purchaseCount)
+          : PriceCalculationService.getPriceInfo(ownership.purchaseCount),
         priceHistory: await this.getPurchaseHistory(locationId)
       };
     } catch (error) {
@@ -114,17 +122,19 @@ class LocationTradingService {
         throw new Error('You already own this location');
       }
 
-      // Calculate current price using PriceCalculationService
-      const currentPrice = PriceCalculationService.calculatePrice(ownership.purchaseCount);
+      // Calculate current price using PriceCalculationService based on official status
+      const currentPrice = ownership.isOfficial 
+        ? PriceCalculationService.calculateOfficialPrice(ownership.purchaseCount)
+        : PriceCalculationService.calculatePrice(ownership.purchaseCount);
       
       // Validate price is reasonable
       if (!PriceCalculationService.validatePrice(currentPrice)) {
         throw new Error('Location price is too high to purchase');
       }
-      
-      // Validate buyer has sufficient credits
+
+      // Check if buyer has enough credits
       if (buyer.credits < currentPrice) {
-        throw new Error(`Insufficient credits. Required: ${PriceCalculationService.formatPrice(currentPrice)}, Available: ${buyer.credits} credits`);
+        throw new Error(`Insufficient credits. You need ${PriceCalculationService.formatPrice(currentPrice)} but have ${buyer.credits} credits.`);
       }
 
       // Deduct credits from buyer
@@ -161,10 +171,13 @@ class LocationTradingService {
         purchasedAt: new Date()
       }, { transaction });
 
-      // Transfer ownership
+      // Calculate new price for next purchase
       const newPurchaseCount = ownership.purchaseCount + 1;
-      const newPrice = PriceCalculationService.calculatePrice(newPurchaseCount);
+      const newPrice = ownership.isOfficial 
+        ? PriceCalculationService.calculateOfficialPrice(newPurchaseCount)
+        : PriceCalculationService.calculatePrice(newPurchaseCount);
 
+      // Transfer ownership
       await ownership.update({
         ownerId: buyerId,
         purchaseCount: newPurchaseCount,
@@ -186,7 +199,9 @@ class LocationTradingService {
         pricePaid: currentPrice,
         nextPrice: newPrice,
         purchaseCount: newPurchaseCount,
-        priceInfo: PriceCalculationService.getPriceInfo(newPurchaseCount)
+        priceInfo: ownership.isOfficial 
+          ? PriceCalculationService.getOfficialPriceInfo(newPurchaseCount)
+          : PriceCalculationService.getPriceInfo(newPurchaseCount)
       };
     } catch (error) {
       console.error('Error in purchaseLocation:', error);
@@ -234,8 +249,12 @@ class LocationTradingService {
           { transaction: t }
         );
 
-        // Update ownership to official
-        await ownership.update({ isOfficial: true }, { transaction: t });
+        // Update ownership to official and reset purchaseCount and currentPrice
+        await ownership.update({ 
+          isOfficial: true, 
+          purchaseCount: 0, 
+          currentPrice: PriceCalculationService.OFFICIAL_BASE_PRICE 
+        }, { transaction: t });
 
         return {
           success: true,
@@ -299,8 +318,12 @@ class LocationTradingService {
   async getLocationPriceInfo(locationId) {
     try {
       const ownership = await this.getLocationOwnership(locationId);
-      const currentPrice = PriceCalculationService.calculatePrice(ownership.purchaseCount);
-      const nextPrice = PriceCalculationService.calculateNextPrice(ownership.purchaseCount);
+      const currentPrice = ownership.isOfficial 
+        ? PriceCalculationService.calculateOfficialPrice(ownership.purchaseCount)
+        : PriceCalculationService.calculatePrice(ownership.purchaseCount);
+      const nextPrice = ownership.isOfficial 
+        ? PriceCalculationService.calculateNextOfficialPrice(ownership.purchaseCount)
+        : PriceCalculationService.calculateNextPrice(ownership.purchaseCount);
 
       return {
         currentPrice,
@@ -309,8 +332,12 @@ class LocationTradingService {
         isOfficial: ownership.isOfficial,
         owner: ownership.owner,
         location: ownership.location,
-        priceInfo: PriceCalculationService.getPriceInfo(ownership.purchaseCount),
-        priceTrend: PriceCalculationService.analyzePriceTrend(ownership.purchaseCount)
+        priceInfo: ownership.isOfficial 
+          ? PriceCalculationService.getOfficialPriceInfo(ownership.purchaseCount)
+          : PriceCalculationService.getPriceInfo(ownership.purchaseCount),
+        priceTrend: ownership.isOfficial 
+          ? PriceCalculationService.analyzeOfficialPriceTrend(ownership.purchaseCount)
+          : PriceCalculationService.analyzePriceTrend(ownership.purchaseCount)
       };
     } catch (error) {
       console.error('Error getting location price info:', error);
@@ -337,7 +364,9 @@ class LocationTradingService {
         return { canPurchase: false, reason: 'You already own this location' };
       }
 
-      const currentPrice = PriceCalculationService.calculatePrice(ownership.purchaseCount);
+      const currentPrice = ownership.isOfficial 
+        ? PriceCalculationService.calculateOfficialPrice(ownership.purchaseCount)
+        : PriceCalculationService.calculatePrice(ownership.purchaseCount);
       
       if (!PriceCalculationService.validatePrice(currentPrice)) {
         return { 
@@ -357,14 +386,20 @@ class LocationTradingService {
         };
       }
 
+      const nextPrice = ownership.isOfficial 
+        ? PriceCalculationService.calculateNextOfficialPrice(ownership.purchaseCount)
+        : PriceCalculationService.calculateNextPrice(ownership.purchaseCount);
+
       return { 
         canPurchase: true, 
         currentPrice,
         currentPriceFormatted: PriceCalculationService.formatPrice(currentPrice),
-        nextPrice: PriceCalculationService.calculateNextPrice(ownership.purchaseCount),
-        nextPriceFormatted: PriceCalculationService.formatPrice(PriceCalculationService.calculateNextPrice(ownership.purchaseCount)),
+        nextPrice: nextPrice,
+        nextPriceFormatted: PriceCalculationService.formatPrice(nextPrice),
         userCredits: user.credits,
-        priceInfo: PriceCalculationService.getPriceInfo(ownership.purchaseCount)
+        priceInfo: ownership.isOfficial 
+          ? PriceCalculationService.getOfficialPriceInfo(ownership.purchaseCount)
+          : PriceCalculationService.getPriceInfo(ownership.purchaseCount)
       };
     } catch (error) {
       console.error('Error validating purchase:', error);
