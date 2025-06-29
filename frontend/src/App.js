@@ -496,16 +496,18 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            padding: '8px 12px',
+            justifyContent: 'center',
+            padding: '8px',
             backgroundColor: '#f5f5f5',
             color: '#666',
             border: '1px solid #ddd',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '12px',
+            fontSize: '16px',
             fontWeight: 'bold',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            minWidth: '36px',
+            height: '36px'
           }}
           onMouseOver={(e) => {
             e.target.style.backgroundColor = '#e0e0e0';
@@ -513,9 +515,9 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           onMouseOut={(e) => {
             e.target.style.backgroundColor = '#f5f5f5';
           }}
+          title="Purchase History"
         >
-          <span>📜</span>
-          <span>History</span>
+          📜
         </button>
       </div>
       
