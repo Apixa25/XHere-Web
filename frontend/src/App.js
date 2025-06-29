@@ -388,7 +388,60 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
         <div className="marker-stats"></div>
       </div>
       
-      {/* Location Trading Actions */}
+      <div style={{ position: 'relative' }}>
+        <div className="location-badges-container">
+          <div className="marker-stats-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+            {marker.credits > 0 && (
+              <div className="credits-badge">
+                $ {marker.credits}
+              </div>
+            )}
+            <div className="points-badge">
+              {marker.upvotes - marker.downvotes} pts
+            </div>
+            <div style={{ flex: 1 }} /> {/* Spacer to push Share button to the right */}
+            <button onClick={() => setShowShare(true)}>Share</button>
+            {showShare && (
+              <LocationShareModal link={`${window.location.origin}/location/${marker.id}`} onClose={() => setShowShare(false)} />
+            )}
+          </div>
+        </div>
+      </div>
+      <p>{marker.content.text}</p>
+      
+      {/* Keywords Display */}
+      <KeywordsDisplay keywords={marker.keywords} maxDisplay={5} />
+      
+      {marker.content.mediaUrls && marker.content.mediaUrls.length > 0 && (
+        <div className="media-gallery">
+          {marker.content.mediaUrls.map((url, index) => {
+            const mediaType = marker.content.mediaTypes[index];
+            const fullUrl = `${API_URL}/${url.replace(/\\/g, '/')}`;
+            if (mediaType && mediaType.startsWith('video/')) {
+              return (
+                <video key={index} controls className="location-video">
+                  <source src={fullUrl} type={mediaType} />
+                  Your browser does not support the video tag.
+                </video>
+              );
+            } else {
+              return (
+                <img key={index} src={fullUrl} alt="Location content" className="location-image" />
+              );
+            }
+          })}
+        </div>
+      )}
+      {canDeleteLocation() && (
+        <button
+          onClick={() => handleDeleteLocation(marker.id)}
+          className="delete-button"
+        >
+          Delete Location
+        </button>
+      )}
+      
+      {/* Location Trading Actions - Moved after Delete button */}
       <div style={{
         display: 'flex',
         flexDirection: 'row',
@@ -466,58 +519,6 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
         </button>
       </div>
       
-      <div style={{ position: 'relative' }}>
-        <div className="location-badges-container">
-          <div className="marker-stats-right" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-            {marker.credits > 0 && (
-              <div className="credits-badge">
-                $ {marker.credits}
-              </div>
-            )}
-            <div className="points-badge">
-              {marker.upvotes - marker.downvotes} pts
-            </div>
-            <div style={{ flex: 1 }} /> {/* Spacer to push Share button to the right */}
-            <button onClick={() => setShowShare(true)}>Share</button>
-            {showShare && (
-              <LocationShareModal link={`${window.location.origin}/location/${marker.id}`} onClose={() => setShowShare(false)} />
-            )}
-          </div>
-        </div>
-      </div>
-      <p>{marker.content.text}</p>
-      
-      {/* Keywords Display */}
-      <KeywordsDisplay keywords={marker.keywords} maxDisplay={5} />
-      
-      {marker.content.mediaUrls && marker.content.mediaUrls.length > 0 && (
-        <div className="media-gallery">
-          {marker.content.mediaUrls.map((url, index) => {
-            const mediaType = marker.content.mediaTypes[index];
-            const fullUrl = `${API_URL}/${url.replace(/\\/g, '/')}`;
-            if (mediaType && mediaType.startsWith('video/')) {
-              return (
-                <video key={index} controls className="location-video">
-                  <source src={fullUrl} type={mediaType} />
-                  Your browser does not support the video tag.
-                </video>
-              );
-            } else {
-              return (
-                <img key={index} src={fullUrl} alt="Location content" className="location-image" />
-              );
-            }
-          })}
-        </div>
-      )}
-      {canDeleteLocation() && (
-        <button
-          onClick={() => handleDeleteLocation(marker.id)}
-          className="delete-button"
-        >
-          Delete Location
-        </button>
-      )}
       <CommentSection
         locationId={marker.id}
         user={user}
