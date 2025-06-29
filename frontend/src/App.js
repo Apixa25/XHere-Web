@@ -173,9 +173,64 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
   const [showShare, setShowShare] = useState(false);
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [ownershipInfo, setOwnershipInfo] = useState(null);
   
-  if (!marker) return null;
-  
+  // Get current user id safely
+  const currentUserId = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'))?.id;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Fetch ownership info when marker changes
+  useEffect(() => {
+    if (marker?.id) {
+      fetchOwnershipInfo();
+    }
+  }, [marker?.id, refreshTrigger]);
+
+  const fetchOwnershipInfo = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/ownership/${marker.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setOwnershipInfo(data.ownership);
+      }
+    } catch (err) {
+      console.error('Error fetching ownership info:', err);
+    }
+  };
+
+  // Check if current user can delete this location
+  const canDeleteLocation = () => {
+    if (!user || !currentUserId) {
+      return false;
+    }
+    
+    // Admin can delete any location
+    if (user.isAdmin) {
+      return true;
+    }
+    
+    // Creator can delete their own location
+    if (marker.creatorId === currentUserId) {
+      return true;
+    }
+    
+    // Owner can delete locations they purchased
+    if (ownershipInfo?.ownerId === currentUserId) {
+      return true;
+    }
+    
+    return false;
+  };
+
   const handlePurchaseSuccess = (result) => {
     console.log('Location purchased successfully:', result);
     // Show success message
@@ -190,6 +245,8 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
     console.error('Purchase error:', error);
     // You can add error handling logic here
   };
+
+  if (!marker) return null;
 
   return (
     <div style={{
@@ -471,7 +528,7 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           })}
         </div>
       )}
-      {user && (user.isAdmin || user.id === marker.creatorId) && (
+      {canDeleteLocation() && (
         <button
           onClick={() => handleDeleteLocation(marker.id)}
           className="delete-button"

@@ -340,8 +340,13 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Location not found' });
     }
 
-    // Allow deletion if user is admin OR is the creator
-    if (!req.user.isAdmin && location.creatorId !== req.user.id) {
+    // Allow deletion if user is admin OR is the creator OR is the current owner
+    const LocationOwnership = require('../models/LocationOwnership');
+    const ownership = await LocationOwnership.findOne({ where: { locationId: req.params.id } });
+    
+    const isOwner = ownership && ownership.ownerId === req.user.id;
+    
+    if (!req.user.isAdmin && location.creatorId !== req.user.id && !isOwner) {
       await transaction.rollback();
       return res.status(403).json({ error: 'Unauthorized to delete this location' });
     }
@@ -349,7 +354,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     console.log('🗑️ Deleting location and related records:', req.params.id);
 
     // Import required models
-    const LocationOwnership = require('../models/LocationOwnership');
     const LocationOwnershipHistory = require('../models/LocationOwnershipHistory');
     const LocationNomination = require('../models/LocationNomination');
     const NominationVote = require('../models/NominationVote');

@@ -3,7 +3,7 @@ const sequelize = require('../config/database');
 
 async function updateFredCredits() {
   try {
-    console.log('💰 Updating Fred\'s credits to 1000...');
+    console.log('💰 Updating Fred\'s credits to 10000...');
     
     // Find Fred by email
     const fred = await User.findOne({
@@ -18,8 +18,8 @@ async function updateFredCredits() {
     console.log(`👤 Found user: ${fred.email} (${fred.profile?.name || 'No name'})`);
     console.log(`💰 Current credits: ${fred.credits}`);
 
-    // Update credits to 1000
-    await fred.update({ credits: 1000 });
+    // Update credits to 10000
+    await fred.update({ credits: 10000 });
 
     // Reload to confirm the update
     await fred.reload();

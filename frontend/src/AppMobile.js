@@ -165,6 +165,63 @@ function LocationInfoWindow({
   const [creditAmount, setCreditAmount] = useState(0);
   const [photoTaken, setPhotoTaken] = useState(null);
   const [videoRecorded, setVideoRecorded] = useState(null);
+  const [ownershipInfo, setOwnershipInfo] = useState(null);
+  
+  // Get current user id safely
+  const currentUserId = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'))?.id;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Fetch ownership info when selectedMarker changes
+  useEffect(() => {
+    if (selectedMarker?.id) {
+      fetchOwnershipInfo();
+    }
+  }, [selectedMarker?.id]);
+
+  const fetchOwnershipInfo = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/ownership/${selectedMarker.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setOwnershipInfo(data.ownership);
+      }
+    } catch (err) {
+      console.error('Error fetching ownership info:', err);
+    }
+  };
+
+  // Check if current user can delete this location
+  const canDeleteLocation = () => {
+    if (!user || !currentUserId) {
+      return false;
+    }
+    
+    // Admin can delete any location
+    if (user.isAdmin) {
+      return true;
+    }
+    
+    // Creator can delete their own location
+    if (selectedMarker.creatorId === currentUserId) {
+      return true;
+    }
+    
+    // Owner can delete locations they purchased
+    if (ownershipInfo?.ownerId === currentUserId) {
+      return true;
+    }
+    
+    return false;
+  };
 
   const getStatusBadge = () => {
     switch(selectedMarker?.verificationStatus) {
@@ -586,7 +643,7 @@ function LocationInfoWindow({
             }}
           />
 
-          {user && (user.isAdmin || (selectedMarker.creator && user.userId === selectedMarker.creator._id)) && (
+          {canDeleteLocation() && (
             <button
               onClick={() => handleDeleteLocation(selectedMarker.id)}
               className="mobile-delete-button"
