@@ -284,24 +284,6 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
         ×
       </button>
       
-      {/* Location Trading Status Indicators */}
-      <div style={{
-        marginBottom: '16px',
-        padding: '12px',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #e9ecef'
-      }}>
-        <OwnershipStatus 
-          location={marker} 
-          compact={false}
-          refreshTrigger={refreshTrigger}
-          onStatusUpdate={() => {
-            // Refresh ownership status if needed
-          }}
-        />
-      </div>
-      
       {/* Official Status Indicator */}
       {marker.isOfficial && (
         <div style={{
@@ -545,6 +527,24 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           }
         }}
       />
+      
+      {/* Location Trading Status Indicators - Moved to bottom */}
+      <div style={{
+        marginTop: '16px',
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #e9ecef'
+      }}>
+        <OwnershipStatus 
+          location={marker} 
+          compact={false}
+          refreshTrigger={refreshTrigger}
+          onStatusUpdate={() => {
+            // Refresh ownership status if needed
+          }}
+        />
+      </div>
       
       {/* Purchase History Modal */}
       {showPurchaseHistory && (
