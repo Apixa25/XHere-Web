@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Location = require('../models/Location');
 const { Sequelize, Op } = require('sequelize');
 const sequelize = require('../config/database');
+const cleanupService = require('../services/cleanupService');
 
 // Admin middleware
 const adminAuth = async (req, res, next) => {
@@ -300,6 +301,57 @@ router.delete('/locations/:locationId/media/:mediaIndex', authenticateToken, adm
   } catch (error) {
     console.error('Error deleting media:', error);
     res.status(500).json({ error: 'Failed to delete media' });
+  }
+});
+
+// Cleanup routes
+router.get('/cleanup/stats', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const stats = await cleanupService.getCleanupStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error getting cleanup stats:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/cleanup/general', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const result = await cleanupService.cleanupExpiredGeneralLocations();
+    res.json({ 
+      success: true, 
+      message: 'General locations cleanup completed',
+      result 
+    });
+  } catch (error) {
+    console.error('Error during general cleanup:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/cleanup/all', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const result = await cleanupService.cleanupAllExpiredLocations();
+    res.json({ 
+      success: true, 
+      message: 'All locations cleanup completed',
+      result 
+    });
+  } catch (error) {
+    console.error('Error during all locations cleanup:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

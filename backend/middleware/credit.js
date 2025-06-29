@@ -156,10 +156,52 @@ const getUserCredits = async (req, res, next) => {
   }
 };
 
+/**
+ * Middleware to validate location posting credits based on location type
+ * General locations are free, all others require 100 credits
+ */
+const validateLocationPostingCredits = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { locationType } = req.body;
+    
+    // General locations are free
+    if (locationType === 'general') {
+      req.requiredCredits = 0;
+      req.locationType = locationType;
+      return next();
+    }
+    
+    // All other location types require 100 credits
+    req.requiredCredits = 100;
+    req.locationType = locationType;
+    
+    // Check if user has enough credits
+    const userBalance = await creditService.getBalance(userId);
+    if (userBalance < 100) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient credits. ${locationType} locations require 100 credits. You have ${userBalance} credits.`,
+        requiredCredits: 100,
+        userCredits: userBalance
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Location posting credit validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error validating posting credits'
+    });
+  }
+};
+
 module.exports = {
   validateCredits,
   validateSufficientCredits,
   validateLocationPurchaseCredits,
   validateOfficialLocationCredits,
+  validateLocationPostingCredits,
   getUserCredits
 }; 

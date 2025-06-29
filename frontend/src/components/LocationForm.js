@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/LocationForm.css';
 import LOCATION_TYPES from '../constants/locationTypes';
 
@@ -9,9 +9,16 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
   const [autoDelete, setAutoDelete] = useState(false);
   const [deleteTime, setDeleteTime] = useState(0);
   const [deleteUnit, setDeleteUnit] = useState('minutes');
-  const [creditAmount, setCreditAmount] = useState(0);
   const [locationType, setLocationType] = useState('general');
   const [keywords, setKeywords] = useState('');
+
+  // Calculate required credits based on location type
+  const getRequiredCredits = (type) => {
+    return type === 'general' ? 0 : 100;
+  };
+
+  const requiredCredits = getRequiredCredits(locationType);
+  const hasEnoughCredits = user?.credits >= requiredCredits;
 
   const handleCloseClick = (e) => {
     e.stopPropagation();
@@ -20,6 +27,12 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Check if user has enough credits for non-general locations
+    if (locationType !== 'general' && !hasEnoughCredits) {
+      alert(`Insufficient credits. ${locationType} locations require 100 credits. You have ${user?.credits || 0} credits.`);
+      return;
+    }
     
     // Parse keywords from comma-separated string to array
     const keywordsArray = keywords
@@ -36,7 +49,6 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
       autoDelete,
       deleteTime,
       deleteUnit,
-      creditAmount,
       locationType,
       keywords: keywordsArray
     });
@@ -84,10 +96,30 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
           >
             {Object.entries(LOCATION_TYPES).map(([key, type]) => (
               <option key={key} value={key}>
-                {type.icon} {type.label}
+                {type.icon} {type.label} {key !== 'general' ? '(100 credits)' : '(Free)'}
               </option>
             ))}
           </select>
+          
+          {/* Credit requirement display */}
+          <div className="credit-requirement">
+            {locationType === 'general' ? (
+              <div className="credit-info free">
+                <span>✅ Free to post</span>
+                <small>Auto-deleted in 7 days unless it gets 2+ positive ratings</small>
+              </div>
+            ) : (
+              <div className={`credit-info ${hasEnoughCredits ? 'sufficient' : 'insufficient'}`}>
+                <span>
+                  {hasEnoughCredits ? '✅' : '❌'} {requiredCredits} credits required
+                </span>
+                <small>
+                  Your balance: {user?.credits || 0} credits
+                  {!hasEnoughCredits && ` (Need ${requiredCredits - (user?.credits || 0)} more)`}
+                </small>
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="form-options">
@@ -101,17 +133,19 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
               />
               <label htmlFor="isAnonymous">Post Anonymously</label>
             </div>
-            <div className="checkbox-item">
-              <input
-                type="checkbox"
-                id="autoDelete"
-                checked={autoDelete}
-                onChange={(e) => setAutoDelete(e.target.checked)}
-              />
-              <label htmlFor="autoDelete">Set time to delete</label>
-            </div>
+            {locationType !== 'general' && (
+              <div className="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="autoDelete"
+                  checked={autoDelete}
+                  onChange={(e) => setAutoDelete(e.target.checked)}
+                />
+                <label htmlFor="autoDelete">Set time to delete</label>
+              </div>
+            )}
           </div>
-          {autoDelete && (
+          {autoDelete && locationType !== 'general' && (
             <div className="auto-delete-options">
               <input
                 type="number"
@@ -129,20 +163,17 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
               </select>
             </div>
           )}
-          <div className="credit-options">
-            <label>
-              Place Crypto (Avail: {user?.credits ?? 0})
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={creditAmount}
-              onChange={(e) => setCreditAmount(parseInt(e.target.value, 10))}
-            />
-          </div>
         </div>
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Submitting...' : 'Create Location'}
+        
+        <button 
+          type="submit" 
+          disabled={submitting || (locationType !== 'general' && !hasEnoughCredits)}
+          className={locationType !== 'general' && !hasEnoughCredits ? 'disabled' : ''}
+        >
+          {submitting ? 'Submitting...' : 
+           locationType !== 'general' && !hasEnoughCredits ? 
+           `Need ${requiredCredits - (user?.credits || 0)} more credits` : 
+           'Create Location'}
         </button>
       </form>
     </div>

@@ -16,7 +16,7 @@ This guide contains a series of prompts to systematically implement:
 ### **Prompt 1.1: Credit-Based Posting System**
 ```
 Please help me implement the credit-based posting system. I need to:
-1. Modify location creation to require credits for most categories
+1. Modify location creation to require 100 credits for all categories except for "general"
 2. Set "general" locations as free but with 7-day auto-delete
 3. Implement credit deduction for paid location types
 4. Add credit validation middleware

@@ -3,6 +3,7 @@ const Location = require('./Location');
 const LocationComment = require('./LocationComment');
 const Message = require('./Message');
 const Badge = require('./Badge');
+const UserBadge = require('./UserBadge');
 const CreditTransaction = require('./CreditTransaction');
 const UserCreditStats = require('./UserCreditStats');
 const LocationOwnership = require('./LocationOwnership');
@@ -17,6 +18,7 @@ const models = {
   LocationComment,
   Message,
   Badge,
+  UserBadge,
   CreditTransaction,
   UserCreditStats,
   LocationOwnership,

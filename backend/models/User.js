@@ -52,10 +52,6 @@ const User = sequelize.define('User', {
   votesGiven: {
     type: DataTypes.INTEGER,
     defaultValue: 0
-  },
-  earnedBadges: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    defaultValue: []
   }
 }, {
   timestamps: true
@@ -72,6 +68,19 @@ User.associate = (models) => {
   User.hasOne(models.UserCreditStats, {
     foreignKey: 'userId',
     as: 'creditStats'
+  });
+
+  // Badge system associations
+  User.hasMany(models.UserBadge, {
+    foreignKey: 'userId',
+    as: 'userBadges'
+  });
+  
+  User.belongsToMany(models.Badge, {
+    through: models.UserBadge,
+    foreignKey: 'userId',
+    otherKey: 'badgeId',
+    as: 'earnedBadges'
   });
 };
 

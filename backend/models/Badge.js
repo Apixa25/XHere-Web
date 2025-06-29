@@ -32,4 +32,18 @@ const Badge = sequelize.define('Badge', {
   underscored: true
 });
 
+// Define associations
+Badge.associate = (models) => {
+  Badge.hasMany(models.UserBadge, {
+    foreignKey: 'badgeId',
+    as: 'userBadges'
+  });
+  Badge.belongsToMany(models.User, {
+    through: models.UserBadge,
+    foreignKey: 'badgeId',
+    otherKey: 'userId',
+    as: 'users'
+  });
+};
+
 module.exports = Badge; 

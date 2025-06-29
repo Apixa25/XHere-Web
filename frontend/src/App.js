@@ -1031,7 +1031,6 @@ function App() {
         data.append('deleteTime', formData.deleteTime);
         data.append('deleteUnit', formData.deleteUnit);
       }
-      data.append('creditAmount', formData.creditAmount || 0);
       data.append('locationType', formData.locationType || 'general');
       data.append('keywords', JSON.stringify(formData.keywords || []));
       
@@ -1043,6 +1042,18 @@ function App() {
 
       const response = await api.addLocation(data);
       console.log('Location created successfully:', response);
+      
+      // Show success message with credit information
+      if (response.data.message) {
+        setMessage(response.data.message);
+        setTimeout(() => setMessage(''), 5000);
+      }
+      
+      // Update user credits if they were spent
+      if (response.data.creditsSpent > 0) {
+        // Refresh user data to get updated credit balance
+        await fetchUser();
+      }
       
       setSelectedLocation(null);
       await fetchLocations();

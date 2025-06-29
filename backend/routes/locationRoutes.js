@@ -9,6 +9,10 @@ const { checkAndAwardBadges } = require('../utils/badgeChecker');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const officialLocationService = require('../services/officialLocationService');
+const { validateLocationPostingCredits } = require('../middleware/credit');
+const creditService = require('../services/creditService');
+const badgeService = require('../services/badgeService');
+const nominationService = require('../services/nominationService');
 
 // Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
@@ -229,25 +233,10 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add POST endpoint
-router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
+router.post('/', authenticateToken, validateLocationPostingCredits, upload.array('media'), async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
   try {
-    const { creditAmount } = req.body;
-    
-    // Check if user has enough credits
-    const user = await User.findByPk(req.user.id);
-    if (creditAmount > user.credits) {
-      return res.status(400).json({ error: 'Insufficient credits' });
-    }
-
-    // Deduct credits from user
-    if (creditAmount > 0) {
-      user.credits -= creditAmount;
-      await user.save();
-    }
-
-    console.log('Received location data:', req.body);
-    console.log('Received files:', req.files);
-    
     const { 
       latitude, 
       longitude, 
@@ -260,9 +249,37 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       keywords 
     } = req.body;
 
-    // Calculate deleteAt time if autoDelete is enabled
+    // Get required credits from middleware
+    const requiredCredits = req.requiredCredits;
+    const finalLocationType = req.locationType || locationType || 'general';
+
+    // Deduct credits if required
+    if (requiredCredits > 0) {
+      await creditService.spendCredits(
+        req.user.id,
+        requiredCredits,
+        'location_creation',
+        {
+          description: `Created ${finalLocationType} location: "${text}"`,
+          locationType: finalLocationType,
+          action: 'create_location'
+        },
+        { transaction }
+      );
+    }
+
+    console.log('Received location data:', req.body);
+    console.log('Received files:', req.files);
+    
+    // Calculate deleteAt time
     let deleteAt = null;
-    if (autoDelete === 'true') {
+    
+    // For general locations, always set 7-day auto-delete
+    if (finalLocationType === 'general') {
+      deleteAt = new Date();
+      deleteAt.setDate(deleteAt.getDate() + 7);
+    } else if (autoDelete === 'true') {
+      // For paid locations, use user-specified auto-delete if enabled
       deleteAt = new Date();
       const time = parseInt(deleteTime);
       
@@ -309,20 +326,30 @@ router.post('/', authenticateToken, upload.array('media'), async (req, res) => {
       },
       content,
       keywords: parsedKeywords,
-      locationType: locationType || 'general',
+      locationType: finalLocationType,
       creatorId: req.user.id,
-      autoDelete: autoDelete === 'true',
+      autoDelete: finalLocationType === 'general' || autoDelete === 'true',
       deleteAt,
-      credits: creditAmount || 0
-    });
+      credits: requiredCredits
+    }, { transaction });
+
+    // Check for new badges
+    const newBadges = await badgeService.checkBadges(req.user.id, { transaction });
+
+    await transaction.commit();
 
     console.log('Created location:', location);
 
     res.status(201).json({ 
       location,
-      newBadges: []
+      newBadges,
+      creditsSpent: requiredCredits,
+      message: finalLocationType === 'general' 
+        ? 'General location created! It will be automatically deleted in 7 days unless it receives 2+ positive ratings.'
+        : `${finalLocationType} location created successfully!`
     });
   } catch (error) {
+    await transaction.rollback();
     console.error('Error creating location:', error);
     res.status(500).json({ error: error.message });
   }

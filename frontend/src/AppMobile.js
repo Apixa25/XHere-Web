@@ -161,11 +161,10 @@ function LocationInfoWindow({
   submitting,
   infoBoxRef
 }) {
-  const [assignCredits, setAssignCredits] = useState(false);
-  const [creditAmount, setCreditAmount] = useState(0);
   const [photoTaken, setPhotoTaken] = useState(null);
   const [videoRecorded, setVideoRecorded] = useState(null);
   const [ownershipInfo, setOwnershipInfo] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   // Get current user id safely
   const currentUserId = (() => {
@@ -321,7 +320,6 @@ function LocationInfoWindow({
       autoDelete: contentForm.autoDelete,
       deleteTime: contentForm.deleteTime,
       deleteUnit: contentForm.deleteUnit,
-      creditAmount: assignCredits ? creditAmount : 0,
       locationType: contentForm.locationType,
       keywords: keywordsArray
     };
@@ -481,53 +479,10 @@ function LocationInfoWindow({
             </div>
           )}
           
-          <div className="mobile-credits-section">
-            <div className="credits-toggle">
-              <input
-                type="checkbox"
-                id="assignCredits"
-                checked={assignCredits}
-                onChange={(e) => {
-                  setAssignCredits(e.target.checked);
-                  if (!e.target.checked) setCreditAmount(0);
-                }}
-              />
-              <label htmlFor="assignCredits">
-                Place Crypto (Avail: {user?.credits ?? 0})
-              </label>
-            </div>
-
-            {assignCredits && (
-              <div className="credits-input-container">
-                <div className="credits-balance">
-                  Available: {user?.credits ?? 0} credits
-                </div>
-                <div className="credits-input-group">
-                  <label htmlFor="creditAmount">Amount:</label>
-                  <input
-                    id="creditAmount"
-                    type="number"
-                    min="1"
-                    max={user?.credits ?? 0}
-                    value={creditAmount}
-                    onChange={(e) => setCreditAmount(Math.min(
-                      parseInt(e.target.value) || 0,
-                      user?.credits ?? 0
-                    ))}
-                    className="credits-input"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
           <button 
             type="submit" 
-            disabled={submitting || (assignCredits && creditAmount > (user?.credits ?? 0))}
-            className={`mobile-submit-button ${
-              submitting || (assignCredits && creditAmount > (user?.credits ?? 0)) 
-                ? 'disabled' : ''
-            }`}
+            disabled={submitting}
+            className={`mobile-submit-button ${submitting ? 'disabled' : ''}`}
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
@@ -763,6 +718,7 @@ function AppMobile() {
   const [infoBoxHeight, setInfoBoxHeight] = useState(0);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapType, setMapType] = useState('roadmap');
+  const [message, setMessage] = useState('');
 
   // Get device info
   useEffect(() => {
@@ -1112,7 +1068,6 @@ function AppMobile() {
         data.append('deleteTime', formData.deleteTime);
         data.append('deleteUnit', formData.deleteUnit);
       }
-      data.append('creditAmount', formData.creditAmount || 0);
       data.append('locationType', formData.locationType || 'general');
       data.append('keywords', JSON.stringify(formData.keywords || []));
       
@@ -1124,6 +1079,18 @@ function AppMobile() {
 
       const response = await api.addLocation(data);
       console.log('Location created successfully:', response);
+      
+      // Show success message with credit information
+      if (response.data.message) {
+        setMessage(response.data.message);
+        setTimeout(() => setMessage(''), 5000);
+      }
+      
+      // Update user credits if they were spent
+      if (response.data.creditsSpent > 0) {
+        // Refresh user data to get updated credit balance
+        await fetchUser();
+      }
       
       setContentForm({
         text: '',
