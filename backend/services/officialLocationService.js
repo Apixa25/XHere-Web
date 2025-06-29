@@ -6,7 +6,7 @@ const sequelize = require('../config/database');
 
 class OfficialLocationService {
   /**
-   * Make a location official (costs 3 credits)
+   * Make a location official (costs 300 credits)
    * @param {string} locationId - Location ID to make official
    * @param {string} userId - User making the location official
    * @param {Object} transaction - Database transaction (optional)
@@ -41,10 +41,10 @@ class OfficialLocationService {
 
       // For non-admin actions, check credits and boundaries
       if (!adminOverride) {
-        // Check if user has enough credits (3 credits required)
+        // Check if user has enough credits (300 credits required)
         const userBalance = await creditService.getBalance(userId);
-        if (userBalance < 3) {
-          throw new Error('Insufficient credits. Making a location official requires 3 credits.');
+        if (userBalance < 300) {
+          throw new Error('Insufficient credits. Making a location official requires 300 credits.');
         }
 
         // Check for boundary conflicts (150-foot radius)
@@ -53,10 +53,10 @@ class OfficialLocationService {
           throw new Error(`Cannot make location official. There are ${conflicts.length} official locations within 150 feet.`);
         }
 
-        // Spend 3 credits
+        // Spend 300 credits
         await creditService.spendCredits(
           userId,
-          3,
+          300,
           'spend',
           {
             description: `Made location "${location.content.text}" official`,
@@ -100,7 +100,7 @@ class OfficialLocationService {
       return {
         location: updatedLocation,
         message: adminOverride ? 'Location made official by admin!' : 'Location made official successfully!',
-        creditsSpent: adminOverride ? 0 : 3
+        creditsSpent: adminOverride ? 0 : 300
       };
 
     } catch (error) {
@@ -242,11 +242,11 @@ class OfficialLocationService {
       }
 
       const userBalance = await creditService.getBalance(userId);
-      if (userBalance < 3) {
+      if (userBalance < 300) {
         return { 
           canMake: false, 
           reason: 'Insufficient credits',
-          required: 3,
+          required: 300,
           available: userBalance
         };
       }

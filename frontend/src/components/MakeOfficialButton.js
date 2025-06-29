@@ -62,7 +62,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
 
   const getButtonText = () => {
     if (isAdmin) return '👑 Make Official (Admin)';
-    if (isCreator) return '✅ Make Official (3 credits)';
+    if (isCreator) return '✅ Make Official (300 credits)';
     return '🏆 Nominate for Official';
   };
 
@@ -78,7 +78,7 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
         onClick={() => setShowModal(true)}
         disabled={isLoading}
         className={`${getButtonClass()} ${compact ? 'compact' : ''}`}
-        title={isAdmin ? 'Admin override - no cost' : isCreator ? 'Make your location official (3 credits)' : 'Nominate for community voting (5 credits)'}
+        title={isAdmin ? 'Admin override - no cost' : isCreator ? 'Make your location official (300 credits)' : 'Nominate for community voting (5 credits)'}
       >
         {getButtonText()}
       </button>
@@ -123,12 +123,12 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
                 </div>
               )}
 
-              {isCreator && !isAdmin && (
+              {isCreator && (
                 <div className="creator-path">
                   <h4>✅ Creator Path</h4>
                   <div className="path-details">
                     <ul>
-                      <li>💰 <strong>Cost:</strong> 3 credits</li>
+                      <li>💰 <strong>Cost:</strong> 300 credits</li>
                       <li>⚡ <strong>Speed:</strong> Immediate official status</li>
                       <li>🎯 <strong>Use:</strong> Make your own location official</li>
                       <li>⚠️ <strong>Note:</strong> 150-foot boundary enforcement applies</li>
@@ -139,12 +139,12 @@ const MakeOfficialButton = ({ location, onSuccess, onError, compact = false }) =
                     disabled={isLoading}
                     className="action-button creator-action"
                   >
-                    {isLoading ? 'Processing...' : '✅ Make Official (3 credits)'}
+                    {isLoading ? 'Processing...' : '✅ Make Official (300 credits)'}
                   </button>
                 </div>
               )}
 
-              {!isCreator && !isAdmin && (
+              {!isAdmin && !isCreator && (
                 <div className="community-path">
                   <h4>🏆 Community Path</h4>
                   <div className="path-details">

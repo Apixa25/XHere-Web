@@ -176,7 +176,7 @@ const NominationDemo = () => {
           <div className="info-card">
             <h4>👤 Creator Path</h4>
             <ul>
-              <li>Cost: 3 credits</li>
+              <li>Cost: 300 credits</li>
               <li>Speed: Immediate</li>
               <li>Use: Make your own location official</li>
             </ul>

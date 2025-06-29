@@ -126,9 +126,9 @@ const validateLocationPurchaseCredits = async (req, res, next) => {
 };
 
 /**
- * Middleware to validate official location credits (3 credits)
+ * Middleware to validate official location credits (300 credits)
  */
-const validateOfficialLocationCredits = validateCredits(3);
+const validateOfficialLocationCredits = validateCredits(300);
 
 /**
  * Middleware to get user's credit balance and add to request

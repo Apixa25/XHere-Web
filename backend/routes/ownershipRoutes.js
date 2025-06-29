@@ -123,7 +123,7 @@ router.get('/:locationId/validate',
 
 /**
  * @route POST /api/ownership/:locationId/official
- * @desc Make a location official (costs 3 credits)
+ * @desc Make a location official (costs 300 credits)
  * @access Private
  */
 router.post('/:locationId/official', 

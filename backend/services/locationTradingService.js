@@ -195,7 +195,7 @@ class LocationTradingService {
   }
 
   /**
-   * Make a location official (costs 3 credits)
+   * Make a location official (costs 300 credits)
    * @param {Object} params - Official status parameters
    * @param {string} params.userId - User ID making the request
    * @param {string} params.locationId - Location ID to make official
@@ -221,14 +221,14 @@ class LocationTradingService {
 
         // Check if user has enough credits
         const user = await User.findByPk(userId, { transaction: t, lock: t.LOCK.UPDATE });
-        if (user.credits < 3) {
-          throw new Error('Insufficient credits. Making a location official costs 3 credits.');
+        if (user.credits < 300) {
+          throw new Error('Insufficient credits. Making a location official costs 300 credits.');
         }
 
         // Deduct credits
         await creditService.spendCredits(
           userId,
-          3,
+          300,
           'make_location_official',
           { locationId },
           { transaction: t }
