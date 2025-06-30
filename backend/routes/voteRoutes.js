@@ -3,12 +3,16 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Location = require('../models/Location');
 const User = require('../models/User');
+const locationStatusService = require('../services/locationStatusService');
+const badgeService = require('../services/badgeService');
 
 // Define these constants ONCE at the top
 const VERIFICATION_THRESHOLD = 5;
 const PENDING_THRESHOLD = 2;
 
 router.post('/:locationId/vote', authenticateToken, async (req, res) => {
+  const transaction = await Location.sequelize.transaction();
+  
   try {
     const { locationId } = req.params;
     const { voteType } = req.body;
@@ -16,8 +20,9 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
 
     console.log('Vote attempt:', { locationId, userId, voteType });
 
-    const location = await Location.findByPk(locationId);
+    const location = await Location.findByPk(locationId, { transaction });
     if (!location) {
+      await transaction.rollback();
       return res.status(404).json({ error: 'Location not found' });
     }
 
@@ -38,6 +43,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
 
       // If trying to vote the same way, reject
       if (existingVote.voteType === voteType) {
+        await transaction.rollback();
         console.log('Rejecting duplicate vote');
         return res.status(400).json({ 
           error: 'You have already voted this way on this location',
@@ -81,7 +87,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     // Recalculate total points
     location.totalPoints = location.upvotes - location.downvotes;
 
-    // Update verification status
+    // Update verification status (legacy system)
     const netVotes = location.upvotes - location.downvotes;
     if (netVotes >= VERIFICATION_THRESHOLD) {
       location.verificationStatus = 'verified';
@@ -92,11 +98,15 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     }
 
     console.log('Saving location with voters:', location.voters);
-    await location.save();
+    await location.save({ transaction });
+
+    // Update location status based on new ratings
+    const statusUpdate = await locationStatusService.updateLocationStatus(locationId, { transaction });
 
     // Check and award badges after successful vote
-    const { checkAndAwardBadges } = require('../utils/badgeChecker');
-    const newBadges = await checkAndAwardBadges(location.creatorId);
+    const newBadges = await badgeService.checkBadges(location.creatorId, { transaction });
+
+    await transaction.commit();
 
     console.log('Updated location state:', {
       upvotes: location.upvotes,
@@ -104,6 +114,8 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       voters: location.voters,
       totalPoints: location.totalPoints,
       verificationStatus: location.verificationStatus,
+      locationStatus: statusUpdate.location.locationStatus,
+      statusChanged: statusUpdate.statusChanged,
       newBadges
     });
 
@@ -114,12 +126,20 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
         upvotes: location.upvotes,
         downvotes: location.downvotes,
         verificationStatus: location.verificationStatus,
+        locationStatus: statusUpdate.location.locationStatus,
         totalPoints: location.totalPoints,
         voters: location.voters
+      },
+      statusUpdate: {
+        changed: statusUpdate.statusChanged,
+        previousStatus: statusUpdate.previousStatus,
+        newStatus: statusUpdate.newStatus,
+        reason: statusUpdate.reason
       },
       newBadges
     });
   } catch (error) {
+    await transaction.rollback();
     console.error('Error recording vote:', error);
     res.status(500).json({ error: 'Error recording vote' });
   }

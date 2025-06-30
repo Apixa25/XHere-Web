@@ -636,6 +636,47 @@ const isAdvancedMarkerAvailable = () => {
   return window.google?.maps?.marker?.AdvancedMarkerElement !== undefined;
 };
 
+// Helper function to get status badge HTML
+const getStatusBadgeHTML = (location) => {
+  if (!location.locationStatus) return '';
+  
+  const statusConfig = {
+    pending: { color: '#FF9800', icon: '⏳', text: 'Pending' },
+    verified: { color: '#4CAF50', icon: '✅', text: 'Verified' },
+    flagged: { color: '#F44336', icon: '🚩', text: 'Flagged' },
+    removed: { color: '#9E9E9E', icon: '🗑️', text: 'Removed' }
+  };
+
+  const config = statusConfig[location.locationStatus] || statusConfig.pending;
+  
+  return `<span style="
+    background-color: ${config.color}; 
+    color: white; 
+    padding: 2px 6px; 
+    border-radius: 8px; 
+    font-size: 10px; 
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  ">${config.icon} ${config.text}</span>`;
+};
+
+// Helper function to get status reason HTML
+const getStatusReasonHTML = (location) => {
+  if (!location.statusReason) return '';
+  
+  return `<div style="
+    margin-top: 2px;
+    font-size: 10px;
+    color: #666;
+    font-style: italic;
+    padding: 2px 4px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  ">📝 ${location.statusReason}</div>`;
+};
+
 function AppMobile() {
   // Initialize status bar for mobile
   useEffect(() => {
@@ -1579,7 +1620,9 @@ function AppMobile() {
                         <div class="marker-text">${shortText}</div>
                         <div class="marker-stats" style="display: flex; align-items: center; gap: 10px; flex-direction: row;">
                           <span class="votes" style="display: inline-flex; align-items: center;">⬆️ ${location.upvotes || 0}</span>${location.credits > 0 ? `<span class="credits" style="display: inline-flex; align-items: center;">💵 ${location.credits}</span>` : ''}
+                          ${getStatusBadgeHTML(location)}
                         </div>
+                        ${getStatusReasonHTML(location)}
                       </div>
                     `;
 

@@ -16,7 +16,7 @@ const CreditTransaction = sequelize.define('CreditTransaction', {
     }
   },
   transactionType: {
-    type: DataTypes.ENUM('purchase', 'spend', 'refund', 'bonus', 'transfer'),
+    type: DataTypes.ENUM('purchase', 'spend', 'refund', 'bonus', 'transfer', 'location_creation'),
     allowNull: false
   },
   amount: {

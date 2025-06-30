@@ -6,6 +6,7 @@ const Location = require('../models/Location');
 const { Sequelize, Op } = require('sequelize');
 const sequelize = require('../config/database');
 const cleanupService = require('../services/cleanupService');
+const locationStatusService = require('../services/locationStatusService');
 
 // Admin middleware
 const adminAuth = async (req, res, next) => {
@@ -352,6 +353,233 @@ router.post('/cleanup/all', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error during all locations cleanup:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Location Status Management Routes
+
+// Get location status statistics
+router.get('/location-status/stats', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const stats = await locationStatusService.getStatusStats();
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    console.error('Error getting location status stats:', error);
+    res.status(500).json({ error: 'Error getting status statistics' });
+  }
+});
+
+// Get locations by status
+router.get('/location-status/:status', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { status } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    const locations = await locationStatusService.getLocationsByStatus(status, {
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      success: true,
+      locations,
+      count: locations.length
+    });
+  } catch (error) {
+    console.error('Error getting locations by status:', error);
+    res.status(500).json({ error: 'Error getting locations by status' });
+  }
+});
+
+// Manually update location status
+router.put('/location-status/:locationId', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { locationId } = req.params;
+    const { status, reason } = req.body;
+
+    if (!status || !['pending', 'verified', 'flagged', 'removed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    const result = await locationStatusService.manuallyUpdateStatus(
+      locationId, 
+      status, 
+      reason || 'Manual admin update'
+    );
+
+    res.json({
+      success: true,
+      message: 'Location status updated successfully',
+      location: result.location,
+      previousStatus: result.previousStatus,
+      newStatus: result.newStatus,
+      reason: result.reason
+    });
+  } catch (error) {
+    console.error('Error updating location status:', error);
+    res.status(500).json({ error: 'Error updating location status' });
+  }
+});
+
+// Bulk update location statuses based on ratings
+router.post('/location-status/bulk-update', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { locationIds } = req.body;
+
+    if (!Array.isArray(locationIds)) {
+      return res.status(400).json({ error: 'locationIds must be an array' });
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const locationId of locationIds) {
+      try {
+        const result = await locationStatusService.updateLocationStatus(locationId);
+        results.push(result);
+      } catch (error) {
+        errors.push({ locationId, error: error.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Processed ${locationIds.length} locations`,
+      results,
+      errors,
+      summary: {
+        total: locationIds.length,
+        successful: results.length,
+        failed: errors.length
+      }
+    });
+  } catch (error) {
+    console.error('Error bulk updating location statuses:', error);
+    res.status(500).json({ error: 'Error bulk updating location statuses' });
+  }
+});
+
+// Get rating analytics
+router.get('/rating-analytics', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { days = 30 } = req.query;
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(days));
+
+    // Get locations created in the last N days
+    const recentLocations = await Location.findAll({
+      where: {
+        createdAt: {
+          [sequelize.Op.gte]: daysAgo
+        }
+      },
+      attributes: [
+        'id',
+        'locationType',
+        'locationStatus',
+        'upvotes',
+        'downvotes',
+        'totalPoints',
+        'createdAt',
+        'statusUpdatedAt'
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Calculate analytics
+    const analytics = {
+      totalLocations: recentLocations.length,
+      byStatus: {
+        pending: 0,
+        verified: 0,
+        flagged: 0,
+        removed: 0
+      },
+      byType: {},
+      ratingDistribution: {
+        highRated: 0, // 5+ upvotes
+        lowRated: 0,  // 5+ downvotes
+        neutral: 0    // neither
+      },
+      averageRatings: {
+        upvotes: 0,
+        downvotes: 0,
+        totalPoints: 0
+      }
+    };
+
+    let totalUpvotes = 0;
+    let totalDownvotes = 0;
+    let totalPoints = 0;
+
+    recentLocations.forEach(location => {
+      // Count by status
+      analytics.byStatus[location.locationStatus]++;
+      
+      // Count by type
+      if (!analytics.byType[location.locationType]) {
+        analytics.byType[location.locationType] = 0;
+      }
+      analytics.byType[location.locationType]++;
+
+      // Rating distribution
+      if (location.upvotes >= 5) {
+        analytics.ratingDistribution.highRated++;
+      } else if (location.downvotes >= 5) {
+        analytics.ratingDistribution.lowRated++;
+      } else {
+        analytics.ratingDistribution.neutral++;
+      }
+
+      // Sum for averages
+      totalUpvotes += location.upvotes || 0;
+      totalDownvotes += location.downvotes || 0;
+      totalPoints += location.totalPoints || 0;
+    });
+
+    // Calculate averages
+    if (recentLocations.length > 0) {
+      analytics.averageRatings.upvotes = (totalUpvotes / recentLocations.length).toFixed(2);
+      analytics.averageRatings.downvotes = (totalDownvotes / recentLocations.length).toFixed(2);
+      analytics.averageRatings.totalPoints = (totalPoints / recentLocations.length).toFixed(2);
+    }
+
+    res.json({
+      success: true,
+      analytics,
+      timeRange: {
+        days: parseInt(days),
+        from: daysAgo,
+        to: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Error getting rating analytics:', error);
+    res.status(500).json({ error: 'Error getting rating analytics' });
   }
 });
 

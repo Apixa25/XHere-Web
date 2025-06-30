@@ -112,7 +112,28 @@ const apiService = {
 
   // Vote on a location
   voteLocation: async (locationId, voteType) => {
-    return api.post(`/votes/${locationId}/vote`, { voteType });
+    const response = await api.post(`/votes/${locationId}/vote`, { voteType });
+    
+    // Handle status updates if present
+    if (response.data.statusUpdate) {
+      console.log('📍 Location status updated:', response.data.statusUpdate);
+      
+      // Show notification for status changes
+      if (response.data.statusUpdate.changed) {
+        const statusMessages = {
+          verified: '🎉 Location verified!',
+          flagged: '🚩 Location flagged for review',
+          pending: '⏳ Location status updated to pending',
+          removed: '🗑️ Location removed'
+        };
+        
+        const message = statusMessages[response.data.statusUpdate.newStatus] || 'Location status updated';
+        // You can add a toast notification here if you have a notification system
+        console.log(message);
+      }
+    }
+    
+    return response;
   },
 
   // Get user badges

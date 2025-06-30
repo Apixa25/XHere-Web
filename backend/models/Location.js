@@ -54,6 +54,21 @@ const Location = sequelize.define('Location', {
     type: DataTypes.ENUM('unverified', 'pending', 'verified'),
     defaultValue: 'unverified'
   },
+  locationStatus: {
+    type: DataTypes.ENUM('pending', 'verified', 'flagged', 'removed'),
+    defaultValue: 'pending',
+    allowNull: false
+  },
+  statusUpdatedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the location status was last updated'
+  },
+  statusReason: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    comment: 'Reason for status change (e.g., "5+ positive ratings", "5+ negative ratings")'
+  },
   voters: {
     type: DataTypes.JSONB,
     defaultValue: [],

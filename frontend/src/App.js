@@ -574,6 +574,7 @@ function App() {
   });
 
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [routerPath, setRouterPath] = useState('/');
@@ -1044,15 +1045,21 @@ function App() {
       console.log('Location created successfully:', response);
       
       // Show success message with credit information
-      if (response.data.message) {
-        setMessage(response.data.message);
-        setTimeout(() => setMessage(''), 5000);
+      if (response.message) {
+        console.log('Setting success message:', response.message);
+        try {
+          setMessage(response.message);
+          setTimeout(() => setMessage(''), 5000);
+        } catch (error) {
+          console.log('setMessage not available, using alert instead');
+          alert(`✅ ${response.message}`);
+        }
       }
       
       // Update user credits if they were spent
-      if (response.data.creditsSpent > 0) {
-        // Refresh user data to get updated credit balance
-        await fetchUser();
+      if (response.creditsSpent > 0) {
+        // User credits are automatically updated by the backend
+        console.log('Credits spent:', response.creditsSpent);
       }
       
       setSelectedLocation(null);
@@ -1697,6 +1704,49 @@ function App() {
                   Locations update automatically as you move the map
                 </div>
               </div>
+            </div>
+          )}
+          
+          {/* Success/Error Message Display */}
+          {message && (
+            <div style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 2000,
+              background: '#4CAF50',
+              color: 'white',
+              padding: '12px 20px',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              fontSize: '14px',
+              fontWeight: '500',
+              maxWidth: '400px',
+              textAlign: 'center'
+            }}>
+              ✅ {message}
+            </div>
+          )}
+          
+          {error && (
+            <div style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 2000,
+              background: '#f44336',
+              color: 'white',
+              padding: '12px 20px',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              fontSize: '14px',
+              fontWeight: '500',
+              maxWidth: '400px',
+              textAlign: 'center'
+            }}>
+              ❌ {error}
             </div>
           )}
           

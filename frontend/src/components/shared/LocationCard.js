@@ -12,38 +12,57 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   const [showShare, setShowShare] = useState(false);
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const locationLink = `${window.location.origin}/location/${location.id}`;
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedLocation, setEditedLocation] = useState(location);
 
   const getStatusBadge = () => {
-    switch(location.verificationStatus) {
-      case 'verified':
-        return (
-          <div style={{
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            padding: '4px 8px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            display: 'inline-block'
-          }}>
-            ✓ Verified
-          </div>
-        );
-      case 'pending':
-        return (
-          <div style={{
-            backgroundColor: '#FFA726',
-            color: 'white',
-            padding: '4px 8px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            display: 'inline-block'
-          }}>
-            ⏳ Pending Verification
-          </div>
-        );
-      default:
-        return null;
+    // New location status system
+    if (location.locationStatus) {
+      const statusConfig = {
+        pending: { color: '#FF9800', icon: '⏳', text: 'Pending' },
+        verified: { color: '#4CAF50', icon: '✅', text: 'Verified' },
+        flagged: { color: '#F44336', icon: '🚩', text: 'Flagged' },
+        removed: { color: '#9E9E9E', icon: '🗑️', text: 'Removed' }
+      };
+
+      const config = statusConfig[location.locationStatus] || statusConfig.pending;
+
+      return (
+        <div style={{
+          backgroundColor: config.color,
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '12px',
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          {config.icon} {config.text}
+        </div>
+      );
     }
+
+    // Legacy verification status system
+    if (location.verificationStatus === 'verified') {
+      return (
+        <div style={{
+          backgroundColor: '#4CAF50',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '12px',
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          ✅ Verified
+        </div>
+      );
+    }
+
+    return null;
   };
 
   const getRemainingTime = () => {
@@ -100,6 +119,67 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
   const handleOfficialControlsError = (error) => {
     console.error('Official controls error:', error);
     // You can add error handling logic here
+  };
+
+  // Status badge component
+  const StatusBadge = ({ status }) => {
+    const statusConfig = {
+      pending: { color: 'orange', icon: '⏳', text: 'Pending' },
+      verified: { color: 'green', icon: '✅', text: 'Verified' },
+      flagged: { color: 'red', icon: '🚩', text: 'Flagged' },
+      removed: { color: 'gray', icon: '🗑️', text: 'Removed' }
+    };
+
+    const config = statusConfig[status] || statusConfig.pending;
+
+    return (
+      <span 
+        style={{
+          backgroundColor: config.color,
+          color: 'white',
+          padding: '2px 8px',
+          borderRadius: '12px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          marginLeft: '8px'
+        }}
+        title={`Status: ${config.text}`}
+      >
+        {config.icon} {config.text}
+      </span>
+    );
+  };
+
+  // Rating summary component
+  const RatingSummary = ({ location }) => {
+    const upvotes = location.upvotes || 0;
+    const downvotes = location.downvotes || 0;
+    const totalPoints = location.totalPoints || 0;
+    
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px', 
+        fontSize: '14px',
+        marginTop: '4px'
+      }}>
+        <span title="Upvotes">👍 {upvotes}</span>
+        <span title="Downvotes">👎 {downvotes}</span>
+        <span title="Total Points" style={{ 
+          fontWeight: 'bold',
+          color: totalPoints >= 0 ? 'green' : 'red'
+        }}>
+          {totalPoints >= 0 ? '+' : ''}{totalPoints} pts
+        </span>
+        {location.locationStatus && (
+          <StatusBadge status={location.locationStatus} />
+        )}
+      </div>
+    );
   };
 
   return (
@@ -171,6 +251,21 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
             </div>
             {getStatusBadge()}
           </div>
+
+          {/* Status Reason Display */}
+          {location.statusReason && (
+            <div style={{
+              marginTop: '4px',
+              fontSize: '11px',
+              color: '#666',
+              fontStyle: 'italic',
+              padding: '2px 4px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '4px'
+            }}>
+              📝 {location.statusReason}
+            </div>
+          )}
 
           {/* Official Location Controls */}
           <OfficialLocationControls
