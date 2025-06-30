@@ -1628,6 +1628,26 @@ function App() {
           {user && (
             <div className="location-filter">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                {/* Restore All type button */}
+                <button 
+                  className={`filter-button ${selectedLocationType === 'all' && !keywordSearch.trim() ? 'active' : ''} ${keywordSearch.trim() ? 'keyword-search-active' : ''}`}
+                  onClick={() => {
+                    setSelectedLocationType('all');
+                    setKeywordSearch(''); // Clear keyword search when selecting "All"
+                  }}
+                >
+                  {keywordSearch.trim() ? `🔍 "${keywordSearch}"` : '🌍 All'}
+                </button>
+                {/* Restore red marker pin button */}
+                <button 
+                  className="filter-button circle-icon-button"
+                  onClick={getCurrentLocation}
+                  title="Center map on my location"
+                  disabled={isGettingLocation}
+                >
+                  📍
+                </button>
+                {/* Existing type filter buttons */}
                 {Object.entries(LOCATION_TYPES).map(([key, type]) => (
                   <button
                     key={key}
