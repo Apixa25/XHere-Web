@@ -95,26 +95,33 @@ const PlaceCreditsButton = ({ location, user, onSuccess, compact = false, onLoca
       </button>
 
       {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 3000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            maxWidth: '400px',
-            width: '90vw',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.25)'
-          }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3000,
+            pointerEvents: 'all',
+          }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '24px',
+              borderRadius: '12px',
+              maxWidth: '400px',
+              width: '90vw',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.25)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
             <h3 style={{ marginTop: 0, marginBottom: '16px' }}>
               💰 Place Credits on Location
             </h3>

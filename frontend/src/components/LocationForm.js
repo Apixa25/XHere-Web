@@ -165,16 +165,6 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocatio
           )}
         </div>
         
-        {/* Place Credits Button - moved here */}
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-          <PlaceCreditsButton 
-            user={user} 
-            location={{ id: 'new', content: { text }, isNew: true }} 
-            compact={false} 
-            onLocationUpdate={onLocationUpdate}
-            onCreditsPlaced={(amount) => setInitialCredits(amount)}
-          />
-        </div>
         <button 
           type="submit" 
           disabled={submitting || (locationType !== 'general' && !hasEnoughCredits)}
@@ -186,6 +176,17 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocatio
            'Create Location'}
         </button>
       </form>
+
+      {/* Place Credits Button - always visible at the bottom, outside the form */}
+      <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+        <PlaceCreditsButton 
+          user={user} 
+          location={{ id: 'new', content: { text }, isNew: true }} 
+          compact={false} 
+          onLocationUpdate={onLocationUpdate}
+          onCreditsPlaced={(amount) => setInitialCredits(amount)}
+        />
+      </div>
     </div>
   );
 };
