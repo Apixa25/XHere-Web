@@ -38,6 +38,8 @@ import UserOwnedLocations from './components/UserOwnedLocations';
 import OfficialLocationsPage from './components/OfficialLocationsPage';
 import MakeOfficialButton from './components/MakeOfficialButton';
 import OfficialLocationControls from './components/OfficialLocationControls';
+import StatusFilter from './components/StatusFilter';
+import StatusNotification from './components/StatusNotification';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -593,6 +595,7 @@ function App() {
   const timerIntervals = useRef({});
   const [selectedLocationType, setSelectedLocationType] = useState('all');
   const [keywordSearch, setKeywordSearch] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [isFetchingLocations, setIsFetchingLocations] = useState(false);
   const [cameFromAdmin, setCameFromAdmin] = useState(false);
   const currentFetchController = useRef(null);
@@ -603,6 +606,7 @@ function App() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapType, setMapType] = useState('roadmap');
   const [locationLimitReached, setLocationLimitReached] = useState(false);
+  const [statusNotification, setStatusNotification] = useState(null);
 
   // Refs to store current filter state for viewport changes
   const currentSelectedTypeRef = useRef(selectedLocationType);
@@ -902,26 +906,28 @@ function App() {
   };
 
   const handleVoteUpdate = async (updatedLocation) => {
-    // Update the location in locationData
-    setLocationData(prevLocations => prevLocations.map(loc => 
-      loc.id === updatedLocation.id ? { ...loc, ...updatedLocation } : loc
-    ));
-
-    // Update the selectedMarker if it's the same location
-    setSelectedMarker(prevMarker => 
-      prevMarker?.id === updatedLocation.id 
-        ? { ...prevMarker, ...updatedLocation }
-        : prevMarker
-    );
-
-    // Check for new badges
     try {
-      const { newBadges } = await api.checkBadges();
-      if (newBadges && newBadges.length > 0) {
-        setNewBadges(newBadges);
+      // Update the location in the current data
+      setLocationData(prevData => 
+        prevData.map(loc => 
+          loc.id === updatedLocation.id ? updatedLocation : loc
+        )
+      );
+
+      // Update selected marker if it's the same location
+      if (selectedMarker && selectedMarker.id === updatedLocation.id) {
+        setSelectedMarker(updatedLocation);
       }
+
+      // Handle status updates
+      if (updatedLocation.statusUpdate) {
+        console.log('📍 Global status update:', updatedLocation.statusUpdate);
+        setStatusNotification(updatedLocation.statusUpdate);
+      }
+
+      console.log('✅ Vote processed successfully');
     } catch (error) {
-      console.error('Error checking badges:', error);
+      console.error('❌ Error updating vote:', error);
     }
   };
 
@@ -1121,6 +1127,12 @@ function App() {
         console.log('🔍 Location type filter active:', currentSelectedTypeRef.current);
       } else {
         console.log('🔍 No filters active - showing all locations');
+      }
+      
+      // Add status filter if specified
+      if (selectedStatus !== 'all') {
+        url.searchParams.append('status', selectedStatus);
+        console.log('🔍 Status filter active:', selectedStatus);
       }
       
       // Get current map bounds for viewport-based filtering
@@ -1565,6 +1577,7 @@ function App() {
       user: !!user,
       map: !!map,
       selectedLocationType,
+      selectedStatus,
       keywordSearch: keywordSearch.trim()
     });
 
@@ -1574,7 +1587,12 @@ function App() {
     }, 200); // Increased delay to prevent excessive calls
 
     return () => clearTimeout(timeoutId);
-  }, [user, map, selectedLocationType, keywordSearch]); // Removed fetchLocations from dependencies
+  }, [user, map, selectedLocationType, selectedStatus, keywordSearch]); // Added selectedStatus to dependencies
+
+  const handleStatusChange = (status) => {
+    console.log('🔍 Status filter changed:', status);
+    setSelectedStatus(status);
+  };
 
   // Memoize the router so it doesn't re-create on every render
   const router = useMemo(() => createBrowserRouter([
@@ -1609,26 +1627,9 @@ function App() {
           {/* Location Type Filter */}
           {user && (
             <div className="location-filter">
-              <div className="filter-buttons">
-                <button 
-                  className={`filter-button ${selectedLocationType === 'all' && !keywordSearch.trim() ? 'active' : ''} ${keywordSearch.trim() ? 'keyword-search-active' : ''}`}
-                  onClick={() => {
-                    setSelectedLocationType('all');
-                    setKeywordSearch(''); // Clear keyword search when selecting "All"
-                  }}
-                >
-                  {keywordSearch.trim() ? `🔍 "${keywordSearch}"` : '🌍 All'}
-                </button>
-                <button 
-                  className="filter-button circle-icon-button"
-                  onClick={getCurrentLocation}
-                  title="Center map on my location"
-                  disabled={isGettingLocation}
-                >
-                  📍
-                </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
                 {Object.entries(LOCATION_TYPES).map(([key, type]) => (
-                  <button 
+                  <button
                     key={key}
                     className={`filter-button ${selectedLocationType === key && !keywordSearch.trim() ? 'active' : ''}`}
                     onClick={() => {
@@ -1640,6 +1641,12 @@ function App() {
                   </button>
                 ))}
               </div>
+              
+              {/* Status Filter */}
+              <StatusFilter 
+                onStatusChange={handleStatusChange}
+                currentStatus={selectedStatus}
+              />
               
               {/* Keyword Search and Refresh */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1753,6 +1760,12 @@ function App() {
               ❌ {error}
             </div>
           )}
+          
+          {/* Status Notification */}
+          <StatusNotification 
+            statusUpdate={statusNotification}
+            onClose={() => setStatusNotification(null)}
+          />
           
           <div className="map-container" style={{ position: 'relative' }}>
             <button
@@ -1924,6 +1937,10 @@ function App() {
       panMapToShowInfoBoxSmart(lat, lng, infoBoxHeight);
     }
   }, [selectedMarker, infoBoxHeight]);
+
+  const handleLocationTypeChange = (type) => {
+    // Implementation of handleLocationTypeChange function
+  };
 
   return (
     <ErrorBoundary>

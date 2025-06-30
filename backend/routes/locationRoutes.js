@@ -47,6 +47,12 @@ router.get('/', authenticateToken, async (req, res) => {
       query.where.locationType = req.query.locationType;
     }
 
+    // Filter by location status if specified
+    if (req.query.status && req.query.status !== 'all') {
+      if (!query.where) query.where = {};
+      query.where.locationStatus = req.query.status;
+    }
+
     // Filter by keywords if specified
     if (req.query.keywords) {
       const searchKeywords = req.query.keywords.toLowerCase().split(',').map(k => k.trim()).filter(k => k.length > 0);
@@ -523,6 +529,8 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     const location = await Location.findByPk(locationId);
     if (voteType === 'upvote') {
       await location.increment('upvotes');
+    } else if (voteType === 'downvote') {
+      await location.increment('downvotes');
     }
 
     // Update user's votesGiven count
@@ -530,13 +538,22 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       where: { id: userId }
     });
 
+    // Automatically update location status based on new ratings
+    const locationStatusService = require('../services/locationStatusService');
+    const statusUpdate = await locationStatusService.updateLocationStatus(locationId);
+
     // Check for new badges
     const newBadges = await checkAndAwardBadges(userId);
 
     res.json({ 
       success: true, 
       newBadges,
-      location: await location.reload() 
+      location: await location.reload(),
+      statusUpdate: statusUpdate.statusChanged ? {
+        previousStatus: statusUpdate.previousStatus,
+        newStatus: statusUpdate.newStatus,
+        reason: statusUpdate.reason
+      } : null
     });
   } catch (error) {
     console.error('Error processing vote:', error);
@@ -682,6 +699,88 @@ router.get('/official/stats', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Error getting official location stats:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Get location status statistics
+router.get('/status/stats', authenticateToken, async (req, res) => {
+  try {
+    const locationStatusService = require('../services/locationStatusService');
+    const stats = await locationStatusService.getStatusStats();
+
+    res.json({
+      success: true,
+      stats
+    });
+
+  } catch (error) {
+    console.error('Error getting location status stats:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Get locations by status
+router.get('/status/:status', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.params;
+    const { limit, offset } = req.query;
+    
+    const locationStatusService = require('../services/locationStatusService');
+    const options = {};
+    
+    if (limit) options.limit = parseInt(limit);
+    if (offset) options.offset = parseInt(offset);
+
+    const locations = await locationStatusService.getLocationsByStatus(status, options);
+
+    res.json({
+      success: true,
+      locations
+    });
+
+  } catch (error) {
+    console.error('Error getting locations by status:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Manually update location status (admin only)
+router.put('/:id/status', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reason } = req.body;
+
+    // Only admins can manually update status
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only administrators can manually update location status'
+      });
+    }
+
+    const locationStatusService = require('../services/locationStatusService');
+    const result = await locationStatusService.manuallyUpdateStatus(id, status, reason);
+
+    res.json({
+      success: true,
+      location: result.location,
+      previousStatus: result.previousStatus,
+      newStatus: result.newStatus,
+      reason: result.reason
+    });
+
+  } catch (error) {
+    console.error('Error manually updating location status:', error);
     res.status(400).json({
       success: false,
       message: error.message

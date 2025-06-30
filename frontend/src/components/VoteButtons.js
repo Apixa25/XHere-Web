@@ -34,6 +34,25 @@ const VoteButtons = ({ location, onVoteUpdate }) => {
         return;
       }
       
+      // Handle status updates
+      if (response.statusUpdate) {
+        console.log('📍 Location status updated:', response.statusUpdate);
+        
+        // Show status change notification
+        const statusConfig = {
+          pending: { color: '#FF9800', icon: '⏳' },
+          verified: { color: '#4CAF50', icon: '✅' },
+          flagged: { color: '#F44336', icon: '🚩' },
+          removed: { color: '#9E9E9E', icon: '🗑️' }
+        };
+        
+        const newConfig = statusConfig[response.statusUpdate.newStatus];
+        if (newConfig) {
+          // You can add a toast notification here if you have a notification system
+          console.log(`${newConfig.icon} Location status changed to ${response.statusUpdate.newStatus}: ${response.statusUpdate.reason}`);
+        }
+      }
+      
       onVoteUpdate(response.location);
       setUserVoteType(voteType);
     } catch (error) {

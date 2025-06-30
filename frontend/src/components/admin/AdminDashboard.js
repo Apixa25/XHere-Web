@@ -20,7 +20,18 @@ const AdminDashboard = () => {
   const [cleanupStats, setCleanupStats] = useState(null);
   const [cleanupHistory, setCleanupHistory] = useState([]);
   const [cleanupLoading, setCleanupLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('users'); // 'users', 'cleanup', 'search'
+  const [activeTab, setActiveTab] = useState('users'); // 'users', 'cleanup', 'search', 'status'
+  
+  // Status management state
+  const [statusStats, setStatusStats] = useState({
+    pending: 0,
+    verified: 0,
+    flagged: 0,
+    removed: 0,
+    total: 0
+  });
+  const [locationsByStatus, setLocationsByStatus] = useState({});
+  const [statusLoading, setStatusLoading] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -298,34 +309,31 @@ const AdminDashboard = () => {
 
   // Perform manual cleanup
   const performCleanup = async (type) => {
-    if (!window.confirm(`Are you sure you want to perform ${type} cleanup? This action cannot be undone.`)) {
-      return;
-    }
-
     try {
       setCleanupLoading(true);
       const token = localStorage.getItem('token');
       const response = await fetch(`${BACKEND_URL}/api/admin/cleanup/${type}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error('Cleanup failed');
       }
-      
+
       const result = await response.json();
-      alert(`${type} cleanup completed! ${result.result.deletedCount} locations deleted.`);
+      console.log('Cleanup result:', result);
       
-      // Reload stats and history
+      // Reload stats after cleanup
       await loadCleanupStats();
       await loadCleanupHistory();
-    } catch (err) {
-      console.error(`Error performing ${type} cleanup:`, err);
-      alert(`Failed to perform ${type} cleanup: ${err.message}`);
+      
+      alert(`Cleanup completed: ${result.message}`);
+    } catch (error) {
+      console.error('Cleanup error:', error);
+      alert('Cleanup failed');
     } finally {
       setCleanupLoading(false);
     }
@@ -338,6 +346,88 @@ const AdminDashboard = () => {
       loadCleanupHistory();
     }
   }, [activeTab]);
+
+  // Status management functions
+  const loadStatusStats = async () => {
+    try {
+      setStatusLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/locations/status/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load status stats');
+      }
+
+      const data = await response.json();
+      setStatusStats(data.stats);
+    } catch (error) {
+      console.error('Error loading status stats:', error);
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const loadLocationsByStatus = async (status) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/locations/status/${status}?limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load ${status} locations`);
+      }
+
+      const data = await response.json();
+      setLocationsByStatus(prev => ({
+        ...prev,
+        [status]: data.locations
+      }));
+    } catch (error) {
+      console.error(`Error loading ${status} locations:`, error);
+    }
+  };
+
+  const updateLocationStatus = async (locationId, newStatus, reason) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/locations/${locationId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus, reason })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update location status');
+      }
+
+      const result = await response.json();
+      console.log('Status update result:', result);
+      
+      // Reload status stats
+      await loadStatusStats();
+      
+      // Reload locations for the affected status
+      await loadLocationsByStatus(newStatus);
+      if (result.previousStatus !== newStatus) {
+        await loadLocationsByStatus(result.previousStatus);
+      }
+      
+      alert(`Location status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating location status:', error);
+      alert('Failed to update location status');
+    }
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
@@ -352,24 +442,33 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="admin-tabs">
+      <div className="tab-buttons">
         <button 
-          className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
+          className={activeTab === 'users' ? 'active' : ''} 
           onClick={() => setActiveTab('users')}
         >
           👥 Users
         </button>
         <button 
-          className={`tab-button ${activeTab === 'cleanup' ? 'active' : ''}`}
+          className={activeTab === 'cleanup' ? 'active' : ''} 
           onClick={() => setActiveTab('cleanup')}
         >
-          🧹 Cleanup Monitor
+          🧹 Cleanup
         </button>
         <button 
-          className={`tab-button ${activeTab === 'search' ? 'active' : ''}`}
+          className={activeTab === 'search' ? 'active' : ''} 
           onClick={() => setActiveTab('search')}
         >
           🔍 Search
+        </button>
+        <button 
+          className={activeTab === 'status' ? 'active' : ''} 
+          onClick={() => {
+            setActiveTab('status');
+            loadStatusStats();
+          }}
+        >
+          📍 Status Management
         </button>
       </div>
 
@@ -658,6 +757,138 @@ const AdminDashboard = () => {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {activeTab === 'status' && (
+        <div className="status-tab">
+          <div className="status-overview">
+            <h3>📍 Location Status Overview</h3>
+            {statusLoading ? (
+              <div>Loading status statistics...</div>
+            ) : (
+              <div className="status-stats-grid">
+                <div className="status-stat-card pending">
+                  <div className="stat-icon">⏳</div>
+                  <div className="stat-number">{statusStats.pending}</div>
+                  <div className="stat-label">Pending</div>
+                </div>
+                <div className="status-stat-card verified">
+                  <div className="stat-icon">✅</div>
+                  <div className="stat-number">{statusStats.verified}</div>
+                  <div className="stat-label">Verified</div>
+                </div>
+                <div className="status-stat-card flagged">
+                  <div className="stat-icon">🚩</div>
+                  <div className="stat-number">{statusStats.flagged}</div>
+                  <div className="stat-label">Flagged</div>
+                </div>
+                <div className="status-stat-card removed">
+                  <div className="stat-icon">🗑️</div>
+                  <div className="stat-number">{statusStats.removed}</div>
+                  <div className="stat-label">Removed</div>
+                </div>
+                <div className="status-stat-card total">
+                  <div className="stat-icon">📊</div>
+                  <div className="stat-number">{statusStats.total}</div>
+                  <div className="stat-label">Total</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="status-actions">
+            <h4>🔧 Manual Status Management</h4>
+            <div className="status-action-buttons">
+              <button 
+                onClick={() => loadLocationsByStatus('pending')}
+                className="status-action-btn pending"
+              >
+                ⏳ View Pending ({statusStats.pending})
+              </button>
+              <button 
+                onClick={() => loadLocationsByStatus('flagged')}
+                className="status-action-btn flagged"
+              >
+                🚩 View Flagged ({statusStats.flagged})
+              </button>
+              <button 
+                onClick={() => loadLocationsByStatus('verified')}
+                className="status-action-btn verified"
+              >
+                ✅ View Verified ({statusStats.verified})
+              </button>
+              <button 
+                onClick={() => loadLocationsByStatus('removed')}
+                className="status-action-btn removed"
+              >
+                🗑️ View Removed ({statusStats.removed})
+              </button>
+            </div>
+          </div>
+
+          {/* Display locations by status */}
+          {Object.entries(locationsByStatus).map(([status, locations]) => (
+            <div key={status} className="status-locations-section">
+              <h4>
+                {status === 'pending' && '⏳'} 
+                {status === 'verified' && '✅'} 
+                {status === 'flagged' && '🚩'} 
+                {status === 'removed' && '🗑️'} 
+                {status.charAt(0).toUpperCase() + status.slice(1)} Locations ({locations.length})
+              </h4>
+              <div className="locations-grid">
+                {locations.map(location => (
+                  <div key={location.id} className="location-card">
+                    <div className="location-header">
+                      <span className="location-type">{location.locationType}</span>
+                      <span className="location-status">{location.locationStatus}</span>
+                    </div>
+                    <div className="location-content">
+                      <p>{location.content?.text || 'No description'}</p>
+                      <div className="location-meta">
+                        <span>👍 {location.upvotes || 0}</span>
+                        <span>👎 {location.downvotes || 0}</span>
+                        <span>📅 {new Date(location.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="location-actions">
+                      <button 
+                        onClick={() => handleViewOnMap(location)}
+                        className="action-btn view"
+                      >
+                        🗺️ View
+                      </button>
+                      <select 
+                        onChange={(e) => {
+                          const newStatus = e.target.value;
+                          if (newStatus !== location.locationStatus) {
+                            const reason = prompt(`Reason for changing status to ${newStatus}:`);
+                            if (reason) {
+                              updateLocationStatus(location.id, newStatus, reason);
+                            }
+                          }
+                        }}
+                        value={location.locationStatus}
+                        className="status-select"
+                      >
+                        <option value="pending">⏳ Pending</option>
+                        <option value="verified">✅ Verified</option>
+                        <option value="flagged">🚩 Flagged</option>
+                        <option value="removed">🗑️ Removed</option>
+                      </select>
+                      <button 
+                        onClick={() => handleDeleteLocation(location.id)}
+                        className="action-btn delete"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

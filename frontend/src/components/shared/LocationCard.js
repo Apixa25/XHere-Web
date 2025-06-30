@@ -5,39 +5,59 @@ import BuyLocationButton from '../BuyLocationButton';
 import OwnershipStatus from '../OwnershipStatus';
 import PurchaseHistory from '../PurchaseHistory';
 import OfficialLocationControls from '../OfficialLocationControls';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import LocationShareModal from "./LocationShareModal";
 
-const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
+const LocationCard = ({ location, onEdit, onDelete, compact = false, onStatusUpdate }) => {
   const [showShare, setShowShare] = useState(false);
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   const locationLink = `${window.location.origin}/location/${location.id}`;
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedLocation, setEditedLocation] = useState(location);
+  const [statusNotification, setStatusNotification] = useState(null);
+
+  // Status notification effect
+  useEffect(() => {
+    if (location.statusUpdate) {
+      setStatusNotification({
+        previousStatus: location.statusUpdate.previousStatus,
+        newStatus: location.statusUpdate.newStatus,
+        reason: location.statusUpdate.reason
+      });
+      
+      // Clear notification after 5 seconds
+      setTimeout(() => {
+        setStatusNotification(null);
+      }, 5000);
+    }
+  }, [location.statusUpdate]);
 
   const getStatusBadge = () => {
     // New location status system
     if (location.locationStatus) {
       const statusConfig = {
-        pending: { color: '#FF9800', icon: '⏳', text: 'Pending' },
-        verified: { color: '#4CAF50', icon: '✅', text: 'Verified' },
-        flagged: { color: '#F44336', icon: '🚩', text: 'Flagged' },
-        removed: { color: '#9E9E9E', icon: '🗑️', text: 'Removed' }
+        pending: { color: '#FF9800', icon: '⏳', text: 'Pending', bgColor: '#FFF3E0' },
+        verified: { color: '#4CAF50', icon: '✅', text: 'Verified', bgColor: '#E8F5E8' },
+        flagged: { color: '#F44336', icon: '🚩', text: 'Flagged', bgColor: '#FFEBEE' },
+        removed: { color: '#9E9E9E', icon: '🗑️', text: 'Removed', bgColor: '#F5F5F5' }
       };
 
       const config = statusConfig[location.locationStatus] || statusConfig.pending;
 
       return (
         <div style={{
-          backgroundColor: config.color,
-          color: 'white',
-          padding: '4px 8px',
-          borderRadius: '12px',
+          backgroundColor: config.bgColor,
+          color: config.color,
+          padding: '6px 12px',
+          borderRadius: '16px',
           fontSize: '12px',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px'
+          gap: '6px',
+          border: `2px solid ${config.color}`,
+          fontWeight: '600',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
           {config.icon} {config.text}
         </div>
@@ -48,20 +68,96 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
     if (location.verificationStatus === 'verified') {
       return (
         <div style={{
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          padding: '4px 8px',
-          borderRadius: '12px',
+          backgroundColor: '#E8F5E8',
+          color: '#4CAF50',
+          padding: '6px 12px',
+          borderRadius: '16px',
           fontSize: '12px',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px'
+          gap: '6px',
+          border: '2px solid #4CAF50',
+          fontWeight: '600',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
           ✅ Verified
         </div>
       );
     }
 
+    return null;
+  };
+
+  const getStatusProgress = () => {
+    const upvotes = location.upvotes || 0;
+    const downvotes = location.downvotes || 0;
+    
+    // Show progress towards verified status (5 upvotes needed)
+    if (upvotes < 5) {
+      const progress = (upvotes / 5) * 100;
+      return (
+        <div style={{ marginTop: '8px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            fontSize: '11px', 
+            color: '#666',
+            marginBottom: '4px'
+          }}>
+            <span>Progress to Verified: {upvotes}/5</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '4px',
+            backgroundColor: '#e0e0e0',
+            borderRadius: '2px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${progress}%`,
+              height: '100%',
+              backgroundColor: '#4CAF50',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+        </div>
+      );
+    }
+    
+    // Show progress towards flagged status (5 downvotes needed)
+    if (downvotes >= 3) {
+      const progress = (downvotes / 5) * 100;
+      return (
+        <div style={{ marginTop: '8px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            fontSize: '11px', 
+            color: '#666',
+            marginBottom: '4px'
+          }}>
+            <span>⚠️ Flagged Progress: {downvotes}/5</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '4px',
+            backgroundColor: '#e0e0e0',
+            borderRadius: '2px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${progress}%`,
+              height: '100%',
+              backgroundColor: '#F44336',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+        </div>
+      );
+    }
+    
     return null;
   };
 
@@ -121,6 +217,43 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
     // You can add error handling logic here
   };
 
+  // Status notification component
+  const StatusNotification = ({ notification }) => {
+    if (!notification) return null;
+    
+    const statusConfig = {
+      pending: { color: '#FF9800', icon: '⏳' },
+      verified: { color: '#4CAF50', icon: '✅' },
+      flagged: { color: '#F44336', icon: '🚩' },
+      removed: { color: '#9E9E9E', icon: '🗑️' }
+    };
+    
+    const newConfig = statusConfig[notification.newStatus] || statusConfig.pending;
+    
+    return (
+      <div style={{
+        position: 'absolute',
+        top: '-10px',
+        right: '-10px',
+        backgroundColor: newConfig.color,
+        color: 'white',
+        padding: '8px 12px',
+        borderRadius: '20px',
+        fontSize: '12px',
+        fontWeight: '600',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        zIndex: 10,
+        animation: 'slideInRight 0.3s ease',
+        maxWidth: '200px'
+      }}>
+        {newConfig.icon} Status: {notification.newStatus}
+        <div style={{ fontSize: '10px', opacity: 0.9 }}>
+          {notification.reason}
+        </div>
+      </div>
+    );
+  };
+
   // Status badge component
   const StatusBadge = ({ status }) => {
     const statusConfig = {
@@ -162,22 +295,26 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
     return (
       <div style={{ 
         display: 'flex', 
-        alignItems: 'center', 
-        gap: '8px', 
-        fontSize: '14px',
-        marginTop: '4px'
+        flexDirection: 'column',
+        gap: '4px',
+        marginTop: '8px'
       }}>
-        <span title="Upvotes">👍 {upvotes}</span>
-        <span title="Downvotes">👎 {downvotes}</span>
-        <span title="Total Points" style={{ 
-          fontWeight: 'bold',
-          color: totalPoints >= 0 ? 'green' : 'red'
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px', 
+          fontSize: '14px'
         }}>
-          {totalPoints >= 0 ? '+' : ''}{totalPoints} pts
-        </span>
-        {location.locationStatus && (
-          <StatusBadge status={location.locationStatus} />
-        )}
+          <span title="Upvotes">👍 {upvotes}</span>
+          <span title="Downvotes">👎 {downvotes}</span>
+          <span title="Total Points" style={{ 
+            fontWeight: 'bold',
+            color: totalPoints >= 0 ? 'green' : 'red'
+          }}>
+            {totalPoints >= 0 ? '+' : ''}{totalPoints} pts
+          </span>
+        </div>
+        {getStatusProgress()}
       </div>
     );
   };
@@ -198,10 +335,17 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false }) => {
         overflow: 'visible',
         boxShadow: location.isOfficial ? '0 4px 12px rgba(33, 150, 243, 0.2)' : '0 2px 4px rgba(0,0,0,0.1)',
         margin: '0 auto',
-        position: 'relative',
-        marginBottom: '20px'
+        position: 'relative'
       }}
     >
+      {/* Status notification */}
+      <StatusNotification notification={statusNotification} />
+
+      {/* Status badge */}
+      <div style={{ marginBottom: '8px' }}>
+        {getStatusBadge()}
+      </div>
+
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',

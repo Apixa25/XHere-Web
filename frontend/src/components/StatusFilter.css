@@ -1,0 +1,240 @@
+.status-filter {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  border: 2px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.status-filter:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  border-color: #e0e0e0;
+}
+
+.status-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.status-filter-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+  font-size: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.status-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.status-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.status-option.active {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.status-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.status-option.active::before {
+  opacity: 1;
+}
+
+.status-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.status-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.status-count {
+  font-size: 12px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.status-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 2px solid #f0f0f0;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #ddd;
+  transition: all 0.3s ease;
+}
+
+.summary-item:hover {
+  background: #e9ecef;
+  transform: translateX(2px);
+}
+
+.summary-icon {
+  font-size: 16px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  flex: 1;
+}
+
+.summary-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  background: white;
+  padding: 2px 6px;
+  border-radius: 6px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .status-filter {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .status-options {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+  }
+
+  .status-option {
+    padding: 12px 8px;
+  }
+
+  .status-icon {
+    font-size: 20px;
+  }
+
+  .status-label {
+    font-size: 12px;
+  }
+
+  .status-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .summary-item {
+    padding: 6px 8px;
+  }
+
+  .summary-label {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .status-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animation for status changes */
+.status-option {
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse animation for active status */
+.status-option.active .status-icon {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+} 

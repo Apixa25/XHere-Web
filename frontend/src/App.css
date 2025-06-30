@@ -658,3 +658,80 @@
   width: 100%;
   justify-content: center;
 }
+
+/* Add these animations for status notifications */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.status-notification-enter {
+  animation: slideInRight 0.3s ease;
+}
+
+.status-notification-exit {
+  animation: slideOutRight 0.3s ease;
+}
+
+/* Status progress bar animations */
+.status-progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+.status-progress-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+/* Status badge hover effects */
+.status-badge {
+  transition: all 0.3s ease;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Status filter animations */
+.status-filter-option {
+  transition: all 0.3s ease;
+}
+
+.status-filter-option:hover {
+  transform: translateY(-2px);
+}
+
+.status-filter-option.active {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}

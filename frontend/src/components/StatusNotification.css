@@ -1,0 +1,157 @@
+.status-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  max-width: 350px;
+}
+
+.status-notification.visible {
+  transform: translateX(0);
+}
+
+.status-notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 2px solid;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-notification-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+}
+
+.status-notification-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.status-notification-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-notification-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.status-notification-reason {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.status-notification-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-notification-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #666;
+}
+
+/* Animation for status change */
+@keyframes statusPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.status-notification.visible .status-notification-icon {
+  animation: statusPulse 0.6s ease;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .status-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .status-notification-content {
+    padding: 12px;
+  }
+  
+  .status-notification-icon {
+    font-size: 20px;
+  }
+  
+  .status-notification-title {
+    font-size: 13px;
+  }
+  
+  .status-notification-reason {
+    font-size: 11px;
+  }
+}
+
+/* Success animation */
+.status-notification.visible {
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Exit animation */
+.status-notification:not(.visible) {
+  animation: slideOutRight 0.3s ease;
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+} 
