@@ -306,53 +306,63 @@ router.delete('/locations/:locationId/media/:mediaIndex', authenticateToken, adm
 });
 
 // Cleanup routes
-router.get('/cleanup/stats', authenticateToken, async (req, res) => {
+router.get('/cleanup/stats', authenticateToken, adminAuth, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const stats = await cleanupService.getCleanupStats();
-    res.json({ success: true, stats });
+    res.json(stats);
   } catch (error) {
     console.error('Error getting cleanup stats:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to get cleanup stats' });
   }
 });
 
-router.post('/cleanup/general', authenticateToken, async (req, res) => {
+// Enhanced cleanup statistics with detailed information
+router.get('/cleanup/detailed-stats', authenticateToken, adminAuth, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    const stats = await cleanupService.getDetailedCleanupStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Error getting detailed cleanup stats:', error);
+    res.status(500).json({ error: 'Failed to get detailed cleanup stats' });
+  }
+});
 
+// Get cleanup history
+router.get('/cleanup/history', authenticateToken, adminAuth, async (req, res) => {
+  try {
+    const history = cleanupService.getCleanupHistory();
+    res.json(history);
+  } catch (error) {
+    console.error('Error getting cleanup history:', error);
+    res.status(500).json({ error: 'Failed to get cleanup history' });
+  }
+});
+
+router.post('/cleanup/general', authenticateToken, adminAuth, async (req, res) => {
+  try {
     const result = await cleanupService.cleanupExpiredGeneralLocations();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'General locations cleanup completed',
-      result 
+      result
     });
   } catch (error) {
     console.error('Error during general cleanup:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to perform general cleanup' });
   }
 });
 
-router.post('/cleanup/all', authenticateToken, async (req, res) => {
+router.post('/cleanup/all', authenticateToken, adminAuth, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const result = await cleanupService.cleanupAllExpiredLocations();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'All locations cleanup completed',
-      result 
+      result
     });
   } catch (error) {
     console.error('Error during all locations cleanup:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to perform all locations cleanup' });
   }
 });
 

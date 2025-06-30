@@ -9,6 +9,188 @@ const Message = require('../models/Message');
 const NominationVote = require('../models/NominationVote');
 
 class CleanupService {
+  constructor() {
+    this.cleanupHistory = [];
+    this.maxHistorySize = 100; // Keep last 100 cleanup operations
+  }
+
+  /**
+   * Add cleanup operation to history for monitoring
+   */
+  addToHistory(operation) {
+    this.cleanupHistory.unshift({
+      ...operation,
+      timestamp: new Date(),
+      id: Date.now() + Math.random()
+    });
+    
+    // Keep only the last maxHistorySize operations
+    if (this.cleanupHistory.length > this.maxHistorySize) {
+      this.cleanupHistory = this.cleanupHistory.slice(0, this.maxHistorySize);
+    }
+  }
+
+  /**
+   * Get cleanup history for admin monitoring
+   */
+  getCleanupHistory() {
+    return this.cleanupHistory;
+  }
+
+  /**
+   * Get detailed cleanup statistics
+   */
+  async getDetailedCleanupStats() {
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      
+      // Get all general locations older than 7 days
+      const generalLocations = await Location.findAll({
+        where: {
+          locationType: 'general',
+          createdAt: {
+            [Op.lt]: sevenDaysAgo
+          }
+        },
+        attributes: [
+          'id',
+          'totalPoints',
+          'autoDelete',
+          'deleteAt',
+          'createdAt',
+          'upvotes',
+          'downvotes'
+        ]
+      });
+      
+      // Get locations that will expire in the next 24 hours
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const expiringSoon = await Location.findAll({
+        where: {
+          autoDelete: true,
+          deleteAt: {
+            [Op.between]: [new Date(), tomorrow]
+          }
+        },
+        attributes: [
+          'id',
+          'locationType',
+          'totalPoints',
+          'deleteAt',
+          'createdAt'
+        ]
+      });
+      
+      // Calculate statistics
+      const stats = {
+        totalGeneralLocationsOlderThan7Days: generalLocations.length,
+        expiredCount: generalLocations.filter(loc => loc.deleteAt && loc.deleteAt < new Date()).length,
+        preservedCount: generalLocations.filter(loc => loc.totalPoints >= 2).length,
+        toBeDeletedCount: generalLocations.filter(loc => 
+          loc.deleteAt && loc.deleteAt < new Date() && loc.totalPoints < 2
+        ).length,
+        expiringSoon: expiringSoon.length,
+        expiringSoonDetails: expiringSoon.map(loc => ({
+          id: loc.id,
+          locationType: loc.locationType,
+          totalPoints: loc.totalPoints,
+          deleteAt: loc.deleteAt,
+          createdAt: loc.createdAt
+        })),
+        averagePoints: generalLocations.length > 0 
+          ? generalLocations.reduce((sum, loc) => sum + (loc.totalPoints || 0), 0) / generalLocations.length 
+          : 0,
+        highQualityLocations: generalLocations.filter(loc => loc.totalPoints >= 5).length,
+        lowQualityLocations: generalLocations.filter(loc => loc.totalPoints < 0).length,
+        lastCleanupOperation: this.cleanupHistory[0] || null,
+        cleanupHistory: this.cleanupHistory.slice(0, 10), // Last 10 operations
+        systemHealth: this.getSystemHealthStatus(generalLocations, expiringSoon)
+      };
+      
+      return stats;
+    } catch (error) {
+      console.error('Error getting detailed cleanup stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get system health status based on cleanup metrics
+   */
+  getSystemHealthStatus(generalLocations, expiringSoon) {
+    const totalExpired = generalLocations.filter(loc => loc.deleteAt && loc.deleteAt < new Date()).length;
+    const totalPreserved = generalLocations.filter(loc => loc.totalPoints >= 2).length;
+    const expiringCount = expiringSoon.length;
+    
+    let status = 'healthy';
+    let message = 'System is running normally';
+    let priority = 'low';
+    
+    // Check for potential issues
+    if (expiringCount > 50) {
+      status = 'warning';
+      message = `High number of locations expiring soon (${expiringCount})`;
+      priority = 'medium';
+    }
+    
+    if (totalExpired > 100) {
+      status = 'warning';
+      message = `Large number of expired locations (${totalExpired})`;
+      priority = 'medium';
+    }
+    
+    if (totalPreserved === 0 && generalLocations.length > 10) {
+      status = 'concern';
+      message = 'No high-quality general locations found';
+      priority = 'high';
+    }
+    
+    return {
+      status,
+      message,
+      priority,
+      metrics: {
+        totalExpired,
+        totalPreserved,
+        expiringCount,
+        qualityRatio: generalLocations.length > 0 ? (totalPreserved / generalLocations.length) : 0
+      }
+    };
+  }
+
+  /**
+   * Send cleanup notification (placeholder for future notification system)
+   */
+  async sendCleanupNotification(operation) {
+    try {
+      // Log the notification for now
+      console.log('🧹 CLEANUP NOTIFICATION:', {
+        type: operation.type,
+        timestamp: new Date().toISOString(),
+        deletedCount: operation.deletedCount,
+        preservedCount: operation.preservedCount || 0,
+        totalProcessed: operation.totalProcessed,
+        message: `Cleanup operation completed: ${operation.deletedCount} locations deleted, ${operation.preservedCount || 0} preserved`
+      });
+      
+      // Future: Send to notification service, email, Slack, etc.
+      // await notificationService.send({
+      //   type: 'cleanup_completed',
+      //   data: operation,
+      //   recipients: ['admin@xhere.world']
+      // });
+      
+    } catch (error) {
+      console.error('Error sending cleanup notification:', error);
+    }
+  }
+
   /**
    * Clean up all related records for a location before deletion
    * This handles foreign key constraints properly
@@ -114,6 +296,8 @@ class CleanupService {
       
       let deletedCount = 0;
       let preservedCount = 0;
+      const deletedLocationIds = [];
+      const preservedLocationIds = [];
       
       for (const location of expiredLocations) {
         // Check if location has 2+ positive ratings (upvotes - downvotes >= 2)
@@ -127,6 +311,7 @@ class CleanupService {
           }, { transaction });
           
           preservedCount++;
+          preservedLocationIds.push(location.id);
           console.log(`✅ Preserved general location ${location.id} with ${totalPoints} points`);
         } else {
           // Clean up dependencies first
@@ -135,18 +320,36 @@ class CleanupService {
           // Delete this location
           await location.destroy({ transaction });
           deletedCount++;
+          deletedLocationIds.push(location.id);
           console.log(`🗑️ Deleted expired general location ${location.id} with ${totalPoints} points`);
         }
       }
       
       await transaction.commit();
       
+      // Add to cleanup history
+      const operation = {
+        type: 'general_cleanup',
+        deletedCount,
+        preservedCount,
+        totalProcessed: expiredLocations.length,
+        deletedLocationIds,
+        preservedLocationIds,
+        timestamp: new Date()
+      };
+      
+      this.addToHistory(operation);
+      
+      // Send notification
+      await this.sendCleanupNotification(operation);
+      
       console.log(`🧹 Cleanup completed: ${deletedCount} deleted, ${preservedCount} preserved`);
       
       return {
         deletedCount,
         preservedCount,
-        totalProcessed: expiredLocations.length
+        totalProcessed: expiredLocations.length,
+        operation
       };
       
     } catch (error) {
@@ -179,6 +382,8 @@ class CleanupService {
       console.log(`Found ${expiredLocations.length} expired locations`);
       
       let deletedCount = 0;
+      const deletedLocationIds = [];
+      const deletedLocationTypes = {};
       
       for (const location of expiredLocations) {
         // For non-general locations, always delete if expired
@@ -189,6 +394,11 @@ class CleanupService {
           // Delete this location
           await location.destroy({ transaction });
           deletedCount++;
+          deletedLocationIds.push(location.id);
+          
+          // Track by location type
+          deletedLocationTypes[location.locationType] = (deletedLocationTypes[location.locationType] || 0) + 1;
+          
           console.log(`🗑️ Deleted expired ${location.locationType} location ${location.id}`);
         } else {
           // For general locations, check rating threshold
@@ -209,6 +419,9 @@ class CleanupService {
             // Delete this location
             await location.destroy({ transaction });
             deletedCount++;
+            deletedLocationIds.push(location.id);
+            deletedLocationTypes.general = (deletedLocationTypes.general || 0) + 1;
+            
             console.log(`🗑️ Deleted expired general location ${location.id} with ${totalPoints} points`);
           }
         }
@@ -216,11 +429,27 @@ class CleanupService {
       
       await transaction.commit();
       
+      // Add to cleanup history
+      const operation = {
+        type: 'all_locations_cleanup',
+        deletedCount,
+        totalProcessed: expiredLocations.length,
+        deletedLocationIds,
+        deletedLocationTypes,
+        timestamp: new Date()
+      };
+      
+      this.addToHistory(operation);
+      
+      // Send notification
+      await this.sendCleanupNotification(operation);
+      
       console.log(`🧹 All locations cleanup completed: ${deletedCount} deleted`);
       
       return {
         deletedCount,
-        totalProcessed: expiredLocations.length
+        totalProcessed: expiredLocations.length,
+        operation
       };
       
     } catch (error) {

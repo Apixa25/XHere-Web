@@ -15,6 +15,12 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+  
+  // Cleanup monitoring state
+  const [cleanupStats, setCleanupStats] = useState(null);
+  const [cleanupHistory, setCleanupHistory] = useState([]);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('users'); // 'users', 'cleanup', 'search'
 
   useEffect(() => {
     loadUsers();
@@ -241,6 +247,98 @@ const AdminDashboard = () => {
     }
   };
 
+  // Load cleanup statistics
+  const loadCleanupStats = async () => {
+    try {
+      setCleanupLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/admin/cleanup/detailed-stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setCleanupStats(data);
+    } catch (err) {
+      console.error('Error loading cleanup stats:', err);
+      setError(`Failed to load cleanup stats: ${err.message}`);
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
+  // Load cleanup history
+  const loadCleanupHistory = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/admin/cleanup/history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setCleanupHistory(data);
+    } catch (err) {
+      console.error('Error loading cleanup history:', err);
+      setError(`Failed to load cleanup history: ${err.message}`);
+    }
+  };
+
+  // Perform manual cleanup
+  const performCleanup = async (type) => {
+    if (!window.confirm(`Are you sure you want to perform ${type} cleanup? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setCleanupLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/admin/cleanup/${type}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      alert(`${type} cleanup completed! ${result.result.deletedCount} locations deleted.`);
+      
+      // Reload stats and history
+      await loadCleanupStats();
+      await loadCleanupHistory();
+    } catch (err) {
+      console.error(`Error performing ${type} cleanup:`, err);
+      alert(`Failed to perform ${type} cleanup: ${err.message}`);
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
+  // Load cleanup data when cleanup tab is active
+  useEffect(() => {
+    if (activeTab === 'cleanup') {
+      loadCleanupStats();
+      loadCleanupHistory();
+    }
+  }, [activeTab]);
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
 
@@ -253,30 +351,199 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {/* Search Section */}
-      <div className="search-section">
-        <select 
-          value={searchType}
-          onChange={(e) => setSearchType(e.target.value)}
-          className="search-type"
+      {/* Tab Navigation */}
+      <div className="admin-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
         >
-          <option value="locations">Locations</option>
-          <option value="users">Users</option>
-        </select>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={`Search ${searchType}...`}
-          className="search-input"
-        />
-        <button onClick={() => handleSearch(searchType, searchQuery)} className="search-button">
-          Search
+          👥 Users
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'cleanup' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cleanup')}
+        >
+          🧹 Cleanup Monitor
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'search' ? 'active' : ''}`}
+          onClick={() => setActiveTab('search')}
+        >
+          🔍 Search
         </button>
       </div>
 
+      {/* Cleanup Monitoring Tab */}
+      {activeTab === 'cleanup' && (
+        <div className="cleanup-section">
+          <div className="cleanup-header">
+            <h3>🧹 Cleanup Monitoring</h3>
+            <div className="cleanup-actions">
+              <button 
+                onClick={() => performCleanup('general')}
+                disabled={cleanupLoading}
+                className="cleanup-button general"
+              >
+                {cleanupLoading ? '🔄 Processing...' : '🧹 Clean General Locations'}
+              </button>
+              <button 
+                onClick={() => performCleanup('all')}
+                disabled={cleanupLoading}
+                className="cleanup-button all"
+              >
+                {cleanupLoading ? '🔄 Processing...' : '🗑️ Clean All Expired'}
+              </button>
+            </div>
+          </div>
+
+          {cleanupStats && (
+            <div className="cleanup-stats">
+              {/* System Health Indicator */}
+              {cleanupStats.systemHealth && (
+                <div className={`system-health ${cleanupStats.systemHealth.status}`}>
+                  <div className="health-header">
+                    <span className="health-icon">
+                      {cleanupStats.systemHealth.status === 'healthy' ? '✅' : 
+                       cleanupStats.systemHealth.status === 'warning' ? '⚠️' : '🚨'}
+                    </span>
+                    <span className="health-title">System Health</span>
+                    <span className={`health-status ${cleanupStats.systemHealth.status}`}>
+                      {cleanupStats.systemHealth.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="health-message">{cleanupStats.systemHealth.message}</div>
+                  <div className="health-metrics">
+                    <span>Quality Ratio: {(cleanupStats.systemHealth.metrics.qualityRatio * 100).toFixed(1)}%</span>
+                    <span>Expiring Soon: {cleanupStats.systemHealth.metrics.expiringCount}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <h4>📊 General Locations (7+ days old)</h4>
+                  <div className="stat-value">{cleanupStats.totalGeneralLocationsOlderThan7Days}</div>
+                </div>
+                <div className="stat-card">
+                  <h4>⏰ Expired Locations</h4>
+                  <div className="stat-value">{cleanupStats.expiredCount}</div>
+                </div>
+                <div className="stat-card">
+                  <h4>✅ Preserved (2+ points)</h4>
+                  <div className="stat-value">{cleanupStats.preservedCount}</div>
+                </div>
+                <div className="stat-card">
+                  <h4>🗑️ To Be Deleted</h4>
+                  <div className="stat-value warning">{cleanupStats.toBeDeletedCount}</div>
+                </div>
+                <div className="stat-card">
+                  <h4>⏳ Expiring Soon (24h)</h4>
+                  <div className="stat-value">{cleanupStats.expiringSoon}</div>
+                </div>
+                <div className="stat-card">
+                  <h4>📈 Average Points</h4>
+                  <div className="stat-value">{cleanupStats.averagePoints.toFixed(1)}</div>
+                </div>
+                <div className="stat-card">
+                  <h4>⭐ High Quality (5+ points)</h4>
+                  <div className="stat-value success">{cleanupStats.highQualityLocations}</div>
+                </div>
+                <div className="stat-card">
+                  <h4>⚠️ Low Quality (&lt; 0 points)</h4>
+                  <div className="stat-value danger">{cleanupStats.lowQualityLocations}</div>
+                </div>
+              </div>
+
+              {cleanupStats.expiringSoonDetails.length > 0 && (
+                <div className="expiring-soon">
+                  <h4>⏰ Locations Expiring Soon</h4>
+                  <div className="expiring-list">
+                    {cleanupStats.expiringSoonDetails.map(location => (
+                      <div key={location.id} className="expiring-item">
+                        <span className="location-id">ID: {location.id}</span>
+                        <span className="location-type">{location.locationType}</span>
+                        <span className="points">Points: {location.totalPoints}</span>
+                        <span className="expires-at">
+                          Expires: {new Date(location.deleteAt).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {cleanupHistory.length > 0 && (
+            <div className="cleanup-history">
+              <h4>📋 Recent Cleanup Operations</h4>
+              <div className="history-list">
+                {cleanupHistory.slice(0, 10).map(operation => (
+                  <div key={operation.id} className="history-item">
+                    <div className="history-header">
+                      <span className="operation-type">
+                        {operation.type === 'general_cleanup' ? '🧹 General Cleanup' : '🗑️ All Locations Cleanup'}
+                      </span>
+                      <span className="operation-time">
+                        {new Date(operation.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="operation-stats">
+                      <span>🗑️ Deleted: {operation.deletedCount}</span>
+                      {operation.preservedCount !== undefined && (
+                        <span>✅ Preserved: {operation.preservedCount}</span>
+                      )}
+                      <span>📊 Processed: {operation.totalProcessed}</span>
+                    </div>
+                    {operation.deletedLocationTypes && (
+                      <div className="deleted-types">
+                        {Object.entries(operation.deletedLocationTypes).map(([type, count]) => (
+                          <span key={type} className="type-count">
+                            {type}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {cleanupLoading && (
+            <div className="loading-overlay">
+              <div className="loading-spinner">🔄 Loading cleanup data...</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Search Section */}
+      {activeTab === 'search' && (
+        <div className="search-section">
+          <select 
+            value={searchType}
+            onChange={(e) => setSearchType(e.target.value)}
+            className="search-type"
+          >
+            <option value="locations">Locations</option>
+            <option value="users">Users</option>
+          </select>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={`Search ${searchType}...`}
+            className="search-input"
+          />
+          <button onClick={() => handleSearch(searchType, searchQuery)} className="search-button">
+            Search
+          </button>
+        </div>
+      )}
+
       {/* Search Results */}
-      {searchResults.length > 0 && (
+      {activeTab === 'search' && searchResults.length > 0 && (
         <div className="search-results">
           <h3>Search Results ({searchResults.length})</h3>
           <div className="result-list">
@@ -335,61 +602,64 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      <div className="users-section">
-        <h3>Users ({users.length})</h3>
-        {users.length === 0 ? (
-          <p>No users found</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th onClick={() => handleSort('email')} style={headerStyle}>
-                  Email {getSortIcon('email')}
-                </th>
-                <th onClick={() => handleSort('profile.name')} style={headerStyle}>
-                  Name {getSortIcon('profile.name')}
-                </th>
-                <th onClick={() => handleSort('credits')} style={headerStyle}>
-                  Credits {getSortIcon('credits')}
-                </th>
-                <th onClick={() => handleSort('locationCount')} style={headerStyle}>
-                  Locations {getSortIcon('locationCount')}
-                </th>
-                <th>Admin</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedUsers.map(user => (
-                <tr key={user.id}>
-                  <td>{user.email}</td>
-                  <td>{user.profile?.name || 'N/A'}</td>
-                  <td>{user.credits}</td>
-                  <td>{user.locationCount || 0}</td>
-                  <td>{user.isAdmin ? '✓' : ''}</td>
-                  <td>
-                    <button 
-                      onClick={() => handleUserSelect(user.id)}
-                      className="view-locations-button"
-                      title="View user's locations"
-                    >
-                      View Locations
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="delete-button"
-                      disabled={user.isAdmin}
-                      title="Delete user"
-                    >
-                      Delete
-                    </button>
-                  </td>
+      {/* Users Section */}
+      {activeTab === 'users' && (
+        <div className="users-section">
+          <h3>Users ({users.length})</h3>
+          {users.length === 0 ? (
+            <p>No users found</p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th onClick={() => handleSort('email')} style={headerStyle}>
+                    Email {getSortIcon('email')}
+                  </th>
+                  <th onClick={() => handleSort('profile.name')} style={headerStyle}>
+                    Name {getSortIcon('profile.name')}
+                  </th>
+                  <th onClick={() => handleSort('credits')} style={headerStyle}>
+                    Credits {getSortIcon('credits')}
+                  </th>
+                  <th onClick={() => handleSort('locationCount')} style={headerStyle}>
+                    Locations {getSortIcon('locationCount')}
+                  </th>
+                  <th>Admin</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {sortedUsers.map(user => (
+                  <tr key={user.id}>
+                    <td>{user.email}</td>
+                    <td>{user.profile?.name || 'N/A'}</td>
+                    <td>{user.credits}</td>
+                    <td>{user.locationCount || 0}</td>
+                    <td>{user.isAdmin ? '✓' : ''}</td>
+                    <td>
+                      <button 
+                        onClick={() => handleUserSelect(user.id)}
+                        className="view-locations-button"
+                        title="View user's locations"
+                      >
+                        View Locations
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="delete-button"
+                        disabled={user.isAdmin}
+                        title="Delete user"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   );
 };
