@@ -77,7 +77,26 @@ const PlaceCreditsButton = ({ location, user, onSuccess, compact = false, onLoca
       <button
         onClick={() => setShowModal(true)}
         disabled={loading || !user}
-        style={getButtonStyle()}
+        className="place-credits-btn"
+        style={{
+          backgroundColor: '#9C27B0',
+          color: 'white',
+          padding: '10px 15px',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: loading || !user ? 'not-allowed' : 'pointer',
+          fontSize: '1.2em',
+          fontWeight: 'bold',
+          minWidth: 'unset',
+          width: '75%',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          transition: 'background-color 0.3s ease',
+          opacity: loading || !user ? 0.6 : 1
+        }}
         onMouseOver={(e) => {
           if (!loading && user) {
             e.target.style.backgroundColor = '#7B1FA2';
