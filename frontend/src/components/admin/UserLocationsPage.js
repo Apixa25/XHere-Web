@@ -176,83 +176,54 @@ const UserLocationsPage = () => {
     setFailedImages(prev => new Set(prev).add(imageUrl));
   };
 
+  // Add this before rendering
+  console.log('UserLocationsPage: userLocations array:', userLocations);
+
   const renderLocationItem = (location) => (
     <div key={location.id} className="location-item">
       <div className="location-content">
-        {editingLocation?.id === location.id ? (
-          <div className="edit-form">
-            <textarea
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              className="edit-textarea"
-              placeholder="Enter location text..."
-            />
-            <div className="edit-actions">
-              <button 
-                onClick={() => handleEditLocation(location)}
-                className="save-button"
-                disabled={!editText.trim()}
-              >
-                💾 Save
-              </button>
-              <button 
-                onClick={handleCancelEdit}
-                className="cancel-button"
-              >
-                ❌ Cancel
-              </button>
+        <strong style={{ fontSize: '18px', color: '#222' }}>
+          {location.content?.text || "No description"}
+        </strong>
+        <div style={{ margin: '6px 0' }}>
+          <small>
+            <b>Type:</b> {location.locationType || "N/A"}
+            {" | "}
+            <b>Status:</b> {location.verificationStatus || "N/A"}
+            {" | "}
+            <b>Created:</b> {location.createdAt ? new Date(location.createdAt).toLocaleString() : "N/A"}
+          </small>
+        </div>
+        <div style={{ margin: '6px 0' }}>
+          <b>Upvotes:</b> {location.upvotes ?? 0} &nbsp;
+          <b>Downvotes:</b> {location.downvotes ?? 0}
+        </div>
+        {location.location?.coordinates && (
+          <div style={{ margin: '6px 0' }}>
+            <b>Coordinates:</b> {location.location.coordinates[1]}, {location.location.coordinates[0]}
+          </div>
+        )}
+        {location.content?.mediaUrls && location.content.mediaUrls.length > 0 && (
+          <div style={{ margin: '6px 0' }}>
+            <b>Media:</b>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {location.content.mediaUrls.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={`http://localhost:3000/${url}`}
+                  alt={`media-${idx}`}
+                  style={{ maxWidth: 80, maxHeight: 80, borderRadius: 4, border: '1px solid #ccc' }}
+                />
+              ))}
             </div>
           </div>
-        ) : (
-          <>
-            <strong>{location.content?.text}</strong>
-            <small>Created: {new Date(location.createdAt).toLocaleDateString()}</small>
-            
-            {location.content?.mediaUrls && location.content.mediaUrls.length > 0 && (
-              <div className="media-preview">
-                {location.content.mediaUrls.map((url, index) => {
-                  const fullUrl = `${BACKEND_URL}/${url}`;
-                  return (
-                    <div key={index} className="media-item">
-                      {location.content.mediaTypes[index]?.startsWith('image') ? (
-                        failedImages.has(fullUrl) ? (
-                          <div className="placeholder-image">
-                            <span>📷 Image not available</span>
-                          </div>
-                        ) : (
-                          <img 
-                            src={fullUrl}
-                            alt={`Location media ${index + 1}`}
-                            onError={() => handleImageError(fullUrl)}
-                          />
-                        )
-                      ) : (
-                        <div className="video-container">
-                          <video controls>
-                            <source src={fullUrl} type={location.content.mediaTypes[index]} />
-                            🎥 Your browser does not support the video tag.
-                          </video>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="location-stats">
-              <span title="Upvotes">👍 {location.upvotes || 0}</span>
-              <span title="Downvotes">👎 {location.downvotes || 0}</span>
-              <span title="Status">📍 {location.verificationStatus}</span>
-              <span title="Creator">👤 {location.creator?.email}</span>
-              {location.location?.coordinates && (
-                <span title="Coordinates">
-                  📍 {Number(location.location.coordinates[1]).toFixed(6)}, {Number(location.location.coordinates[0]).toFixed(6)}
-                </span>
-              )}
-            </div>
-          </>
         )}
+        <div style={{ margin: '6px 0' }}>
+          <b>Keywords:</b> {location.keywords?.join(', ') || "None"}
+        </div>
+        <div style={{ margin: '6px 0', fontSize: '12px', color: '#888' }}>
+          <b>ID:</b> {location.id}
+        </div>
       </div>
       <div className="location-actions">
         <button 
