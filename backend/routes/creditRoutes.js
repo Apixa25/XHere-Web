@@ -364,4 +364,60 @@ router.post(
   }
 );
 
+/**
+ * @route   POST /api/credits/place
+ * @desc    Place credits on a location (betting/prediction system)
+ * @access  Private
+ */
+router.post('/place', authenticateToken, validateSufficientCredits, async (req, res) => {
+  try {
+    const { locationId, amount, description } = req.body;
+
+    if (!locationId || !amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid locationId and amount are required'
+      });
+    }
+
+    // Check if location exists (optional for new locations)
+    // const Location = require('../models/Location');
+    // const location = await Location.findByPk(locationId);
+    // if (!location) {
+    //   return res.status(404).json({ success: false, message: 'Location not found' });
+    // }
+
+    // Place credits on the location
+    const result = await creditService.spendCredits(
+      req.user.id,
+      amount,
+      'credit_placement',
+      {
+        locationId,
+      }
+    );
+
+    res.json({
+      success: true,
+      user: result.user,
+      transaction: result.transaction,
+      message: `Successfully placed ${amount} credits on location`
+    });
+  } catch (error) {
+    console.error('Error placing credits:', error);
+    if (error.message === 'Insufficient credits') {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient credits',
+        error: error.message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to place credits',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router; 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/LocationForm.css';
 import LOCATION_TYPES from '../constants/locationTypes';
+import PlaceCreditsButton from './PlaceCreditsButton';
 
 const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
   const [text, setText] = useState('');
@@ -133,19 +134,17 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
               />
               <label htmlFor="isAnonymous">Post Anonymously</label>
             </div>
-            {locationType !== 'general' && (
-              <div className="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="autoDelete"
-                  checked={autoDelete}
-                  onChange={(e) => setAutoDelete(e.target.checked)}
-                />
-                <label htmlFor="autoDelete">Set time to delete</label>
-              </div>
-            )}
+            <div className="checkbox-item">
+              <input
+                type="checkbox"
+                id="autoDelete"
+                checked={autoDelete}
+                onChange={(e) => setAutoDelete(e.target.checked)}
+              />
+              <label htmlFor="autoDelete">Set time to delete</label>
+            </div>
           </div>
-          {autoDelete && locationType !== 'general' && (
+          {autoDelete && (
             <div className="auto-delete-options">
               <input
                 type="number"
@@ -176,6 +175,11 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
            'Create Location'}
         </button>
       </form>
+
+      {/* Place Credits Button - always visible at the bottom, outside the form */}
+      <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+        <PlaceCreditsButton user={user} location={{ id: 'new', content: { text }, isNew: true }} compact={false} />
+      </div>
     </div>
   );
 };
