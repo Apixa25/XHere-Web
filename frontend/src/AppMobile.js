@@ -36,6 +36,7 @@ import { App as CapApp } from '@capacitor/app';
 import MessageButton from './components/messaging/MessageButton';
 import KeywordsDisplay from './components/KeywordsDisplay';
 import KeywordSearch from './components/KeywordSearch';
+import PlaceCreditsButton from './components/PlaceCreditsButton';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -159,7 +160,8 @@ function LocationInfoWindow({
   setSelectedMarker,
   handleVoteUpdate,
   submitting,
-  infoBoxRef
+  infoBoxRef,
+  fetchLocations
 }) {
   const [photoTaken, setPhotoTaken] = useState(null);
   const [videoRecorded, setVideoRecorded] = useState(null);
@@ -606,6 +608,16 @@ function LocationInfoWindow({
               Delete Location
             </button>
           )}
+
+          {/* Place Credits Button for existing locations */}
+          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
+            <PlaceCreditsButton 
+              location={selectedMarker} 
+              user={user} 
+              compact={true}
+              onLocationUpdate={fetchLocations}
+            />
+          </div>
         </div>
       </InfoWindow>
     );
@@ -1623,6 +1635,7 @@ function AppMobile() {
                           ${getStatusBadgeHTML(location)}
                         </div>
                         ${getStatusReasonHTML(location)}
+                        ${location.deleteAt ? `<div id="timer-${location.id}" class="countdown-timer" style="font-size: 12px; color: #ff5722; font-weight: bold; margin-top: 4px;">⏳ Loading...</div>` : ''}
                       </div>
                     `;
 
@@ -1706,6 +1719,7 @@ function AppMobile() {
                   handleVoteUpdate={handleVoteUpdate}
                   submitting={submitting}
                   infoBoxRef={infoBoxRef}
+                  fetchLocations={fetchLocations}
                 />
               )}
             </GoogleMap>

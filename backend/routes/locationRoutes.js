@@ -246,22 +246,28 @@ router.post('/', authenticateToken, validateLocationPostingCredits, upload.array
       deleteTime, 
       deleteUnit,
       locationType,
-      keywords 
+      keywords,
+      initialCredits
     } = req.body;
 
     // Get required credits from middleware
     const requiredCredits = req.requiredCredits;
     const finalLocationType = req.locationType || locationType || 'general';
+    
+    // Parse initial credits if provided
+    const parsedInitialCredits = initialCredits ? parseInt(initialCredits) : 0;
+    const totalCreditsToSpend = requiredCredits + parsedInitialCredits;
 
-    // Deduct credits if required
-    if (requiredCredits > 0) {
+    // Deduct credits if required (location type + initial credits)
+    if (totalCreditsToSpend > 0) {
       await creditService.spendCredits(
         req.user.id,
-        requiredCredits,
+        totalCreditsToSpend,
         'location_creation',
         {
-          description: `Created ${finalLocationType} location: "${text}"`,
+          description: `Created ${finalLocationType} location: "${text}"${parsedInitialCredits > 0 ? ` with ${parsedInitialCredits} initial credits` : ''}`,
           locationType: finalLocationType,
+          initialCredits: parsedInitialCredits,
           action: 'create_location'
         },
         { transaction }
@@ -274,12 +280,8 @@ router.post('/', authenticateToken, validateLocationPostingCredits, upload.array
     // Calculate deleteAt time
     let deleteAt = null;
     
-    // For general locations, always set 7-day auto-delete
-    if (finalLocationType === 'general') {
-      deleteAt = new Date();
-      deleteAt.setDate(deleteAt.getDate() + 7);
-    } else if (autoDelete === 'true') {
-      // For paid locations, use user-specified auto-delete if enabled
+    if (autoDelete === 'true') {
+      // Use user-specified auto-delete for any location type
       deleteAt = new Date();
       const time = parseInt(deleteTime);
       
@@ -294,6 +296,10 @@ router.post('/', authenticateToken, validateLocationPostingCredits, upload.array
           deleteAt.setDate(deleteAt.getDate() + time);
           break;
       }
+    } else if (finalLocationType === 'general') {
+      // For general locations without custom timer, set 7-day auto-delete
+      deleteAt = new Date();
+      deleteAt.setDate(deleteAt.getDate() + 7);
     }
 
     // Parse keywords from string to array if provided
@@ -330,7 +336,7 @@ router.post('/', authenticateToken, validateLocationPostingCredits, upload.array
       creatorId: req.user.id,
       autoDelete: finalLocationType === 'general' || autoDelete === 'true',
       deleteAt,
-      credits: requiredCredits
+      credits: parsedInitialCredits
     }, { transaction });
 
     // Check for new badges
@@ -343,10 +349,10 @@ router.post('/', authenticateToken, validateLocationPostingCredits, upload.array
     res.status(201).json({ 
       location,
       newBadges,
-      creditsSpent: requiredCredits,
+      creditsSpent: totalCreditsToSpend,
       message: finalLocationType === 'general' 
-        ? 'General location created! It will be automatically deleted in 7 days unless it receives 2+ positive ratings.'
-        : `${finalLocationType} location created successfully!`
+        ? `General location created!${parsedInitialCredits > 0 ? ` ${parsedInitialCredits} credits placed on location.` : ''} It will be automatically deleted in ${autoDelete === 'true' ? `${deleteTime} ${deleteUnit}` : '7 days'} unless it receives 2+ positive ratings.`
+        : `${finalLocationType} location created successfully!${parsedInitialCredits > 0 ? ` ${parsedInitialCredits} credits placed on location.` : ''}`
     });
   } catch (error) {
     await transaction.rollback();

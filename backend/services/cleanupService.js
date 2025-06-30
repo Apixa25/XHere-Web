@@ -1,8 +1,88 @@
 const Location = require('../models/Location');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const LocationComment = require('../models/LocationComment');
+const LocationNomination = require('../models/LocationNomination');
+const LocationOwnership = require('../models/LocationOwnership');
+const LocationOwnershipHistory = require('../models/LocationOwnershipHistory');
+const Message = require('../models/Message');
+const NominationVote = require('../models/NominationVote');
 
 class CleanupService {
+  /**
+   * Clean up all related records for a location before deletion
+   * This handles foreign key constraints properly
+   */
+  async cleanupLocationDependencies(locationId, transaction) {
+    try {
+      console.log(`🧹 Cleaning up dependencies for location ${locationId}...`);
+      
+      // Delete in order of dependency (child records first)
+      
+      // 1. Delete nomination votes (references nominations)
+      const nominationVotesDeleted = await NominationVote.destroy({
+        where: {
+          nominationId: {
+            [Op.in]: sequelize.literal(`(
+              SELECT id FROM "LocationNominations" 
+              WHERE "locationId" = '${locationId}'
+            )`)
+          }
+        },
+        transaction
+      });
+      console.log(`🗑️ Deleted ${nominationVotesDeleted} nomination votes`);
+      
+      // 2. Delete location nominations
+      const nominationsDeleted = await LocationNomination.destroy({
+        where: { locationId },
+        transaction
+      });
+      console.log(`🗑️ Deleted ${nominationsDeleted} location nominations`);
+      
+      // 3. Delete location comments
+      const commentsDeleted = await LocationComment.destroy({
+        where: { locationId },
+        transaction
+      });
+      console.log(`🗑️ Deleted ${commentsDeleted} location comments`);
+      
+      // 4. Delete location ownership history
+      const ownershipHistoryDeleted = await LocationOwnershipHistory.destroy({
+        where: { locationId },
+        transaction
+      });
+      console.log(`🗑️ Deleted ${ownershipHistoryDeleted} ownership history records`);
+      
+      // 5. Delete location ownership
+      const ownershipDeleted = await LocationOwnership.destroy({
+        where: { locationId },
+        transaction
+      });
+      console.log(`🗑️ Deleted ${ownershipDeleted} ownership records`);
+      
+      // 6. Delete messages referencing this location
+      const messagesDeleted = await Message.destroy({
+        where: { locationId },
+        transaction
+      });
+      console.log(`🗑️ Deleted ${messagesDeleted} messages referencing location`);
+      
+      return {
+        nominationVotesDeleted,
+        nominationsDeleted,
+        commentsDeleted,
+        ownershipHistoryDeleted,
+        ownershipDeleted,
+        messagesDeleted
+      };
+      
+    } catch (error) {
+      console.error(`❌ Error cleaning up dependencies for location ${locationId}:`, error);
+      throw error;
+    }
+  }
+
   /**
    * Clean up expired general locations
    * Deletes general locations older than 7 days unless they have 2+ positive ratings
@@ -49,6 +129,9 @@ class CleanupService {
           preservedCount++;
           console.log(`✅ Preserved general location ${location.id} with ${totalPoints} points`);
         } else {
+          // Clean up dependencies first
+          await this.cleanupLocationDependencies(location.id, transaction);
+          
           // Delete this location
           await location.destroy({ transaction });
           deletedCount++;
@@ -100,6 +183,10 @@ class CleanupService {
       for (const location of expiredLocations) {
         // For non-general locations, always delete if expired
         if (location.locationType !== 'general') {
+          // Clean up dependencies first
+          await this.cleanupLocationDependencies(location.id, transaction);
+          
+          // Delete this location
           await location.destroy({ transaction });
           deletedCount++;
           console.log(`🗑️ Deleted expired ${location.locationType} location ${location.id}`);
@@ -116,6 +203,9 @@ class CleanupService {
             
             console.log(`✅ Preserved general location ${location.id} with ${totalPoints} points`);
           } else {
+            // Clean up dependencies first
+            await this.cleanupLocationDependencies(location.id, transaction);
+            
             // Delete this location
             await location.destroy({ transaction });
             deletedCount++;

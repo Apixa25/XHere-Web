@@ -11,7 +11,7 @@ const sequelize = require('./config/database');
 const initializeDatabase = require('./config/init-db');
 const { authenticateToken } = require('./middleware/auth');
 const fs = require('fs');
-const { scheduleCleanup } = require('./scripts/cleanupExpiredLocations');
+const cleanupService = require('./services/cleanupService');
 
 // Debug database configuration
 console.log('=== DATABASE DEBUG ===');
@@ -189,9 +189,18 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
+// Initialize cleanup scheduler with sophisticated service
 try {
-  scheduleCleanup();
-  console.log('Cleanup scheduler initialized');
+  // Schedule cleanup every minute using the sophisticated service
+  setInterval(async () => {
+    try {
+      await cleanupService.cleanupAllExpiredLocations();
+    } catch (error) {
+      console.error('Scheduled cleanup error:', error);
+    }
+  }, 60000); // Run every minute
+  
+  console.log('✅ Sophisticated cleanup scheduler initialized');
 } catch (error) {
-  console.error('Failed to initialize cleanup scheduler:', error);
+  console.error('❌ Failed to initialize cleanup scheduler:', error);
 }

@@ -3,7 +3,7 @@ import '../styles/LocationForm.css';
 import LOCATION_TYPES from '../constants/locationTypes';
 import PlaceCreditsButton from './PlaceCreditsButton';
 
-const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
+const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocationUpdate }) => {
   const [text, setText] = useState('');
   const [media, setMedia] = useState([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -12,6 +12,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
   const [deleteUnit, setDeleteUnit] = useState('minutes');
   const [locationType, setLocationType] = useState('general');
   const [keywords, setKeywords] = useState('');
+  const [initialCredits, setInitialCredits] = useState(0);
 
   // Calculate required credits based on location type
   const getRequiredCredits = (type) => {
@@ -51,7 +52,8 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
       deleteTime,
       deleteUnit,
       locationType,
-      keywords: keywordsArray
+      keywords: keywordsArray,
+      initialCredits
     });
   };
 
@@ -178,7 +180,13 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user }) => {
 
       {/* Place Credits Button - always visible at the bottom, outside the form */}
       <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-        <PlaceCreditsButton user={user} location={{ id: 'new', content: { text }, isNew: true }} compact={false} />
+        <PlaceCreditsButton 
+          user={user} 
+          location={{ id: 'new', content: { text }, isNew: true }} 
+          compact={false} 
+          onLocationUpdate={onLocationUpdate}
+          onCreditsPlaced={(amount) => setInitialCredits(amount)}
+        />
       </div>
     </div>
   );

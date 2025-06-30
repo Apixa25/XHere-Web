@@ -1034,6 +1034,9 @@ function App() {
       }
       data.append('locationType', formData.locationType || 'general');
       data.append('keywords', JSON.stringify(formData.keywords || []));
+      if (formData.initialCredits > 0) {
+        data.append('initialCredits', formData.initialCredits);
+      }
       
       if (formData.media) {
         formData.media.forEach(file => {
@@ -1321,6 +1324,7 @@ function App() {
             <span class="votes" style="display: inline-flex; align-items: center;">⬆️ ${location.upvotes || 0}</span>${location.credits > 0 ? `<span class="credits" style="display: inline-flex; align-items: center;">💵 ${location.credits}</span>` : ''}
             ${location.isOfficial ? '<span style="color: #2196F3; font-size: 16px; margin-left: 4px;" title="Official Location">🔵</span>' : ''}
           </div>
+          ${location.deleteAt ? `<div id="timer-${location.id}" class="countdown-timer" style="font-size: 12px; color: #ff5722; font-weight: bold; margin-top: 4px;">⏳ Loading...</div>` : ''}
         </div>
       `;
 
@@ -1801,6 +1805,7 @@ function App() {
                       submitting={submitting}
                       onClose={() => setSelectedLocation(null)}
                       user={user}
+                      onLocationUpdate={fetchLocations}
                     />
                   </div>
                 </OverlayView>

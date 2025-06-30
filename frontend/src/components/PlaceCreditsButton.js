@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import api from '../services/api';
 
-const PlaceCreditsButton = ({ location, user, onSuccess, compact = false }) => {
+const PlaceCreditsButton = ({ location, user, onSuccess, compact = false, onLocationUpdate, onCreditsPlaced }) => {
   const [showModal, setShowModal] = useState(false);
   const [creditAmount, setCreditAmount] = useState(10);
   const [loading, setLoading] = useState(false);
@@ -24,6 +24,12 @@ const PlaceCreditsButton = ({ location, user, onSuccess, compact = false }) => {
         setShowModal(false);
         if (onSuccess) {
           onSuccess(response);
+        }
+        if (onLocationUpdate) {
+          onLocationUpdate();
+        }
+        if (onCreditsPlaced) {
+          onCreditsPlaced(creditAmount);
         }
         alert(`✅ Successfully placed ${creditAmount} credits on this location!`);
       }
