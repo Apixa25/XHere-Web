@@ -110,40 +110,40 @@
 .location-form form {
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Reduced from 16px if previously set */
+  gap: 4px; /* Reduced from 8px */
 }
 
 .location-form textarea {
   min-height: 80px;
-  padding: 4px; /* Reduced from 8px */
+  padding: 2px; /* Reduced from 4px */
   border: 1px solid #ccc;
   border-radius: 5px;
-  margin-bottom: 4px; /* Reduced from 8px */
+  margin-bottom: 2px; /* Reduced from 4px */
   font-size: 1.1em;
   resize: vertical;
 }
 
 .location-form input[type="file"] {
-  margin-bottom: 4px; /* Reduced from 8px */
+  margin-bottom: 2px; /* Reduced from 4px */
   font-size: 1em;
 }
 
 .location-form .form-group {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Reduced from 8px */
-  margin-bottom: 6px; /* Reduced from 12px */
+  gap: 2px; /* Reduced from 4px */
+  margin-bottom: 3px; /* Reduced from 6px */
 }
 
 .location-type-select {
-  padding: 3px; /* Reduced from 6px */
+  padding: 1.5px; /* Reduced from 3px */
 }
 
 .location-form .form-options {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Reduced spacing */
-  margin-bottom: 10px; /* Reduced spacing */
+  gap: 3px; /* Reduced from 6px */
+  margin-bottom: 5px; /* Reduced from 10px */
 }
 
 .location-form .form-options label {
@@ -176,8 +176,8 @@
 .location-form .credit-options {
   display: flex;
   align-items: center;
-  gap: 5px; /* Reduced spacing */
-  margin-left: 25px; /* Indent under checkbox */
+  gap: 2.5px; /* Reduced from 5px */
+  margin-left: 12.5px; /* Reduced from 25px */
 }
 
 .location-form .credit-options {
@@ -187,19 +187,17 @@
 
 .location-form input[type="number"],
 .location-form select {
-  padding: 6px; /* Reduced padding */
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 1.1em; /* Increased number and select input font size */
-}
-
-.location-form .keywords-input {
-  padding: 6px;
+  padding: 3px; /* Reduced from 6px */
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 1.1em;
-  width: 100%;
-  box-sizing: border-box;
+}
+
+.location-form .keywords-input {
+  padding: 3px; /* Reduced from 6px */
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1.1em;
 }
 
 .location-form .keywords-help {
