@@ -1022,10 +1022,13 @@ function App() {
     setSelectedMarker(location);
     setSelectedLocation(null); // Close any new location form
     
-    // Center the map to show the info box properly
+    // Simply center the marker in the middle of the screen
     const lat = Number(location.location.coordinates[1]);
     const lng = Number(location.location.coordinates[0]);
-    panMapToShowInfoBox(lat, lng);
+    
+    if (mapRef.current) {
+      mapRef.current.panTo({ lat, lng });
+    }
   };
 
   const handleLocationSubmit = async (formData) => {
@@ -1920,70 +1923,6 @@ function App() {
   useEffect(() => {
     console.log("Render App:", { selectedMarker: selectedMarker?.id, selectedLocation: !!selectedLocation, routerPath});
   }, [selectedMarker?.id, selectedLocation, routerPath]);
-
-  // Measure info box height after render
-  useEffect(() => {
-    if (selectedMarker) {
-      let attempts = 0;
-      const maxAttempts = 20; // 20 * 50ms = 1s
-      function tryMeasure() {
-        if (infoBoxRef.current) {
-          const measuredHeight = infoBoxRef.current.getBoundingClientRect().height;
-          console.log('[InfoBox] Measured info box height:', measuredHeight);
-          setInfoBoxHeight(measuredHeight);
-        } else if (attempts < maxAttempts) {
-          attempts++;
-          setTimeout(tryMeasure, 50);
-        } else {
-          console.log('[InfoBox] Ref is still null after polling, could not measure info box height.');
-        }
-      }
-      tryMeasure();
-    }
-  }, [selectedMarker]);
-
-  // Smart pan function
-  const panMapToShowInfoBoxSmart = (lat, lng, boxHeightPx) => {
-    if (!mapRef.current) return;
-    try {
-      const map = mapRef.current;
-      const bounds = map.getBounds();
-      const ne = bounds.getNorthEast();
-      const sw = bounds.getSouthWest();
-      const mapDiv = map.getDiv();
-      const mapHeight = mapDiv.clientHeight;
-      const filterPanel = document.querySelector('.location-filter');
-      const panelHeight = filterPanel ? filterPanel.getBoundingClientRect().height : 0;
-      let offsetRatio;
-      if (boxHeightPx + panelHeight > mapHeight) {
-        offsetRatio = (panelHeight + (boxHeightPx - (mapHeight - panelHeight))) / mapHeight;
-      } else {
-        offsetRatio = panelHeight / mapHeight;
-      }
-      const latSpan = ne.lat() - sw.lat();
-      const latOffset = latSpan * offsetRatio;
-      const newLat = lat - latOffset;
-      console.log('[InfoBox] Panning map:', {
-        lat, lng, boxHeightPx, mapHeight, panelHeight, offsetRatio, latSpan, latOffset, newLat
-      });
-      map.panTo({ lat: newLat, lng });
-    } catch (error) {
-      console.error('❌ Error panning map to show info box:', error);
-    }
-  };
-
-  // Pan after measuring
-  useEffect(() => {
-    if (selectedMarker && infoBoxHeight > 0) {
-      const lat = Number(selectedMarker.location.coordinates[1]);
-      const lng = Number(selectedMarker.location.coordinates[0]);
-      panMapToShowInfoBoxSmart(lat, lng, infoBoxHeight);
-    }
-  }, [selectedMarker, infoBoxHeight]);
-
-  const handleLocationTypeChange = (type) => {
-    // Implementation of handleLocationTypeChange function
-  };
 
   return (
     <ErrorBoundary>
