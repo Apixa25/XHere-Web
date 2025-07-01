@@ -128,6 +128,12 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     // Check and award badges after successful vote
     const newBadges = await badgeService.checkBadges(location.creatorId, { transaction });
 
+    // Get creator information for the response
+    const creator = await User.findByPk(location.creatorId, {
+      attributes: ['id', 'email', 'profile'],
+      transaction
+    });
+
     await transaction.commit();
 
     console.log('🔍 Updated location state:', {
@@ -146,12 +152,30 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       message: 'Vote recorded successfully',
       location: {
         id: location.id,
+        location: location.location,
+        content: location.content,
+        keywords: location.keywords,
+        locationType: location.locationType,
+        creatorId: location.creatorId,
+        creator: creator,
         upvotes: location.upvotes,
         downvotes: location.downvotes,
         verificationStatus: location.verificationStatus,
         locationStatus: statusUpdate.location.locationStatus,
+        statusUpdatedAt: location.statusUpdatedAt,
+        statusReason: location.statusReason,
+        voters: location.voters,
         totalPoints: location.totalPoints,
-        voters: location.voters
+        pointsHistory: location.pointsHistory,
+        autoDelete: location.autoDelete,
+        deleteAt: location.deleteAt,
+        credits: location.credits,
+        isOfficial: location.isOfficial,
+        officialBoundary: location.officialBoundary,
+        officialOwnerId: location.officialOwnerId,
+        officializedAt: location.officializedAt,
+        createdAt: location.createdAt,
+        updatedAt: location.updatedAt
       },
       statusUpdate: {
         changed: statusUpdate.statusChanged,
@@ -159,7 +183,8 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
         newStatus: statusUpdate.newStatus,
         reason: statusUpdate.reason
       },
-      newBadges
+      newBadges,
+      creator
     });
   } catch (error) {
     await transaction.rollback();
