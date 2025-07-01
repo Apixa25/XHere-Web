@@ -112,28 +112,51 @@ const apiService = {
 
   // Vote on a location
   voteLocation: async (locationId, voteType) => {
-    const response = await api.post(`/votes/${locationId}/vote`, { voteType });
-    
-    // Handle status updates if present
-    if (response.data.statusUpdate) {
-      console.log('📍 Location status updated:', response.data.statusUpdate);
+    try {
+      console.log('🔍 API - Making vote request:', { locationId, voteType });
+      const response = await api.post(`/votes/${locationId}/vote`, { voteType });
+      console.log('🔍 API - Vote response received:', response);
+      console.log('🔍 API - Response structure:', {
+        hasData: !!response,
+        dataType: typeof response,
+        responseKeys: response ? Object.keys(response) : [],
+        fullResponse: response
+      });
       
-      // Show notification for status changes
-      if (response.data.statusUpdate.changed) {
-        const statusMessages = {
-          verified: '🎉 Location verified!',
-          flagged: '🚩 Location flagged for review',
-          pending: '⏳ Location status updated to pending',
-          removed: '🗑️ Location removed'
-        };
+      // Handle status updates if present
+      if (response && response.statusUpdate) {
+        console.log('📍 Location status updated:', response.statusUpdate);
         
-        const message = statusMessages[response.data.statusUpdate.newStatus] || 'Location status updated';
-        // You can add a toast notification here if you have a notification system
-        console.log(message);
+        // Show notification for status changes
+        if (response.statusUpdate.changed) {
+          const statusMessages = {
+            verified: '🎉 Location verified!',
+            flagged: '🚩 Location flagged for review',
+            pending: '⏳ Location status updated to pending',
+            removed: '🗑️ Location removed'
+          };
+          
+          const message = statusMessages[response.statusUpdate.newStatus] || 'Location status updated';
+          // You can add a toast notification here if you have a notification system
+          console.log(message);
+        }
       }
+      
+      console.log('🔍 API - Returning response:', response);
+      return response;
+    } catch (error) {
+      console.error('🔍 API - Vote API error:', error);
+      console.error('🔍 API - Error response:', error.response);
+      
+      // If it's a 400 error with response data, return the error data
+      if (error.response && error.response.data) {
+        console.log('🔍 API - Returning error response data:', error.response.data);
+        return error.response.data;
+      }
+      
+      // Otherwise throw the error
+      throw error;
     }
-    
-    return response;
   },
 
   // Get user badges

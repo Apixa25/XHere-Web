@@ -4,7 +4,6 @@ const Location = require('../models/Location');
 const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
 const { checkAndAwardBadges } = require('../utils/badgeChecker');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
@@ -13,6 +12,34 @@ const { validateLocationPostingCredits } = require('../middleware/credit');
 const creditService = require('../services/creditService');
 const badgeService = require('../services/badgeService');
 const nominationService = require('../services/nominationService');
+
+// Configure multer for file uploads with better error handling
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 5 // Max 5 files
+  },
+  fileFilter: function (req, file, cb) {
+    // Accept images and videos
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image and video files are allowed'), false);
+    }
+  }
+});
 
 // Updated GET endpoint to handle both admin and user-specific queries
 router.get('/', authenticateToken, async (req, res) => {
@@ -239,10 +266,14 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add POST endpoint
-router.post('/', authenticateToken, validateLocationPostingCredits, upload.array('media'), async (req, res) => {
+router.post('/', authenticateToken, upload.array('media'), validateLocationPostingCredits, async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
+    console.log('🔍 Route handler - Raw request body:', req.body);
+    console.log('🔍 Route handler - Files received:', req.files);
+    console.log('🔍 Route handler - All request properties:', Object.keys(req));
+    
     const { 
       latitude, 
       longitude, 
@@ -255,6 +286,11 @@ router.post('/', authenticateToken, validateLocationPostingCredits, upload.array
       keywords,
       initialCredits
     } = req.body;
+
+    console.log('🔍 Route handler - Extracted locationType:', locationType);
+    console.log('🔍 Route handler - Extracted latitude:', latitude);
+    console.log('🔍 Route handler - Extracted longitude:', longitude);
+    console.log('🔍 Route handler - Extracted text:', text);
 
     // Get required credits from middleware
     const requiredCredits = req.requiredCredits;

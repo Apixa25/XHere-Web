@@ -10,8 +10,11 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('🔍 Auth middleware - JWT decoded:', decoded);
+    console.log('🔍 Auth middleware - Looking for user with ID:', decoded.userId);
     
     const user = await User.findByPk(decoded.userId);
+    console.log('🔍 Auth middleware - User found:', user ? { id: user.id, email: user.email } : 'NOT FOUND');
     
     if (!user) {
       throw new Error();
@@ -22,6 +25,7 @@ const authenticateToken = async (req, res, next) => {
       email: user.email,
       isAdmin: user.isAdmin
     };
+    console.log('🔍 Auth middleware - Setting req.user:', req.user);
     
     next();
   } catch (error) {

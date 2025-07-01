@@ -18,7 +18,10 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     const { voteType } = req.body;
     const userId = req.user.id;
 
-    console.log('Vote attempt:', { locationId, userId, voteType });
+    console.log('🔍 === VOTE DEBUG START ===');
+    console.log('🔍 Vote attempt:', { locationId, userId, voteType });
+    console.log('🔍 User from JWT:', req.user);
+    console.log('🔍 Request body:', req.body);
 
     const location = await Location.findByPk(locationId, { transaction });
     if (!location) {
@@ -31,20 +34,39 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       location.voters = [];
     }
 
-    console.log('Current voters:', location.voters);
+    console.log('🔍 Current voters array:', location.voters);
+    console.log('🔍 Voters array type:', typeof location.voters);
+    console.log('🔍 Voters array length:', location.voters.length);
 
     // Check if user has already voted
-    const existingVoteIndex = location.voters.findIndex(v => v.userId === userId);
-    console.log('Existing vote index:', existingVoteIndex);
+    console.log('🔍 Looking for user ID in voters array:', userId);
+    console.log('🔍 User ID type:', typeof userId);
+    
+    const existingVoteIndex = location.voters.findIndex(v => {
+      console.log('🔍 Comparing:', { 
+        voterUserId: v.userId, 
+        voterUserIdType: typeof v.userId,
+        currentUserId: userId, 
+        currentUserIdType: typeof userId,
+        isMatch: v.userId === userId 
+      });
+      return v.userId === userId;
+    });
+    
+    console.log('🔍 Existing vote index:', existingVoteIndex);
 
     if (existingVoteIndex !== -1) {
       const existingVote = location.voters[existingVoteIndex];
-      console.log('Existing vote found:', existingVote);
+      console.log('🔍 Existing vote found:', existingVote);
+      console.log('🔍 Existing vote type:', existingVote.voteType);
+      console.log('🔍 New vote type:', voteType);
+      console.log('🔍 Vote types match?', existingVote.voteType === voteType);
 
       // If trying to vote the same way, reject
       if (existingVote.voteType === voteType) {
         await transaction.rollback();
-        console.log('Rejecting duplicate vote');
+        console.log('🔍 Rejecting duplicate vote');
+        console.log('🔍 === VOTE DEBUG END (DUPLICATE) ===');
         return res.status(400).json({ 
           error: 'You have already voted this way on this location',
           currentVote: existingVote.voteType
@@ -52,7 +74,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       }
 
       // If changing vote
-      console.log('Changing vote from', existingVote.voteType, 'to', voteType);
+      console.log('🔍 Changing vote from', existingVote.voteType, 'to', voteType);
       
       // Remove old vote
       if (existingVote.voteType === 'upvote') {
@@ -72,7 +94,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       location.voters[existingVoteIndex] = { userId, voteType };
     } else {
       // New vote
-      console.log('Recording new vote');
+      console.log('🔍 Recording new vote (no existing vote found)');
       if (voteType === 'upvote') {
         location.upvotes = (location.upvotes || 0) + 1;
       } else {
@@ -97,7 +119,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       location.verificationStatus = 'unverified';
     }
 
-    console.log('Saving location with voters:', location.voters);
+    console.log('🔍 Saving location with voters:', location.voters);
     await location.save({ transaction });
 
     // Update location status based on new ratings
@@ -108,7 +130,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
 
     await transaction.commit();
 
-    console.log('Updated location state:', {
+    console.log('🔍 Updated location state:', {
       upvotes: location.upvotes,
       downvotes: location.downvotes,
       voters: location.voters,
@@ -118,6 +140,7 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
       statusChanged: statusUpdate.statusChanged,
       newBadges
     });
+    console.log('🔍 === VOTE DEBUG END (SUCCESS) ===');
 
     res.json({ 
       message: 'Vote recorded successfully',
