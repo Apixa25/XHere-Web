@@ -611,6 +611,7 @@ function App() {
   // Refs to store current filter state for viewport changes
   const currentSelectedTypeRef = useRef(selectedLocationType);
   const currentKeywordSearchRef = useRef(keywordSearch);
+  const currentSelectedStatusRef = useRef(selectedStatus);
 
   // Update refs when state changes
   useEffect(() => {
@@ -620,6 +621,10 @@ function App() {
   useEffect(() => {
     currentKeywordSearchRef.current = keywordSearch;
   }, [keywordSearch]);
+
+  useEffect(() => {
+    currentSelectedStatusRef.current = selectedStatus;
+  }, [selectedStatus]);
 
   const mapStyles = {
     height: "100vh",
@@ -1130,9 +1135,14 @@ function App() {
       }
       
       // Add status filter if specified
-      if (selectedStatus !== 'all') {
-        url.searchParams.append('status', selectedStatus);
-        console.log('🔍 Status filter active:', selectedStatus);
+      console.log('🔍 Status filter check - selectedStatus:', currentSelectedStatusRef.current);
+      console.log('🔍 Status filter type:', typeof currentSelectedStatusRef.current);
+      console.log('🔍 Status filter value comparison:', currentSelectedStatusRef.current === 'all');
+      if (currentSelectedStatusRef.current !== 'all') {
+        url.searchParams.append('status', currentSelectedStatusRef.current);
+        console.log('🔍 Status filter active:', currentSelectedStatusRef.current);
+      } else {
+        console.log('🔍 No status filter - selectedStatus is "all"');
       }
       
       // Get current map bounds for viewport-based filtering
@@ -1205,7 +1215,7 @@ function App() {
       setIsFetchingLocations(false);
       currentFetchController.current = null;
     }
-  }, [user, map]);
+  }, [user, map, selectedLocationType]);
 
   const inspectLocation = (loc) => {
     try {
@@ -1282,7 +1292,19 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!map || !locationData.length || !window.google?.maps?.marker?.AdvancedMarkerElement) {
+    if (!map || !window.google?.maps?.marker?.AdvancedMarkerElement) {
+      return;
+    }
+
+    // If no locations, clear all markers and return
+    if (!locationData.length) {
+      console.log('🗑️ No locations to display, clearing all markers');
+      advancedMarkerRefs.current.forEach(({ marker }) => {
+        marker.map = null; // Remove marker from map
+      });
+      advancedMarkerRefs.current = [];
+      Object.values(timerIntervals.current).forEach(clearInterval);
+      timerIntervals.current = {};
       return;
     }
 
@@ -1592,6 +1614,7 @@ function App() {
   const handleStatusChange = (status) => {
     console.log('🔍 Status filter changed:', status);
     setSelectedStatus(status);
+    console.log('🔍 selectedStatus state should now be:', status);
   };
 
   // Memoize the router so it doesn't re-create on every render

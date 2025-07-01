@@ -45,6 +45,7 @@ const StatusFilter = ({ onStatusChange, currentStatus = 'all' }) => {
   };
 
   const handleStatusChange = (status) => {
+    console.log('🔍 StatusFilter: handleStatusChange called with:', status);
     onStatusChange(status);
   };
 
@@ -67,7 +68,10 @@ const StatusFilter = ({ onStatusChange, currentStatus = 'all' }) => {
           <button
             key={option.value}
             className={`status-option ${currentStatus === option.value ? 'active' : ''}`}
-            onClick={() => handleStatusChange(option.value)}
+            onClick={() => {
+              console.log('🔍 StatusFilter: Button clicked for status:', option.value);
+              handleStatusChange(option.value);
+            }}
             style={{
               borderColor: currentStatus === option.value ? option.color : '#ddd',
               backgroundColor: currentStatus === option.value ? `${option.color}15` : 'white'
