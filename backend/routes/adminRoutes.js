@@ -78,14 +78,129 @@ router.delete('/users/:userId', authenticateToken, adminAuth, async (req, res) =
       return res.status(400).json({ error: 'Cannot delete your own admin account' });
     }
 
+    console.log(`Starting deletion process for user: ${req.params.userId}`);
+
+    // Delete all credit transactions for the user
+    const CreditTransaction = require('../models/CreditTransaction');
+    await CreditTransaction.destroy({
+      where: { userId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted credit transactions');
+
+    // Delete user credit stats
+    const UserCreditStats = require('../models/UserCreditStats');
+    await UserCreditStats.destroy({
+      where: { userId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted user credit stats');
+
+    // Delete user badges
+    const UserBadge = require('../models/UserBadge');
+    await UserBadge.destroy({
+      where: { userId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted user badges');
+
+    // Delete location comments by the user
+    const LocationComment = require('../models/LocationComment');
+    await LocationComment.destroy({
+      where: { authorId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted user comments');
+
+    // Delete messages sent by the user
+    const Message = require('../models/Message');
+    await Message.destroy({
+      where: { senderId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted sent messages');
+
+    // Delete messages received by the user
+    await Message.destroy({
+      where: { recipientId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted received messages');
+
+    // Delete nomination votes by the user
+    const NominationVote = require('../models/NominationVote');
+    await NominationVote.destroy({
+      where: { voterId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted nomination votes');
+
+    // Delete location nominations by the user
+    const LocationNomination = require('../models/LocationNomination');
+    await LocationNomination.destroy({
+      where: { nominatorId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted location nominations');
+
+    // Delete location ownership records for locations created by this user
+    const LocationOwnership = require('../models/LocationOwnership');
+    const userLocations = await Location.findAll({
+      where: { creatorId: req.params.userId },
+      attributes: ['id']
+    });
+    
+    if (userLocations.length > 0) {
+      const locationIds = userLocations.map(loc => loc.id);
+      await LocationOwnership.destroy({
+        where: { locationId: locationIds },
+        transaction
+      });
+      console.log(`Deleted location ownership records for ${locationIds.length} locations`);
+    }
+
+    // Delete location ownership records where user is the owner
+    await LocationOwnership.destroy({
+      where: { ownerId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted user-owned location ownership records');
+
+    // Delete location ownership history for locations created by this user
+    const LocationOwnershipHistory = require('../models/LocationOwnershipHistory');
+    if (userLocations.length > 0) {
+      const locationIds = userLocations.map(loc => loc.id);
+      await LocationOwnershipHistory.destroy({
+        where: { locationId: locationIds },
+        transaction
+      });
+      console.log(`Deleted location ownership history for ${locationIds.length} locations`);
+    }
+
+    // Delete location ownership history where user is the buyer
+    await LocationOwnershipHistory.destroy({
+      where: { buyerId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted user purchase history');
+
     // Delete all locations created by the user
     await Location.destroy({
       where: { creatorId: req.params.userId },
       transaction
     });
+    console.log('Deleted user locations');
+
+    // Delete all locations where user is the official owner
+    await Location.destroy({
+      where: { officialOwnerId: req.params.userId },
+      transaction
+    });
+    console.log('Deleted official locations');
 
     // Delete the user
     await userToDelete.destroy({ transaction });
+    console.log('Deleted user');
 
     await transaction.commit();
     
@@ -94,7 +209,10 @@ router.delete('/users/:userId', authenticateToken, adminAuth, async (req, res) =
   } catch (error) {
     await transaction.rollback();
     console.error('Error deleting user:', error);
-    res.status(500).json({ error: 'Error deleting user' });
+    res.status(500).json({ 
+      error: 'Error deleting user',
+      details: error.message 
+    });
   }
 });
 
