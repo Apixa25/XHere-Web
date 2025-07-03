@@ -17,6 +17,7 @@ import CreditBalance from './CreditBalance';
 import CreditsPage from './CreditsPage';
 import ReputationDashboard from './ReputationDashboard';
 import DownvoteDashboard from './DownvoteDashboard';
+import TrustBasedPostingInfo from './TrustBasedPostingInfo';
 
 const AdminBadge = () => (
   <div style={{
@@ -871,6 +872,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
           <DownvoteDashboard userId={userData.id} />
         </div>
       )}
+
+      {/* Trust-Based Posting Info */}
+      <div style={{ marginBottom: '30px' }}>
+        <TrustBasedPostingInfo userData={userData} />
+      </div>
 
       <div style={{
         backgroundColor: '#f5f5f5',

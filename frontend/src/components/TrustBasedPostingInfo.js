@@ -1,53 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
 import './TrustBasedPostingInfo.css';
 
-const TrustBasedPostingInfo = ({ userData, onPostingCheck }) => {
+const TrustBasedPostingInfo = ({ userData }) => {
   const [postingInfo, setPostingInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (userData?.id) {
-      loadPostingInfo();
+    if (userData) {
+      // Calculate posting info based on user data
+      const trustLevel = userData.trustLevel || 'new';
+      const reputationScore = userData.reputationScore || 0;
+      const downvoteCount = userData.totalDownvotes || 0;
+      
+      // Determine posting permissions based on trust level and downvotes
+      const postingPermissions = calculatePostingPermissions(trustLevel, reputationScore, downvoteCount);
+      
+      setPostingInfo({
+        trustLevel,
+        reputationScore,
+        downvoteCount,
+        permissions: postingPermissions
+      });
     }
   }, [userData]);
 
-  const loadPostingInfo = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Get current reputation and posting permissions
-      const [reputationResponse, permissionResponse] = await Promise.all([
-        api.get('/reputation/current'),
-        api.get('/downvotes/posting-permission')
-      ]);
-
-      const reputation = reputationResponse.data;
-      const permission = permissionResponse.data.permission;
-
-      setPostingInfo({
-        reputation,
-        permission,
-        trustLevel: userData.trustLevel,
-        reputationScore: userData.reputationScore
-      });
-
-      // Notify parent component
-      if (onPostingCheck) {
-        onPostingCheck({
-          canPost: permission.canPost,
-          restrictions: permission.restrictions,
-          trustLevel: userData.trustLevel
-        });
+  const calculatePostingPermissions = (trustLevel, reputationScore, downvoteCount) => {
+    // Base permissions by trust level
+    const basePermissions = {
+      new: {
+        canPost: true,
+        maxLocationsPerDay: 3,
+        requiresApproval: true,
+        creditCost: 100,
+        reviewPeriod: '24-48 hours'
+      },
+      trusted: {
+        canPost: true,
+        maxLocationsPerDay: 10,
+        requiresApproval: false,
+        creditCost: 100,
+        reviewPeriod: 'Instant'
+      },
+      verified: {
+        canPost: true,
+        maxLocationsPerDay: 25,
+        requiresApproval: false,
+        creditCost: 100,
+        reviewPeriod: 'Instant'
+      },
+      moderator: {
+        canPost: true,
+        maxLocationsPerDay: 50,
+        requiresApproval: false,
+        creditCost: 100,
+        reviewPeriod: 'Instant'
       }
-    } catch (error) {
-      console.error('Error loading posting info:', error);
-      setError('Failed to load posting information');
-    } finally {
-      setLoading(false);
+    };
+
+    let permissions = { ...basePermissions[trustLevel] };
+
+    // Apply downvote penalties
+    if (downvoteCount >= 50) {
+      permissions.canPost = false;
+      permissions.restriction = 'Banned due to excessive downvotes';
+    } else if (downvoteCount >= 30) {
+      permissions.maxLocationsPerDay = Math.max(1, permissions.maxLocationsPerDay - 5);
+      permissions.requiresApproval = true;
+      permissions.restriction = 'Suspended due to downvotes';
+    } else if (downvoteCount >= 15) {
+      permissions.maxLocationsPerDay = Math.max(3, permissions.maxLocationsPerDay - 3);
+      permissions.restriction = 'Restricted due to downvotes';
+    } else if (downvoteCount >= 5) {
+      permissions.maxLocationsPerDay = Math.max(5, permissions.maxLocationsPerDay - 2);
+      permissions.restriction = 'Warning due to downvotes';
     }
+
+    return permissions;
   };
 
   const getTrustLevelColor = (trustLevel) => {
@@ -93,7 +120,7 @@ const TrustBasedPostingInfo = ({ userData, onPostingCheck }) => {
     return Math.max(0, Math.min(100, progress));
   };
 
-  if (loading) {
+  if (!postingInfo) {
     return (
       <div className="trust-posting-info loading">
         <div className="loading-spinner">🔄</div>
@@ -102,23 +129,7 @@ const TrustBasedPostingInfo = ({ userData, onPostingCheck }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="trust-posting-info error">
-        <div className="error-icon">⚠️</div>
-        <p>{error}</p>
-        <button onClick={loadPostingInfo} className="retry-button">
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (!postingInfo) {
-    return null;
-  }
-
-  const { reputation, permission, trustLevel, reputationScore } = postingInfo;
+  const { trustLevel, reputationScore, downvoteCount, permissions } = postingInfo;
   const nextTrustLevel = getNextTrustLevel(trustLevel);
   const progressToNext = getProgressToNext(reputationScore, trustLevel);
 
@@ -166,34 +177,41 @@ const TrustBasedPostingInfo = ({ userData, onPostingCheck }) => {
         <div className="restrictions-grid">
           <div className="restriction-item">
             <span className="restriction-label">Can Post:</span>
-            <span className={`restriction-value ${permission.canPost ? 'allowed' : 'denied'}`}>
-              {permission.canPost ? '✅ Yes' : '❌ No'}
+            <span className={`restriction-value ${permissions.canPost ? 'allowed' : 'denied'}`}>
+              {permissions.canPost ? '✅ Yes' : '❌ No'}
             </span>
           </div>
           
           <div className="restriction-item">
             <span className="restriction-label">Daily Limit:</span>
             <span className="restriction-value">
-              {permission.restrictions.maxLocationsPerDay} locations
+              {permissions.maxLocationsPerDay} locations
             </span>
           </div>
           
           <div className="restriction-item">
             <span className="restriction-label">Requires Approval:</span>
-            <span className={`restriction-value ${permission.restrictions.requiresApproval ? 'required' : 'not-required'}`}>
-              {permission.restrictions.requiresApproval ? '✅ Yes' : '❌ No'}
+            <span className={`restriction-value ${permissions.requiresApproval ? 'required' : 'not-required'}`}>
+              {permissions.requiresApproval ? '✅ Yes' : '❌ No'}
             </span>
           </div>
           
           <div className="restriction-item">
             <span className="restriction-label">Credit Cost (Paid):</span>
             <span className="restriction-value">
-              💰 {permission.restrictions.creditCost}
+              💰 {permissions.creditCost}
+            </span>
+          </div>
+          
+          <div className="restriction-item">
+            <span className="restriction-label">Review Period:</span>
+            <span className="restriction-value">
+              {permissions.reviewPeriod}
             </span>
           </div>
         </div>
 
-        {!permission.canPost && (
+        {!permissions.canPost && (
           <div className="posting-blocked">
             <div className="blocked-icon">🚫</div>
             <div className="blocked-message">
@@ -205,28 +223,19 @@ const TrustBasedPostingInfo = ({ userData, onPostingCheck }) => {
       </div>
 
       {/* Penalty Information */}
-      {permission.penaltyLevel && permission.penaltyLevel !== 'none' && (
+      {permissions.restriction && (
         <div className="penalty-section">
-          <h4>⚠️ Active Penalty</h4>
+          <h4>⚠️ Active Restriction</h4>
           <div className="penalty-info">
             <div className="penalty-level">
-              <span className="penalty-label">Penalty Level:</span>
-              <span className={`penalty-value ${permission.penaltyLevel}`}>
-                {permission.penaltyLevel.charAt(0).toUpperCase() + permission.penaltyLevel.slice(1)}
+              <span className="penalty-label">Restriction:</span>
+              <span className="penalty-value">
+                {permissions.restriction}
               </span>
             </div>
             
-            {permission.penaltyExpiresAt && (
-              <div className="penalty-expiry">
-                <span className="expiry-label">Expires:</span>
-                <span className="expiry-value">
-                  {new Date(permission.penaltyExpiresAt).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-            
             <div className="penalty-note">
-              <p>⚠️ Penalty restrictions override your trust level privileges.</p>
+              <p>⚠️ Downvote restrictions override your trust level privileges.</p>
             </div>
           </div>
         </div>
