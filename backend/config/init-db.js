@@ -16,8 +16,8 @@ async function initializeDatabase() {
 
     // No associations here; all are defined in model associate methods
 
-    // Sync database with new fields
-    await sequelize.sync({ alter: true });
+    // Sync database without altering existing schema since fields already exist
+    await sequelize.sync({ alter: false, force: false });
     
     console.log('Database synchronized successfully with messaging system');
   } catch (error) {

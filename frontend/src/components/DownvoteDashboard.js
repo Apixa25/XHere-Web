@@ -4,7 +4,8 @@ import './DownvoteDashboard.css';
 
 const DownvoteDashboard = ({ userId }) => {
   const [stats, setStats] = useState(null);
-  const [permission, setPermission] = useState(null);
+  const [postingPermission, setPostingPermission] = useState(null);
+  const [recentDownvotedLocations, setRecentDownvotedLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,17 +18,58 @@ const DownvoteDashboard = ({ userId }) => {
       setLoading(true);
       setError(null);
 
+      // Validate userId
+      if (!userId) {
+        console.error('No userId provided to DownvoteDashboard');
+        setError('User ID is required');
+        return;
+      }
+
+      console.log('Loading downvote data for userId:', userId);
+
       // Load downvote statistics
-      const statsResponse = await api.get(`/downvotes/stats/${userId}`);
-      setStats(statsResponse.data.stats);
+      const statsResponse = await api.getDownvoteStats(userId);
+      console.log('Downvote stats response:', statsResponse);
+      
+      // Check if response has the expected structure
+      if (statsResponse && statsResponse.data && statsResponse.data.success && statsResponse.data.stats) {
+        setStats(statsResponse.data.stats);
+      } else if (statsResponse && statsResponse.success && statsResponse.stats) {
+        // Handle direct response structure (not wrapped in data)
+        setStats(statsResponse.stats);
+      } else {
+        console.error('Unexpected stats response structure:', statsResponse);
+        setError('Invalid response format from server');
+        return;
+      }
 
       // Load posting permission
-      const permissionResponse = await api.get('/downvotes/posting-permission');
-      setPermission(permissionResponse.data.permission);
+      const permissionResponse = await api.getPostingPermission();
+      console.log('Posting permission response:', permissionResponse);
+      
+      if (permissionResponse && permissionResponse.data && permissionResponse.data.success && permissionResponse.data.permission) {
+        setPostingPermission(permissionResponse.data.permission);
+      } else if (permissionResponse && permissionResponse.success && permissionResponse.permission) {
+        // Handle direct response structure (not wrapped in data)
+        setPostingPermission(permissionResponse.permission);
+      } else {
+        console.error('Unexpected permission response structure:', permissionResponse);
+        setError('Invalid permission response format');
+        return;
+      }
+
+      // Load recent downvoted locations
+      const locationsResponse = await api.getUserLocations(userId);
+      console.log('User locations response:', locationsResponse);
+      
+      if (locationsResponse && locationsResponse.data) {
+        const downvotedLocations = locationsResponse.data.filter(location => location.downvotes > 0);
+        setRecentDownvotedLocations(downvotedLocations.slice(0, 5));
+      }
 
     } catch (error) {
       console.error('Error loading downvote data:', error);
-      setError(error.response?.data?.error || 'Error loading downvote data');
+      setError(error.response?.data?.message || 'Failed to load downvote data');
     } finally {
       setLoading(false);
     }
@@ -76,6 +118,15 @@ const DownvoteDashboard = ({ userId }) => {
       <div className="downvote-dashboard loading">
         <div className="loading-spinner">🔄</div>
         <p>Loading downvote statistics...</p>
+      </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <div className="downvote-dashboard loading">
+        <div className="loading-spinner">🔄</div>
+        <p>Loading user data...</p>
       </div>
     );
   }
@@ -169,32 +220,32 @@ const DownvoteDashboard = ({ userId }) => {
       </div>
 
       {/* Posting Restrictions */}
-      {permission && (
+      {postingPermission && (
         <div className="restrictions-section">
           <h4>📝 Posting Restrictions</h4>
           <div className="restrictions-grid">
             <div className="restriction-item">
               <span className="restriction-label">Can Post:</span>
-              <span className={`restriction-value ${permission.canPost ? 'allowed' : 'denied'}`}>
-                {permission.canPost ? '✅ Yes' : '❌ No'}
+              <span className={`restriction-value ${postingPermission.canPost ? 'allowed' : 'denied'}`}>
+                {postingPermission.canPost ? '✅ Yes' : '❌ No'}
               </span>
             </div>
             <div className="restriction-item">
               <span className="restriction-label">Max Per Day:</span>
               <span className="restriction-value">
-                {permission.restrictions.maxLocationsPerDay}
+                {postingPermission.restrictions.maxLocationsPerDay}
               </span>
             </div>
             <div className="restriction-item">
               <span className="restriction-label">Requires Approval:</span>
-              <span className={`restriction-value ${permission.restrictions.requiresApproval ? 'required' : 'not-required'}`}>
-                {permission.restrictions.requiresApproval ? '✅ Yes' : '❌ No'}
+              <span className={`restriction-value ${postingPermission.restrictions.requiresApproval ? 'required' : 'not-required'}`}>
+                {postingPermission.restrictions.requiresApproval ? '✅ Yes' : '❌ No'}
               </span>
             </div>
             <div className="restriction-item">
               <span className="restriction-label">Credit Cost:</span>
               <span className="restriction-value">
-                💰 {permission.restrictions.creditCost}
+                💰 {postingPermission.restrictions.creditCost}
               </span>
             </div>
           </div>

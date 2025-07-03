@@ -274,6 +274,19 @@ const apiService = {
     return api.post(`/locations/${locationId}/comments`, commentData);
   },
 
+  // Downvote tracking endpoints
+  getDownvoteStats: async (userId) => {
+    return api.get(`/downvotes/stats/${userId}`);
+  },
+
+  getPostingPermission: async () => {
+    return api.get('/downvotes/posting-permission');
+  },
+
+  getUserLocations: async (userId) => {
+    return api.get(`/users/profile/${userId}`);
+  },
+
   // Generic methods for direct API access
   get: (url, config = {}) => api.get(url, config),
   post: (url, data = {}, config = {}) => api.post(url, data, config),

@@ -866,9 +866,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       </div>
 
       {/* Downvote Dashboard */}
-      <div style={{ marginBottom: '30px' }}>
-        <DownvoteDashboard userId={userData?.id} />
-      </div>
+      {userData?.id && (
+        <div style={{ marginBottom: '30px' }}>
+          <DownvoteDashboard userId={userData.id} />
+        </div>
+      )}
 
       <div style={{
         backgroundColor: '#f5f5f5',
