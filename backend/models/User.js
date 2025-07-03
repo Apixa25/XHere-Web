@@ -74,7 +74,7 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   averageLocationRating: {
-    type: DataTypes.DECIMAL(3, 2),
+    type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0.00,
     allowNull: false
   },

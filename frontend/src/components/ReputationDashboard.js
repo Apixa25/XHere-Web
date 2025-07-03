@@ -113,16 +113,16 @@ const ReputationDashboard = () => {
       {/* Trust Level Card */}
       <div className="trust-level-card">
         <div className="trust-level-header">
-          <span className="trust-level-icon" style={{ color: getTrustLevelColor(user.trustLevel) }}>
-            {getTrustLevelIcon(user.trustLevel)}
+          <span className="trust-level-icon" style={{ color: getTrustLevelColor(user.trustLevel || 'new') }}>
+            {getTrustLevelIcon(user.trustLevel || 'new')}
           </span>
           <div className="trust-level-info">
-            <h3 className="trust-level-name">{user.trustLevel.charAt(0).toUpperCase() + user.trustLevel.slice(1)}</h3>
+            <h3 className="trust-level-name">{(user.trustLevel || 'new').charAt(0).toUpperCase() + (user.trustLevel || 'new').slice(1)}</h3>
             <p className="trust-level-description">
-              {user.trustLevel === 'new' && 'New community member - start building your reputation!'}
-              {user.trustLevel === 'trusted' && 'Trusted contributor - your posts are valued by the community!'}
-              {user.trustLevel === 'verified' && 'Verified expert - you\'re a recognized quality contributor!'}
-              {user.trustLevel === 'moderator' && 'Community moderator - you help maintain quality standards!'}
+              {(user.trustLevel || 'new') === 'new' && 'New community member - start building your reputation!'}
+              {(user.trustLevel || 'new') === 'trusted' && 'Trusted contributor - your posts are valued by the community!'}
+              {(user.trustLevel || 'new') === 'verified' && 'Verified expert - you\'re a recognized quality contributor!'}
+              {(user.trustLevel || 'new') === 'moderator' && 'Community moderator - you help maintain quality standards!'}
             </p>
           </div>
         </div>
@@ -132,16 +132,16 @@ const ReputationDashboard = () => {
           <div className="progress-section">
             <div className="progress-info">
               <span>Progress to {nextTrustLevel}:</span>
-              <span>{Math.round(progressToNext)}%</span>
+              <span>{Math.round(progressToNext || 0)}%</span>
             </div>
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
-                style={{ width: `${progressToNext}%` }}
+                style={{ width: `${progressToNext || 0}%` }}
               ></div>
             </div>
             <p className="progress-text">
-              {user.reputationScore} / {nextTrustLevel.minScore} points needed
+              {user.reputationScore || 0} / {nextTrustLevel.minScore} points needed
             </p>
           </div>
         )}
@@ -153,7 +153,7 @@ const ReputationDashboard = () => {
           <div className="stat-icon">📊</div>
           <div className="stat-content">
             <h4>Reputation Score</h4>
-            <p className="stat-value">{user.reputationScore}</p>
+            <p className="stat-value">{user.reputationScore || 0}</p>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ const ReputationDashboard = () => {
           <div className="stat-icon">📍</div>
           <div className="stat-content">
             <h4>Total Locations</h4>
-            <p className="stat-value">{user.totalLocationsCount}</p>
+            <p className="stat-value">{user.totalLocationsCount || 0}</p>
           </div>
         </div>
 
@@ -169,7 +169,7 @@ const ReputationDashboard = () => {
           <div className="stat-icon">⭐</div>
           <div className="stat-content">
             <h4>Quality Locations</h4>
-            <p className="stat-value">{user.qualityLocationsCount}</p>
+            <p className="stat-value">{user.qualityLocationsCount || 0}</p>
           </div>
         </div>
 
@@ -177,7 +177,11 @@ const ReputationDashboard = () => {
           <div className="stat-icon">📈</div>
           <div className="stat-content">
             <h4>Average Rating</h4>
-            <p className="stat-value">{user.averageLocationRating.toFixed(1)}</p>
+            <p className="stat-value">
+              {user.averageLocationRating && typeof user.averageLocationRating === 'number' 
+                ? user.averageLocationRating.toFixed(1) 
+                : 'N/A'}
+            </p>
           </div>
         </div>
 
@@ -185,7 +189,7 @@ const ReputationDashboard = () => {
           <div className="stat-icon">💎</div>
           <div className="stat-content">
             <h4>Credits</h4>
-            <p className="stat-value">{user.credits}</p>
+            <p className="stat-value">{user.credits || 0}</p>
           </div>
         </div>
 
@@ -193,7 +197,7 @@ const ReputationDashboard = () => {
           <div className="stat-icon">🎯</div>
           <div className="stat-content">
             <h4>Daily Limit</h4>
-            <p className="stat-value">{restrictions.maxLocationsPerDay}</p>
+            <p className="stat-value">{restrictions?.maxLocationsPerDay || 0}</p>
           </div>
         </div>
       </div>
@@ -204,23 +208,23 @@ const ReputationDashboard = () => {
         <div className="restrictions-grid">
           <div className="restriction-item">
             <span className="restriction-label">Daily Posting Limit:</span>
-            <span className="restriction-value">{restrictions.maxLocationsPerDay} locations</span>
+            <span className="restriction-value">{restrictions?.maxLocationsPerDay || 0} locations</span>
           </div>
           <div className="restriction-item">
             <span className="restriction-label">Requires Approval:</span>
             <span className="restriction-value">
-              {restrictions.requiresApproval ? 'Yes' : 'No'}
+              {restrictions?.requiresApproval ? 'Yes' : 'No'}
             </span>
           </div>
           <div className="restriction-item">
             <span className="restriction-label">Credit Cost (Paid Locations):</span>
-            <span className="restriction-value">{restrictions.creditCost} credits</span>
+            <span className="restriction-value">{restrictions?.creditCost || 0} credits</span>
           </div>
         </div>
       </div>
 
       {/* Recent Activity */}
-      {recentLocations.length > 0 && (
+      {recentLocations && recentLocations.length > 0 && (
         <div className="recent-activity-card">
           <h3>📝 Recent Activity</h3>
           <div className="activity-list">
@@ -245,7 +249,7 @@ const ReputationDashboard = () => {
       )}
 
       {/* Reputation History Chart */}
-      {reputationHistory.length > 0 && (
+      {reputationHistory && reputationHistory.length > 0 && (
         <div className="history-card">
           <h3>📈 Reputation History</h3>
           <div className="history-chart">
@@ -254,10 +258,10 @@ const ReputationDashboard = () => {
                 <div 
                   className="history-bar" 
                   style={{ 
-                    height: `${(entry.score / Math.max(...reputationHistory.map(h => h.score))) * 100}%` 
+                    height: `${(entry.score / Math.max(...reputationHistory.map(h => h.score || 0))) * 100}%` 
                   }}
                 ></div>
-                <span className="history-score">{entry.score}</span>
+                <span className="history-score">{entry.score || 0}</span>
               </div>
             ))}
           </div>

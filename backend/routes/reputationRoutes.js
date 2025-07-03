@@ -6,6 +6,19 @@ const ReputationService = require('../services/reputationService');
 // Get user's reputation dashboard
 router.get('/dashboard', authenticateToken, async (req, res) => {
   try {
+    // First, check if user's reputation needs to be updated
+    const user = await require('../models/User').findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update reputation if it hasn't been calculated recently (older than 1 hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    if (!user.lastReputationUpdate || user.lastReputationUpdate < oneHourAgo) {
+      console.log(`Updating reputation for user ${req.user.id} - last update was ${user.lastReputationUpdate}`);
+      await ReputationService.updateUserReputation(req.user.id);
+    }
+
     const dashboardData = await ReputationService.getReputationDashboard(req.user.id);
     res.json(dashboardData);
   } catch (error) {

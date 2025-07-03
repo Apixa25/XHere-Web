@@ -88,14 +88,17 @@ class ReputationService {
 
       totalScore += consistencyBonus + qualityBonus + activityBonus;
 
-      // Ensure minimum score of 0
-      totalScore = Math.max(0, totalScore);
+      // Ensure minimum score of 0 and maximum reasonable score
+      totalScore = Math.max(0, Math.min(totalScore, 999999));
+
+      // Ensure average rating is within reasonable bounds (0-1000)
+      const safeAverageRating = Math.max(0, Math.min(averageRating, 1000));
 
       return {
         reputationScore: Math.round(totalScore),
         qualityLocationsCount: qualityLocations,
         totalLocationsCount: totalLocations,
-        averageLocationRating: parseFloat(averageRating.toFixed(2)),
+        averageLocationRating: parseFloat(safeAverageRating.toFixed(2)),
         breakdown: {
           locationScore: totalRating,
           consistencyBonus,

@@ -15,6 +15,7 @@ import KeywordsDisplay from '../components/KeywordsDisplay';
 import LOCATION_TYPES from '../constants/locationTypes';
 import CreditBalance from './CreditBalance';
 import CreditsPage from './CreditsPage';
+import ReputationDashboard from './ReputationDashboard';
 
 const AdminBadge = () => (
   <div style={{
@@ -857,6 +858,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         badges={userData?.badges || []} 
         credits={userData?.credits || 0} 
       />
+
+      {/* Reputation Dashboard */}
+      <div style={{ marginBottom: '30px' }}>
+        <ReputationDashboard />
+      </div>
 
       <div style={{
         backgroundColor: '#f5f5f5',
