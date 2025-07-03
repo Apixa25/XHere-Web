@@ -5,6 +5,7 @@ const Location = require('../models/Location');
 const User = require('../models/User');
 const locationStatusService = require('../services/locationStatusService');
 const badgeService = require('../services/badgeService');
+const DownvoteTrackingService = require('../services/downvoteTrackingService');
 
 // Define these constants ONCE at the top
 const VERIFICATION_THRESHOLD = 5;
@@ -125,6 +126,22 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
     // Update location status based on new ratings
     const statusUpdate = await locationStatusService.updateLocationStatus(locationId, { transaction });
 
+    // Track downvotes for user penalty system
+    let downvoteTracking = null;
+    if (voteType === 'downvote') {
+      try {
+        downvoteTracking = await DownvoteTrackingService.recordDownvote(
+          location.creatorId, 
+          locationId, 
+          { transaction }
+        );
+        console.log('🔍 Downvote tracking result:', downvoteTracking);
+      } catch (error) {
+        console.error('Error tracking downvote:', error);
+        // Don't fail the vote if downvote tracking fails
+      }
+    }
+
     // Check and award badges after successful vote
     const newBadges = await badgeService.checkBadges(location.creatorId, { transaction });
 
@@ -183,6 +200,10 @@ router.post('/:locationId/vote', authenticateToken, async (req, res) => {
         newStatus: statusUpdate.newStatus,
         reason: statusUpdate.reason
       },
+      downvoteTracking: downvoteTracking ? {
+        penaltyUpdate: downvoteTracking.penaltyUpdate,
+        stats: downvoteTracking.stats
+      } : null,
       newBadges,
       creator
     });

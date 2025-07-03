@@ -16,6 +16,7 @@ import LOCATION_TYPES from '../constants/locationTypes';
 import CreditBalance from './CreditBalance';
 import CreditsPage from './CreditsPage';
 import ReputationDashboard from './ReputationDashboard';
+import DownvoteDashboard from './DownvoteDashboard';
 
 const AdminBadge = () => (
   <div style={{
@@ -862,6 +863,11 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
       {/* Reputation Dashboard */}
       <div style={{ marginBottom: '30px' }}>
         <ReputationDashboard />
+      </div>
+
+      {/* Downvote Dashboard */}
+      <div style={{ marginBottom: '30px' }}>
+        <DownvoteDashboard userId={userData?.id} />
       </div>
 
       <div style={{

@@ -8,7 +8,7 @@ The reputation system is XHere's way of rewarding quality contributors and maint
 
 ## 🎯 **How Your Reputation Score is Calculated**
 
-Your reputation score is made up of **4 main components**:
+Your reputation score is made up of **5 main components**:
 
 ### **1. Location Score (Base Points)**
 - **Upvotes**: +10 points each
@@ -33,6 +33,15 @@ Your reputation score is made up of **4 main components**:
 - **Credits owned**: +1 point per 10 credits (max 50 points)
 - **Example**: 0 votes + 994 credits → 50 points (capped)
 
+### **5. Downvote Penalty (NEW!)**
+- **Total downvotes received**: -3 points per downvote
+- **Downvoted locations**: -10 points per location with downvotes
+- **Penalty level multipliers**:
+  - **Warning**: -50 points
+  - **Restricted**: -100 points
+  - **Suspended**: -200 points
+  - **Banned**: -500 points
+
 ---
 
 ## 🏅 **Trust Levels & Requirements**
@@ -43,6 +52,35 @@ Your reputation score is made up of **4 main components**:
 | **Trusted** | 100-499 | 10 locations | ❌ No | 50 credits | Faster posting |
 | **Verified** | 500-1,999 | 25 locations | ❌ No | 25 credits | Premium access |
 | **Moderator** | 2,000+ | 50 locations | ❌ No | 10 credits | VIP privileges |
+
+---
+
+## 🛡️ **Downvote Tracking & Progressive Penalties (NEW!)**
+
+### **What is Downvote Tracking?**
+The system now tracks **all downvotes you receive** across your locations and applies **progressive penalties** to maintain community quality and prevent spam.
+
+### **Penalty Levels & Thresholds**
+
+| **Penalty Level** | **Total Downvotes** | **Downvoted Locations** | **Duration** | **Daily Limit** | **Approval Required** | **Credit Cost** |
+|------------------|-------------------|------------------------|--------------|-----------------|---------------------|-----------------|
+| **None** | 0-9 | 0-2 | - | Normal | Normal | Normal |
+| **⚠️ Warning** | 10+ | 3+ | Permanent | 2 locations | ✅ Yes | 150 credits |
+| **🚫 Restricted** | 25+ | 5+ | 7 days | 1 location | ✅ Yes | 200 credits |
+| **⏸️ Suspended** | 50+ | 10+ | 30 days | 0 locations | ✅ Yes | 500 credits |
+| **🚨 Banned** | 100+ | 20+ | Permanent | 0 locations | ✅ Yes | 1000 credits |
+
+### **How Penalties Work**
+1. **Automatic Escalation**: Penalties automatically increase as you accumulate downvotes
+2. **Temporary Penalties**: Warning and Restricted levels expire automatically
+3. **Permanent Penalties**: Suspended and Banned require admin review
+4. **Reputation Impact**: Each penalty level adds significant reputation penalties
+
+### **Penalty Expiration**
+- **Warning**: No expiration (improve to remove)
+- **Restricted**: Expires after 7 days
+- **Suspended**: Expires after 30 days
+- **Banned**: Permanent until admin review
 
 ---
 
@@ -97,6 +135,26 @@ Your reputation score is made up of **4 main components**:
 
 ---
 
+## 🛡️ **Downvote Dashboard (NEW!)**
+
+### **What You'll See**
+- **Current Penalty Level**: Color-coded badge showing your status
+- **Downvote Statistics**: Total downvotes, downvoted locations, ratios
+- **Penalty Information**: Current level, expiration date, last downvote
+- **Posting Restrictions**: What you can and cannot do
+- **Next Threshold**: How close you are to the next penalty level
+- **Recent Downvoted Locations**: Your last 5 locations with downvotes
+- **Improvement Tips**: How to get back to good standing
+
+### **Penalty Level Colors**
+- **🟢 None**: Green - You're in good standing
+- **🟡 Warning**: Orange - Be more careful with your posts
+- **🔴 Restricted**: Red - Significant posting limitations
+- **🟣 Suspended**: Purple - Temporary posting ban
+- **⚫ Banned**: Black - Permanent ban until review
+
+---
+
 ## 🚀 **Pro Tips for Success**
 
 ### **For New Users (0-99 points)**
@@ -119,6 +177,31 @@ Your reputation score is made up of **4 main components**:
 
 ---
 
+## 🛡️ **Avoiding Downvote Penalties**
+
+### **Best Practices**
+1. **✅ Post accurate, helpful locations** - Verify information before posting
+2. **✅ Include clear descriptions and photos** - Make your posts valuable
+3. **✅ Avoid duplicate content** - Check if similar locations already exist
+4. **✅ Respect community guidelines** - Follow posting rules and etiquette
+5. **✅ Engage positively** - Be helpful and constructive in comments
+
+### **What to Avoid**
+1. **❌ Spam posting** - Don't post low-quality content just to post
+2. **❌ Misleading information** - Don't post fake or inaccurate locations
+3. **❌ Duplicate locations** - Don't repost the same location multiple times
+4. **❌ Inappropriate content** - Don't post content that violates guidelines
+5. **❌ Aggressive behavior** - Don't argue or be hostile in comments
+
+### **If You Get Penalized**
+1. **Review your recent posts** - Identify what caused the downvotes
+2. **Focus on quality** - Take time to create better content
+3. **Wait for expiration** - Temporary penalties will clear automatically
+4. **Contact admins** - For permanent penalties, request review
+5. **Learn from feedback** - Use downvotes as learning opportunities
+
+---
+
 ## ❓ **Common Questions**
 
 ### **Q: Why did my score go down?**
@@ -127,6 +210,7 @@ A: Possible reasons:
 - Locations were flagged for removal
 - Inactive period reduced activity bonus
 - Recent locations lowered consistency ratio
+- **NEW**: Downvote penalties applied
 
 ### **Q: How do I get my locations verified?**
 A: Locations become verified when they receive 5+ positive ratings (more upvotes than downvotes).
@@ -136,6 +220,28 @@ A: Focus on creating high-quality locations that get 3+ upvotes, vote on other c
 
 ### **Q: Do I lose points for deleting locations?**
 A: No, but deleted locations won't contribute to your score. Focus on creating content worth keeping.
+
+### **Q: What happens if I get too many downvotes?**
+A: You'll receive progressive penalties:
+- **10+ downvotes**: Warning level with restrictions
+- **25+ downvotes**: Restricted level (7-day penalty)
+- **50+ downvotes**: Suspended level (30-day penalty)
+- **100+ downvotes**: Banned level (permanent until review)
+
+### **Q: How do I get out of a penalty?**
+A: It depends on the penalty level:
+- **Warning**: Improve your content quality to remove
+- **Restricted**: Wait 7 days for automatic expiration
+- **Suspended**: Wait 30 days for automatic expiration
+- **Banned**: Contact admins for manual review
+
+### **Q: Can I see my downvote statistics?**
+A: Yes! Check your **Downvote Dashboard** on your profile page to see:
+- Total downvotes received
+- Downvoted locations count
+- Current penalty level
+- Posting restrictions
+- Next threshold information
 
 ---
 
@@ -181,7 +287,12 @@ Activity Bonus: 50 points
 Consistency Bonus: 0 points
 └── Recent locations don't meet quality threshold
 
-TOTAL: 350 + 47 + 50 + 0 = 447 points
+Downvote Penalty: -75 points
+├── 15 total downvotes × 3 = -45 points
+├── 3 downvoted locations × 10 = -30 points
+└── Warning level penalty = -0 points
+
+TOTAL: 350 + 47 + 50 + 0 - 75 = 372 points
 ```
 
 ### **Database Fields**
@@ -192,6 +303,14 @@ TOTAL: 350 + 47 + 50 + 0 = 447 points
 - `averageLocationRating`: Decimal(10,2)
 - `lastReputationUpdate`: DateTime
 - `reputationHistory`: JSONB array
+
+### **Downvote Tracking Fields (NEW!)**
+- `totalDownvotesReceived`: Integer (total downvotes across all locations)
+- `downvotedLocationsCount`: Integer (locations with downvotes)
+- `lastDownvoteDate`: DateTime (most recent downvote)
+- `downvotePenaltyLevel`: Enum ('none', 'warning', 'restricted', 'suspended', 'banned')
+- `penaltyExpiresAt`: DateTime (when penalty expires)
+- `downvoteHistory`: JSONB array (complete history of events)
 
 ---
 
@@ -204,12 +323,27 @@ TOTAL: 350 + 47 + 50 + 0 = 447 points
 4. **Month 2**: Reaches Verified level, enjoys premium privileges
 5. **Month 3**: Becomes community mentor, helps new users
 
+### **Penalty Recovery Story**
+1. **Week 1**: User gets 12 downvotes, receives Warning penalty
+2. **Week 2**: Focuses on quality, creates 2 verified locations
+3. **Week 3**: Improves content, reduces downvote ratio
+4. **Week 4**: Penalty removed, reputation score recovers
+5. **Month 2**: Reaches Trusted level through consistent quality
+
+### **Community Protection Example**
+- **Before**: Spam user posts 50 low-quality locations
+- **System**: Automatically tracks downvotes and applies penalties
+- **Result**: User restricted to 1 post per day, must improve quality
+- **Outcome**: Community quality maintained, user learns to post better content
+
 ---
 
 **Remember**: The reputation system is designed to reward quality, consistency, and community engagement. Focus on creating valuable content that helps other users, and your reputation will grow naturally! 🚀
 
+**NEW**: The downvote tracking system protects the community from spam and low-quality content while giving users clear feedback and improvement paths. Use downvotes as learning opportunities to create better content! 🛡️
+
 ---
 
 *Last updated: July 3, 2025*  
-*Version: 1.0*  
+*Version: 2.0*  
 *XHere App - Building Better Communities Together* 

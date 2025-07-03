@@ -1,0 +1,375 @@
+.downvote-dashboard {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.downvote-dashboard.loading,
+.downvote-dashboard.error {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.loading-spinner {
+  font-size: 2em;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-icon {
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+
+.retry-btn {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.retry-btn:hover {
+  background: #1976D2;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.dashboard-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.4em;
+  font-weight: 600;
+}
+
+.penalty-badge {
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-section,
+.penalty-section,
+.restrictions-section,
+.threshold-section,
+.locations-section,
+.tips-section {
+  margin-bottom: 25px;
+}
+
+.status-section h4,
+.penalty-section h4,
+.restrictions-section h4,
+.threshold-section h4,
+.locations-section h4,
+.tips-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.stat-number {
+  font-size: 1.8em;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.penalty-details {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  border-left: 4px solid #dc3545;
+}
+
+.penalty-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.penalty-item:last-child {
+  border-bottom: none;
+}
+
+.penalty-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.penalty-value {
+  font-weight: 500;
+  color: #333;
+}
+
+.restrictions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.restriction-item {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #e9ecef;
+}
+
+.restriction-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.restriction-value {
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.restriction-value.allowed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.restriction-value.denied {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.restriction-value.required {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.restriction-value.not-required {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.threshold-info {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.threshold-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.threshold-label {
+  font-weight: 600;
+  color: #856404;
+}
+
+.threshold-value {
+  font-weight: 500;
+  color: #333;
+  background: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ffeaa7;
+}
+
+.locations-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.location-item {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.location-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.location-type {
+  background: #667eea;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.location-date {
+  font-size: 0.9em;
+  color: #6c757d;
+}
+
+.location-stats {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.vote-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.vote-stat.upvotes {
+  background: #d4edda;
+  color: #155724;
+}
+
+.vote-stat.downvotes {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.location-status {
+  background: #e2e3e5;
+  color: #495057;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tips-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  color: #495057;
+  font-size: 0.95em;
+}
+
+.tips-list li:last-child {
+  border-bottom: none;
+}
+
+.tips-list li::before {
+  content: "💡";
+  margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .downvote-dashboard {
+    padding: 15px;
+    margin: 15px 0;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .restrictions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .location-stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stat-number {
+    font-size: 1.5em;
+  }
+
+  .penalty-item,
+  .restriction-item,
+  .threshold-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-header h3 {
+    font-size: 1.2em;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+} 

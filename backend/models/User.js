@@ -86,6 +86,41 @@ const User = sequelize.define('User', {
     type: DataTypes.JSONB,
     defaultValue: [],
     allowNull: false
+  },
+  // New fields for downvote tracking
+  totalDownvotesReceived: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+    comment: 'Total downvotes received across all user locations'
+  },
+  downvotedLocationsCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+    comment: 'Number of locations that have received downvotes'
+  },
+  lastDownvoteDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Date of the most recent downvote received'
+  },
+  downvotePenaltyLevel: {
+    type: DataTypes.ENUM('none', 'warning', 'restricted', 'suspended', 'banned'),
+    defaultValue: 'none',
+    allowNull: false,
+    comment: 'Current penalty level based on downvote history'
+  },
+  penaltyExpiresAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the current penalty expires'
+  },
+  downvoteHistory: {
+    type: DataTypes.JSONB,
+    defaultValue: [],
+    allowNull: false,
+    comment: 'History of downvote events and penalties'
   }
 }, {
   timestamps: true

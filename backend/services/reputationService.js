@@ -170,7 +170,35 @@ class ReputationService {
     // Bonus for having credits (shows engagement)
     bonus += Math.min((user.credits || 0) / 10, 50);
 
+    // Penalty for downvote violations
+    const downvotePenalty = this.calculateDownvotePenalty(user);
+    bonus -= downvotePenalty;
+
     return bonus;
+  }
+
+  // Calculate penalty based on downvote history
+  static calculateDownvotePenalty(user) {
+    let penalty = 0;
+    
+    // Base penalty for total downvotes received
+    penalty += (user.totalDownvotesReceived || 0) * 3;
+    
+    // Additional penalty for downvoted locations
+    penalty += (user.downvotedLocationsCount || 0) * 10;
+    
+    // Penalty based on penalty level
+    const penaltyLevelMultipliers = {
+      'none': 0,
+      'warning': 50,
+      'restricted': 100,
+      'suspended': 200,
+      'banned': 500
+    };
+    
+    penalty += penaltyLevelMultipliers[user.downvotePenaltyLevel || 'none'];
+    
+    return penalty;
   }
 
   // Determine trust level based on reputation score
