@@ -52,6 +52,40 @@ const User = sequelize.define('User', {
   votesGiven: {
     type: DataTypes.INTEGER,
     defaultValue: 0
+  },
+  trustLevel: {
+    type: DataTypes.ENUM('new', 'trusted', 'verified', 'moderator'),
+    defaultValue: 'new',
+    allowNull: false
+  },
+  reputationScore: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
+  },
+  qualityLocationsCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
+  },
+  totalLocationsCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false
+  },
+  averageLocationRating: {
+    type: DataTypes.DECIMAL(3, 2),
+    defaultValue: 0.00,
+    allowNull: false
+  },
+  lastReputationUpdate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  reputationHistory: {
+    type: DataTypes.JSONB,
+    defaultValue: [],
+    allowNull: false
   }
 }, {
   timestamps: true
