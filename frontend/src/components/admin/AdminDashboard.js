@@ -20,7 +20,7 @@ const AdminDashboard = () => {
   const [cleanupStats, setCleanupStats] = useState(null);
   const [cleanupHistory, setCleanupHistory] = useState([]);
   const [cleanupLoading, setCleanupLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('users'); // 'users', 'cleanup', 'search', 'status'
+  const [activeTab, setActiveTab] = useState('users'); // 'users', 'cleanup', 'search', 'status', 'moderator'
   
   // Status management state
   const [statusStats, setStatusStats] = useState({
@@ -32,6 +32,17 @@ const AdminDashboard = () => {
   });
   const [locationsByStatus, setLocationsByStatus] = useState({});
   const [statusLoading, setStatusLoading] = useState(false);
+  
+  // Moderator review queue state
+  const [reviewQueue, setReviewQueue] = useState([]);
+  const [moderatorStats, setModeratorStats] = useState({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    total: 0
+  });
+  const [moderatorLoading, setModeratorLoading] = useState(false);
+  const [selectedTrustLevel, setSelectedTrustLevel] = useState('all');
 
   useEffect(() => {
     loadUsers();
@@ -429,6 +440,130 @@ const AdminDashboard = () => {
     }
   };
 
+  // Moderator functions
+  const loadReviewQueue = async () => {
+    try {
+      setModeratorLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/moderator/review-queue`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load review queue');
+      }
+
+      const data = await response.json();
+      setReviewQueue(data.locations || []);
+      setModeratorLoading(false);
+    } catch (err) {
+      console.error('Error loading review queue:', err);
+      setError('Failed to load review queue');
+      setModeratorLoading(false);
+    }
+  };
+
+  const loadModeratorStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/moderator/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load moderator stats');
+      }
+
+      const data = await response.json();
+      setModeratorStats(data);
+    } catch (err) {
+      console.error('Error loading moderator stats:', err);
+    }
+  };
+
+  const approveLocation = async (locationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/moderator/approve/${locationId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: 'Approved by moderator' })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to approve location');
+      }
+
+      // Remove from review queue and refresh
+      setReviewQueue(prev => prev.filter(loc => loc.id !== locationId));
+      await loadModeratorStats();
+      
+      alert('Location approved successfully!');
+    } catch (err) {
+      console.error('Error approving location:', err);
+      setError('Failed to approve location');
+    }
+  };
+
+  const rejectLocation = async (locationId, reason = 'Rejected by moderator') => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/moderator/reject/${locationId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reject location');
+      }
+
+      // Remove from review queue and refresh
+      setReviewQueue(prev => prev.filter(loc => loc.id !== locationId));
+      await loadModeratorStats();
+      
+      alert('Location rejected successfully!');
+    } catch (err) {
+      console.error('Error rejecting location:', err);
+      setError('Failed to reject location');
+    }
+  };
+
+  const loadLocationsByTrustLevel = async (trustLevel) => {
+    try {
+      const token = localStorage.getItem('token');
+      const url = trustLevel === 'all' 
+        ? `${BACKEND_URL}/api/moderator/review-queue`
+        : `${BACKEND_URL}/api/moderator/locations/${trustLevel}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load locations by trust level');
+      }
+
+      const data = await response.json();
+      setReviewQueue(data.locations || []);
+    } catch (err) {
+      console.error('Error loading locations by trust level:', err);
+      setError('Failed to load locations by trust level');
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
 
@@ -469,6 +604,16 @@ const AdminDashboard = () => {
           }}
         >
           📍 Status Management
+        </button>
+        <button 
+          className={activeTab === 'moderator' ? 'active' : ''} 
+          onClick={() => {
+            setActiveTab('moderator');
+            loadReviewQueue();
+            loadModeratorStats();
+          }}
+        >
+          👮‍♂️ Moderator Queue
         </button>
       </div>
 
@@ -889,6 +1034,165 @@ const AdminDashboard = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Moderator Review Queue Tab */}
+      {activeTab === 'moderator' && (
+        <div className="moderator-tab">
+          <div className="moderator-header">
+            <h3>👮‍♂️ Moderator Review Queue</h3>
+            <div className="moderator-stats">
+              <div className="stat-item">
+                <span className="stat-icon">⏳</span>
+                <span className="stat-number">{moderatorStats.pending}</span>
+                <span className="stat-label">Pending</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-icon">✅</span>
+                <span className="stat-number">{moderatorStats.approved}</span>
+                <span className="stat-label">Approved</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-icon">❌</span>
+                <span className="stat-number">{moderatorStats.rejected}</span>
+                <span className="stat-label">Rejected</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-icon">📊</span>
+                <span className="stat-number">{moderatorStats.total}</span>
+                <span className="stat-label">Total</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="moderator-filters">
+            <h4>🔍 Filter by Trust Level</h4>
+            <div className="filter-buttons">
+              <button 
+                className={selectedTrustLevel === 'all' ? 'active' : ''}
+                onClick={() => {
+                  setSelectedTrustLevel('all');
+                  loadReviewQueue();
+                }}
+              >
+                All Levels
+              </button>
+              <button 
+                className={selectedTrustLevel === 'new' ? 'active' : ''}
+                onClick={() => {
+                  setSelectedTrustLevel('new');
+                  loadLocationsByTrustLevel('new');
+                }}
+              >
+                🆕 New Users
+              </button>
+              <button 
+                className={selectedTrustLevel === 'trusted' ? 'active' : ''}
+                onClick={() => {
+                  setSelectedTrustLevel('trusted');
+                  loadLocationsByTrustLevel('trusted');
+                }}
+              >
+                ✅ Trusted Users
+              </button>
+              <button 
+                className={selectedTrustLevel === 'verified' ? 'active' : ''}
+                onClick={() => {
+                  setSelectedTrustLevel('verified');
+                  loadLocationsByTrustLevel('verified');
+                }}
+              >
+                🔒 Verified Users
+              </button>
+            </div>
+          </div>
+
+          <div className="review-queue">
+            <h4>📋 Pending Review ({reviewQueue.length})</h4>
+            {moderatorLoading ? (
+              <div className="loading">🔄 Loading review queue...</div>
+            ) : reviewQueue.length === 0 ? (
+              <div className="empty-queue">
+                <div className="empty-icon">✅</div>
+                <p>No locations pending review!</p>
+                <p className="empty-subtitle">All locations have been processed.</p>
+              </div>
+            ) : (
+              <div className="queue-items">
+                {reviewQueue.map(location => (
+                  <div key={location.id} className="queue-item">
+                    <div className="item-header">
+                      <div className="item-info">
+                        <span className="location-type">{location.locationType}</span>
+                        <span className="creator-info">
+                          by {location.creator?.profile?.name || location.creator?.email}
+                        </span>
+                        <span className="trust-level">
+                          {location.creator?.trustLevel || 'new'} trust level
+                        </span>
+                      </div>
+                      <div className="item-date">
+                        {new Date(location.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                    
+                    <div className="item-content">
+                      <p className="location-text">{location.content?.text || 'No description'}</p>
+                      {location.content?.mediaUrls && location.content.mediaUrls.length > 0 && (
+                        <div className="location-media">
+                          {renderMediaPreview(location.content.mediaUrls, location.content.mediaTypes)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="item-meta">
+                      <div className="meta-stats">
+                        <span>📍 {location.location?.coordinates ? 
+                          `${location.location.coordinates[1].toFixed(4)}, ${location.location.coordinates[0].toFixed(4)}` : 
+                          'No coordinates'}
+                        </span>
+                        <span>💰 {location.credits || 0} credits</span>
+                        <span>⏰ {location.autoDelete ? 
+                          `Auto-delete: ${new Date(location.deleteAt).toLocaleDateString()}` : 
+                          'No auto-delete'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="item-actions">
+                      <button 
+                        onClick={() => approveLocation(location.id)}
+                        className="action-btn approve"
+                        title="Approve this location"
+                      >
+                        ✅ Approve
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const reason = prompt('Reason for rejection:');
+                          if (reason) {
+                            rejectLocation(location.id, reason);
+                          }
+                        }}
+                        className="action-btn reject"
+                        title="Reject this location"
+                      >
+                        ❌ Reject
+                      </button>
+                      <button 
+                        onClick={() => handleViewOnMap(location)}
+                        className="action-btn view"
+                        title="View on map"
+                      >
+                        🗺️ View
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

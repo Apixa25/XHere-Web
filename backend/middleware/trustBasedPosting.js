@@ -45,7 +45,7 @@ const validateTrustBasedPosting = async (req, res, next) => {
       restrictions = {
         maxLocationsPerDay: Math.min(reputationCheck.restrictions.maxLocationsPerDay, penaltyCheck.restrictions.maxLocationsPerDay),
         requiresApproval: reputationCheck.requiresApproval || penaltyCheck.restrictions.requiresApproval,
-        creditCost: Math.max(reputationCheck.creditCost, penaltyCheck.restrictions.creditCost)
+        creditCost: reputationCheck.creditCost // Use reputation service's credit cost (0 for general locations)
       };
     }
 

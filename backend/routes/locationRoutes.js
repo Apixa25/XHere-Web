@@ -318,13 +318,28 @@ router.post('/',
     const totalCreditsToSpend = requiredCredits + parsedInitialCredits;
 
     // Deduct credits if required (location type + initial credits)
-    if (totalCreditsToSpend > 0) {
+    if (finalLocationType !== 'general' && totalCreditsToSpend > 0) {
       await creditService.spendCredits(
         req.user.id,
         totalCreditsToSpend,
         'location_creation',
         {
           description: `Created ${finalLocationType} location: "${text}"${parsedInitialCredits > 0 ? ` with ${parsedInitialCredits} initial credits` : ''}`,
+          locationType: finalLocationType,
+          initialCredits: parsedInitialCredits,
+          action: 'create_location',
+          trustLevel: req.user.trustLevel,
+          requiresApproval: approvalInfo.requiresApproval
+        },
+        { transaction }
+      );
+    } else if (finalLocationType === 'general' && parsedInitialCredits > 0) {
+      await creditService.spendCredits(
+        req.user.id,
+        parsedInitialCredits,
+        'location_creation',
+        {
+          description: `Placed ${parsedInitialCredits} credits on general location: "${text}"`,
           locationType: finalLocationType,
           initialCredits: parsedInitialCredits,
           action: 'create_location',
