@@ -84,6 +84,16 @@ router.get('/', authenticateToken, async (req, res) => {
     if (req.query.status && req.query.status !== 'all') {
       if (!query.where) query.where = {};
       query.where.locationStatus = req.query.status;
+    } else {
+      // For map view (non-profile), only show verified locations by default
+      // This prevents pending/flagged/removed locations from showing up on the map
+      if (req.query.profile !== 'true') {
+        if (!query.where) query.where = {};
+        query.where.locationStatus = {
+          [Op.in]: ['verified']
+        };
+        console.log('🛡️ Filtering to show only verified locations on map');
+      }
     }
 
     // Filter by keywords if specified
