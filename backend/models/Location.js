@@ -125,6 +125,12 @@ const Location = sequelize.define('Location', {
     type: DataTypes.DATE,
     allowNull: true,
     comment: 'When the location was made official'
+  },
+  requiresApproval: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+    comment: 'Whether this location requires moderator approval'
   }
 });
 

@@ -9,6 +9,12 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const officialLocationService = require('../services/officialLocationService');
 const { validateLocationPostingCredits } = require('../middleware/credit');
+const { 
+  validateTrustBasedPosting, 
+  checkApprovalRequirement, 
+  validateDailyPostingLimit, 
+  handleLocationApproval 
+} = require('../middleware/trustBasedPosting');
 const creditService = require('../services/creditService');
 const badgeService = require('../services/badgeService');
 const nominationService = require('../services/nominationService');
@@ -266,7 +272,14 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Add POST endpoint
-router.post('/', authenticateToken, upload.array('media'), validateLocationPostingCredits, async (req, res) => {
+router.post('/', 
+  authenticateToken, 
+  upload.array('media'), 
+  validateTrustBasedPosting,
+  validateDailyPostingLimit,
+  checkApprovalRequirement,
+  handleLocationApproval,
+  async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
@@ -292,9 +305,13 @@ router.post('/', authenticateToken, upload.array('media'), validateLocationPosti
     console.log('🔍 Route handler - Extracted longitude:', longitude);
     console.log('🔍 Route handler - Extracted text:', text);
 
-    // Get required credits from middleware
-    const requiredCredits = req.requiredCredits;
-    const finalLocationType = req.locationType || locationType || 'general';
+    // Get validation info from middleware
+    const postingValidation = req.postingValidation;
+    const approvalInfo = req.approvalInfo;
+    const dailyLimitInfo = req.dailyLimitInfo;
+    
+    const finalLocationType = locationType || 'general';
+    const requiredCredits = postingValidation.restrictions.creditCost;
     
     // Parse initial credits if provided
     const parsedInitialCredits = initialCredits ? parseInt(initialCredits) : 0;
@@ -310,7 +327,9 @@ router.post('/', authenticateToken, upload.array('media'), validateLocationPosti
           description: `Created ${finalLocationType} location: "${text}"${parsedInitialCredits > 0 ? ` with ${parsedInitialCredits} initial credits` : ''}`,
           locationType: finalLocationType,
           initialCredits: parsedInitialCredits,
-          action: 'create_location'
+          action: 'create_location',
+          trustLevel: req.user.trustLevel,
+          requiresApproval: approvalInfo.requiresApproval
         },
         { transaction }
       );
@@ -378,7 +397,12 @@ router.post('/', authenticateToken, upload.array('media'), validateLocationPosti
       creatorId: req.user.id,
       autoDelete: finalLocationType === 'general' || autoDelete === 'true',
       deleteAt,
-      credits: parsedInitialCredits
+      credits: parsedInitialCredits,
+      locationStatus: req.body.locationStatus || 'pending',
+      statusUpdatedAt: new Date(),
+      statusReason: approvalInfo.requiresApproval ? 
+        `Requires approval (${req.user.trustLevel} trust level)` : 
+        'Auto-approved (trusted user)'
     }, { transaction });
 
     // Check for new badges
@@ -388,13 +412,36 @@ router.post('/', authenticateToken, upload.array('media'), validateLocationPosti
 
     console.log('Created location:', location);
 
+    // Build response message based on approval status and trust level
+    let message = `${finalLocationType} location created successfully!`;
+    
+    if (parsedInitialCredits > 0) {
+      message += ` ${parsedInitialCredits} credits placed on location.`;
+    }
+    
+    if (approvalInfo.requiresApproval) {
+      message += ` Your location is pending approval (${req.user.trustLevel} trust level).`;
+    } else {
+      message += ` Your location was auto-approved (${req.user.trustLevel} trust level).`;
+    }
+    
+    if (finalLocationType === 'general') {
+      message += ` It will be automatically deleted in ${autoDelete === 'true' ? `${deleteTime} ${deleteUnit}` : '7 days'} unless it receives 2+ positive ratings.`;
+    }
+    
+    message += ` Daily limit: ${dailyLimitInfo.remaining} locations remaining.`;
+
     res.status(201).json({ 
       location,
       newBadges,
       creditsSpent: totalCreditsToSpend,
-      message: finalLocationType === 'general' 
-        ? `General location created!${parsedInitialCredits > 0 ? ` ${parsedInitialCredits} credits placed on location.` : ''} It will be automatically deleted in ${autoDelete === 'true' ? `${deleteTime} ${deleteUnit}` : '7 days'} unless it receives 2+ positive ratings.`
-        : `${finalLocationType} location created successfully!${parsedInitialCredits > 0 ? ` ${parsedInitialCredits} credits placed on location.` : ''}`
+      message,
+      postingInfo: {
+        trustLevel: req.user.trustLevel,
+        requiresApproval: approvalInfo.requiresApproval,
+        dailyLimit: dailyLimitInfo,
+        restrictions: postingValidation.restrictions
+      }
     });
   } catch (error) {
     await transaction.rollback();

@@ -158,6 +158,7 @@ const ownershipRoutes = require('./routes/ownershipRoutes');
 const nominationRoutes = require('./routes/nominationRoutes');
 const reputationRoutes = require('./routes/reputationRoutes');
 const downvoteRoutes = require('./routes/downvoteRoutes');
+const moderatorRoutes = require('./routes/moderatorRoutes');
 
 // Register the Stripe webhook route BEFORE body parsers (raw body needed)
 app.use('/api/credits/stripe-webhook', express.raw({ type: 'application/json' }), creditRoutes);
@@ -180,6 +181,8 @@ app.use('/api/nominations', nominationRoutes);
 app.use('/api/reputation', reputationRoutes);
 // Register downvote tracking routes
 app.use('/api/downvotes', downvoteRoutes);
+// Register moderator routes
+app.use('/api/moderator', moderatorRoutes);
 
 // Add this debug log
 console.log('Available routes:', app._router.stack
