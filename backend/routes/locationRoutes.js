@@ -414,6 +414,7 @@ router.post('/',
       deleteAt,
       credits: parsedInitialCredits,
       locationStatus: req.body.locationStatus || 'pending',
+      requiresApproval: approvalInfo.requiresApproval,
       statusUpdatedAt: new Date(),
       statusReason: approvalInfo.requiresApproval ? 
         `Requires approval (${req.user.trustLevel} trust level)` : 

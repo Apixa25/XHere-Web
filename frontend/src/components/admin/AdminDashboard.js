@@ -445,6 +445,8 @@ const AdminDashboard = () => {
     try {
       setModeratorLoading(true);
       const token = localStorage.getItem('token');
+      console.log('🔍 Loading review queue for ALL levels...');
+      
       const response = await fetch(`${BACKEND_URL}/api/moderator/review-queue`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -456,7 +458,20 @@ const AdminDashboard = () => {
       }
 
       const data = await response.json();
-      setReviewQueue(data.locations || []);
+      console.log('📊 Review queue response:', data);
+      
+      // Handle both response structures: data.locations and data.pendingLocations
+      const locations = data.locations || data.pendingLocations || [];
+      console.log('📍 Locations found:', locations.length);
+      console.log('📍 Location details:', locations.map(loc => ({
+        id: loc.id,
+        status: loc.locationStatus,
+        requiresApproval: loc.requiresApproval,
+        creatorTrustLevel: loc.creator?.trustLevel,
+        creatorEmail: loc.creator?.email
+      })));
+      
+      setReviewQueue(locations);
       setModeratorLoading(false);
     } catch (err) {
       console.error('Error loading review queue:', err);
@@ -546,6 +561,9 @@ const AdminDashboard = () => {
         ? `${BACKEND_URL}/api/moderator/review-queue`
         : `${BACKEND_URL}/api/moderator/locations/${trustLevel}`;
       
+      console.log(`🔍 Loading locations for trust level: ${trustLevel}`);
+      console.log(`🔗 URL: ${url}`);
+      
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -557,7 +575,21 @@ const AdminDashboard = () => {
       }
 
       const data = await response.json();
-      setReviewQueue(data.locations || []);
+      console.log(`📊 ${trustLevel} trust level response:`, data);
+      
+      // Handle both response structures: data.locations and data.pendingLocations
+      const locations = data.locations || data.pendingLocations || [];
+      console.log(`📍 ${trustLevel} locations found:`, locations.length);
+      console.log(`📍 ${trustLevel} location details:`, locations.map(loc => ({
+        id: loc.id,
+        status: loc.locationStatus,
+        requiresApproval: loc.requiresApproval,
+        creatorTrustLevel: loc.creator?.trustLevel,
+        creatorEmail: loc.creator?.email,
+        text: loc.content?.text?.substring(0, 50) + '...'
+      })));
+      
+      setReviewQueue(locations);
     } catch (err) {
       console.error('Error loading locations by trust level:', err);
       setError('Failed to load locations by trust level');

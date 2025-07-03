@@ -13,6 +13,8 @@ class ModeratorService {
     try {
       const { limit = 50, offset = 0, locationType } = options;
       
+      console.log('🔍 Backend: Getting pending locations with options:', options);
+      
       const whereClause = {
         locationStatus: 'pending',
         requiresApproval: true
@@ -21,6 +23,8 @@ class ModeratorService {
       if (locationType) {
         whereClause.locationType = locationType;
       }
+      
+      console.log('🔍 Backend: Where clause:', whereClause);
       
       const pendingLocations = await Location.findAll({
         where: whereClause,
@@ -33,6 +37,15 @@ class ModeratorService {
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
+      
+      console.log(`📍 Backend: Found ${pendingLocations.length} pending locations`);
+      console.log(`📍 Backend: Pending location details:`, pendingLocations.map(loc => ({
+        id: loc.id,
+        status: loc.locationStatus,
+        requiresApproval: loc.requiresApproval,
+        creatorTrustLevel: loc.creator?.trustLevel,
+        creatorEmail: loc.creator?.email
+      })));
       
       return pendingLocations;
     } catch (error) {
@@ -146,7 +159,13 @@ class ModeratorService {
    */
   static async getLocationsByTrustLevel(trustLevel) {
     try {
+      console.log(`🔍 Backend: Getting PENDING locations for trust level: ${trustLevel}`);
+      
       const locations = await Location.findAll({
+        where: {
+          locationStatus: 'pending',
+          requiresApproval: true
+        },
         include: [{
           model: User,
           as: 'creator',
@@ -156,6 +175,15 @@ class ModeratorService {
         order: [['createdAt', 'DESC']],
         limit: 100
       });
+      
+      console.log(`📍 Backend: Found ${locations.length} PENDING locations for ${trustLevel} trust level`);
+      console.log(`📍 Backend: Location details:`, locations.map(loc => ({
+        id: loc.id,
+        status: loc.locationStatus,
+        requiresApproval: loc.requiresApproval,
+        creatorTrustLevel: loc.creator?.trustLevel,
+        creatorEmail: loc.creator?.email
+      })));
       
       return locations;
     } catch (error) {

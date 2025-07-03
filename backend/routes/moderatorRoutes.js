@@ -208,8 +208,38 @@ router.get('/stats',
 );
 
 /**
- * @route GET /api/moderator/locations-by-trust/:trustLevel
+ * @route GET /api/moderator/locations/:trustLevel
  * @desc Get locations by trust level for analysis
+ * @access Moderator only
+ */
+router.get('/locations/:trustLevel',
+  authenticateToken,
+  requireModerator,
+  async (req, res) => {
+    try {
+      const { trustLevel } = req.params;
+      
+      const locations = await ModeratorService.getLocationsByTrustLevel(trustLevel);
+      
+      res.json({
+        success: true,
+        trustLevel,
+        locations,
+        count: locations.length
+      });
+    } catch (error) {
+      console.error('Error getting locations by trust level:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * @route GET /api/moderator/locations-by-trust/:trustLevel
+ * @desc Get locations by trust level for analysis (alternative endpoint)
  * @access Moderator only
  */
 router.get('/locations-by-trust/:trustLevel',

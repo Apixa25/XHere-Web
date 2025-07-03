@@ -11,7 +11,7 @@ class ReputationService {
       maxScore: 99,
       postingRestrictions: {
         maxLocationsPerDay: 3,
-        requiresApproval: true,
+        requiresApproval: true, // First 3 locations + general locations always require approval
         creditCost: 100
       }
     },
@@ -268,9 +268,14 @@ class ReputationService {
       }
 
       const trustLevel = user.trustLevel;
-      const restrictions = this.TRUST_LEVELS[trustLevel.toUpperCase()].postingRestrictions;
+      console.log(`🛡️ Checking posting permissions for ${user.email} (${trustLevel} trust level)`);
 
-      // Check daily posting limit
+      // Get user's total location count
+      const totalLocations = await Location.count({
+        where: { creatorId: userId }
+      });
+
+      // Get today's location count
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -283,27 +288,92 @@ class ReputationService {
         }
       });
 
-      if (todayLocations >= restrictions.maxLocationsPerDay) {
-        return {
-          canPost: false,
-          reason: `Daily limit reached (${todayLocations}/${restrictions.maxLocationsPerDay})`,
-          restrictions
-        };
+      console.log(`📍 User has ${totalLocations} total locations, ${todayLocations} today`);
+
+      let canPost = true;
+      let requiresApproval = false;
+      let maxLocationsPerDay = 999; // Default unlimited
+      let creditCost = 0;
+      let reason = null;
+
+      // NEW USERS: First 3 locations require approval, then general still requires approval, paid auto-approved
+      if (trustLevel === 'new') {
+        maxLocationsPerDay = 3;
+        
+        if (totalLocations < 3) {
+          // First 3 locations require approval (any type)
+          requiresApproval = true;
+          creditCost = locationType === 'general' ? 0 : 100;
+          console.log(`🆕 New user: First 3 locations require approval (${totalLocations}/3)`);
+        } else {
+          // After 3 locations: general still requires approval (prevents spam), paid auto-approved (they paid!)
+          requiresApproval = locationType === 'general';
+          creditCost = locationType === 'general' ? 0 : 100;
+          console.log(`🆕 New user: After 3 locations - general still requires approval, paid auto-approved`);
+        }
+
+        if (todayLocations >= maxLocationsPerDay) {
+          canPost = false;
+          reason = `Daily limit reached (${todayLocations}/${maxLocationsPerDay})`;
+        }
+      }
+      
+      // TRUSTED USERS: 5 general per day auto-approved, unlimited paid auto-approved
+      else if (trustLevel === 'trusted') {
+        if (locationType === 'general') {
+          maxLocationsPerDay = 5;
+          requiresApproval = false;
+          creditCost = 0;
+          console.log(`✅ Trusted user: 5 general locations per day, auto-approved`);
+          
+          if (todayLocations >= maxLocationsPerDay) {
+            canPost = false;
+            reason = `Daily general location limit reached (${todayLocations}/${maxLocationsPerDay})`;
+          }
+        } else {
+          // Paid locations: unlimited, auto-approved
+          maxLocationsPerDay = 999;
+          requiresApproval = false;
+          creditCost = 50;
+          console.log(`✅ Trusted user: Unlimited paid locations, auto-approved`);
+        }
+      }
+      
+      // VERIFIED USERS: Unlimited everything, auto-approved
+      else if (trustLevel === 'verified') {
+        maxLocationsPerDay = 999;
+        requiresApproval = false;
+        creditCost = locationType === 'general' ? 0 : 25;
+        console.log(`🔒 Verified user: Unlimited locations, auto-approved`);
+      }
+      
+      // MODERATOR: Unlimited everything, auto-approved
+      else if (trustLevel === 'moderator') {
+        maxLocationsPerDay = 999;
+        requiresApproval = false;
+        creditCost = locationType === 'general' ? 0 : 10;
+        console.log(`👮‍♂️ Moderator: Unlimited locations, auto-approved`);
       }
 
-      // Check credit requirement
-      if (locationType !== 'general' && user.credits < restrictions.creditCost) {
-        return {
-          canPost: false,
-          reason: `Insufficient credits (${user.credits}/${restrictions.creditCost} required)`,
-          restrictions
-        };
+      // Check credit requirement for paid locations
+      if (locationType !== 'general' && user.credits < creditCost) {
+        canPost = false;
+        reason = `Insufficient credits (${user.credits}/${creditCost} required)`;
       }
+
+      const restrictions = {
+        maxLocationsPerDay,
+        requiresApproval,
+        creditCost
+      };
+
+      console.log(`🛡️ Final result: canPost=${canPost}, requiresApproval=${requiresApproval}, creditCost=${creditCost}`);
 
       return {
-        canPost: true,
-        requiresApproval: restrictions.requiresApproval,
-        creditCost: locationType === 'general' ? 0 : restrictions.creditCost,
+        canPost,
+        reason,
+        requiresApproval,
+        creditCost,
         restrictions
       };
     } catch (error) {
