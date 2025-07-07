@@ -206,6 +206,23 @@ const apiService = {
     return api.post(`/locations/${locationId}/make-official`);
   },
 
+  // Leaderboard endpoints
+  getWeeklyLeaderboard: async (limit = 10) => {
+    return api.get(`/leaderboard/weekly?limit=${limit}`);
+  },
+
+  getUserRank: async () => {
+    return api.get('/leaderboard/rank');
+  },
+
+  getUserAchievements: async () => {
+    return api.get('/leaderboard/achievements');
+  },
+
+  getPublicProfile: async (userId) => {
+    return api.get(`/leaderboard/profile/${userId}`);
+  },
+
   canMakeOfficial: async (locationId) => {
     return api.get(`/locations/${locationId}/can-make-official`);
   },

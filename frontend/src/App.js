@@ -40,6 +40,9 @@ import MakeOfficialButton from './components/MakeOfficialButton';
 import OfficialLocationControls from './components/OfficialLocationControls';
 import StatusFilter from './components/StatusFilter';
 import StatusNotification from './components/StatusNotification';
+import Leaderboard from './components/Leaderboard';
+import Achievements from './components/Achievements';
+import PublicProfile from './components/PublicProfile';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1631,6 +1634,8 @@ function App() {
             {user && <Link to="/profile">Profile</Link>}
             {user && <Link to="/user-owned-locations">🏠 My Locations</Link>}
             {user && <Link to="/official-locations">🔵 Official Locations</Link>}
+            {user && <Link to="/leaderboard">🏆 Leaderboard</Link>}
+            {user && <Link to="/achievements">🎯 Achievements</Link>}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
             {cameFromAdmin && user?.isAdmin && (
               <button 
@@ -1916,6 +1921,18 @@ function App() {
     {
       path: "/official-locations",
       element: user ? <OfficialLocationsPage /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/leaderboard",
+      element: user ? <Leaderboard /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/achievements",
+      element: user ? <Achievements /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/profile/:userId",
+      element: <PublicProfile />,
     },
   ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount]);
 
