@@ -43,6 +43,7 @@ import StatusNotification from './components/StatusNotification';
 import Leaderboard from './components/Leaderboard';
 import Achievements from './components/Achievements';
 import PublicProfile from './components/PublicProfile';
+import ChallengeDashboard from './components/ChallengeDashboard';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1639,6 +1640,7 @@ function App() {
             {user && <Link to="/official-locations">🔵 Official Locations</Link>}
             {user && <Link to="/leaderboard">🏆 Leaderboard</Link>}
             {user && <Link to="/achievements">🎯 Achievements</Link>}
+            {user && <Link to="/challenges">🎯 Challenges</Link>}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
             {cameFromAdmin && user?.isAdmin && (
               <button 
@@ -1934,10 +1936,14 @@ function App() {
       element: user ? <Achievements /> : <Navigate to="/auth" />,
     },
     {
+      path: "/challenges",
+      element: user ? <ChallengeDashboard user={user} API_URL={API_URL} /> : <Navigate to="/auth" />,
+    },
+    {
       path: "/profile/:userId",
       element: <PublicProfile />,
     },
-  ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount]);
+  ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount, API_URL]);
 
   // Reduced frequency logging to prevent console spam
   useEffect(() => {

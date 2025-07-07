@@ -10,6 +10,10 @@ const LocationOwnership = require('./LocationOwnership');
 const LocationOwnershipHistory = require('./LocationOwnershipHistory');
 const LocationNomination = require('./LocationNomination');
 const NominationVote = require('./NominationVote');
+const Challenge = require('./Challenge');
+const ChallengeSubmission = require('./ChallengeSubmission');
+const ChallengeVote = require('./ChallengeVote');
+const ChallengeReward = require('./ChallengeReward');
 
 // Set up associations
 const models = {
@@ -24,7 +28,11 @@ const models = {
   LocationOwnership,
   LocationOwnershipHistory,
   LocationNomination,
-  NominationVote
+  NominationVote,
+  Challenge,
+  ChallengeSubmission,
+  ChallengeVote,
+  ChallengeReward
 };
 
 // Call associate function for each model if it exists

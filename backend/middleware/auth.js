@@ -33,6 +33,27 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
+const requireAdmin = async (req, res, next) => {
+  try {
+    // First authenticate the user
+    await authenticateToken(req, res, (err) => {
+      if (err) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+    });
+
+    // Then check if user is admin
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin privileges required' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(403).json({ error: 'Admin privileges required' });
+  }
+};
+
 module.exports = {
-  authenticateToken: authenticateToken
+  authenticateToken: authenticateToken,
+  requireAdmin: requireAdmin
 };
