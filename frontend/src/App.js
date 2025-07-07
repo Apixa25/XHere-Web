@@ -1144,11 +1144,14 @@ function App() {
       console.log('🔍 Status filter check - selectedStatus:', currentSelectedStatusRef.current);
       console.log('🔍 Status filter type:', typeof currentSelectedStatusRef.current);
       console.log('🔍 Status filter value comparison:', currentSelectedStatusRef.current === 'all');
-      if (currentSelectedStatusRef.current !== 'all') {
+      if (currentSelectedStatusRef.current && currentSelectedStatusRef.current !== 'all') {
         url.searchParams.append('status', currentSelectedStatusRef.current);
         console.log('🔍 Status filter active:', currentSelectedStatusRef.current);
+      } else if (currentSelectedStatusRef.current === 'all') {
+        url.searchParams.append('status', 'all');
+        console.log('🔍 All locations filter active - explicitly sending status=all');
       } else {
-        console.log('🔍 No status filter - selectedStatus is "all"');
+        console.log('🔍 No status filter - selectedStatus is undefined or empty');
       }
       
       // Get current map bounds for viewport-based filtering

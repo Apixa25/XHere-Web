@@ -61,7 +61,7 @@ router.get('/', authenticateToken, async (req, res) => {
         attributes: ['email', 'profile', 'id']
       }],
       order: [['createdAt', 'DESC']],
-      limit: 25 // Limit to 25 locations maximum
+      limit: parseInt(req.query.limit) || 25 // Use provided limit or default to 25
     };
 
     // For profile page requests, filter based on user type and userId
@@ -81,9 +81,14 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 
     // Filter by location status if specified
-    if (req.query.status && req.query.status !== 'all') {
-      if (!query.where) query.where = {};
-      query.where.locationStatus = req.query.status;
+    if (req.query.status) {
+      if (req.query.status !== 'all') {
+        if (!query.where) query.where = {};
+        query.where.locationStatus = req.query.status;
+        console.log(`🔍 Filtering by status: ${req.query.status}`);
+      } else {
+        console.log('🌍 Showing all locations (no status filter)');
+      }
     } else {
       // For map view (non-profile), only show verified locations by default
       // This prevents pending/flagged/removed locations from showing up on the map
