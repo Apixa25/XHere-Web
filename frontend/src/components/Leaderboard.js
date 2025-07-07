@@ -113,7 +113,15 @@ const Leaderboard = () => {
   return (
     <div className="leaderboard">
       <div className="leaderboard-header">
-        <h2>🏆 Weekly Quality Contributors</h2>
+        <div className="header-top">
+          <h2>🏆 Weekly Quality Contributors</h2>
+          <button 
+            onClick={() => window.history.back()} 
+            className="back-to-map-button"
+          >
+            ← Back to Map
+          </button>
+        </div>
         <p>Top contributors based on quality and consistency</p>
       </div>
 

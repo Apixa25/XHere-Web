@@ -155,6 +155,240 @@ The system now tracks **all downvotes you receive** across your locations and ap
 
 ---
 
+## 🏆 **Quality Contributor Recognition System (NEW!)**
+
+The Quality Contributor Recognition System celebrates users who consistently create high-quality, valuable content for the community. This system includes badges, weekly leaderboards, achievements, and public profiles to recognize and reward quality contributors.
+
+---
+
+### **🎖️ Quality Contributor Badges**
+
+#### **Available Badges**
+- **⭐ Quality Contributor**: Create 5 locations with 3+ upvotes each
+- **🎯 Consistent Quality**: Maintain 80%+ quality ratio for 10+ locations
+- **🤝 Community Helper**: Vote on 50+ locations and help verify others
+- **👑 Trusted Expert**: Reach verified trust level with 10+ quality locations
+- **🏆 Weekly Champion**: Top contributor for the week
+- **💎 Quality Master**: Create 20+ locations with 5+ upvotes each
+- **🎓 Community Mentor**: Help 10+ new users get their first verification
+- **👑 Consistency King**: Maintain 90%+ quality ratio for 20+ locations
+
+#### **How Badges Work**
+- **Automatic Awarding**: Badges are automatically awarded when you meet the criteria
+- **Permanent Recognition**: Once earned, badges are yours forever
+- **Public Display**: Badges appear on your profile and public profile
+- **Progress Tracking**: See your progress toward each badge on the Achievements page
+
+---
+
+### **📊 Weekly Leaderboards**
+
+#### **What is the Weekly Leaderboard?**
+The weekly leaderboard ranks users based on their **quality contributions** during the current week. It's not just about quantity - it rewards users who create consistently high-quality content.
+
+#### **Quality Score Calculation**
+```
+Quality Score = 
+  (Reputation Score × 0.1) +
+  (Weekly Locations × 10) +
+  (Quality Locations × 25) +
+  (High Quality Locations × 50) +
+  (Verified Locations × 100) +
+  (Quality Ratio Bonus) +
+  (Trust Level Bonus)
+```
+
+#### **Leaderboard Features**
+- **🏆 Weekly Rankings**: See where you rank among all contributors
+- **📈 Quality Metrics**: Track your weekly quality ratio and activity
+- **🎯 Personal Stats**: View your current rank and total participants
+- **🔄 Real-time Updates**: Leaderboard refreshes with current data
+- **🏅 Top 3 Highlighting**: Special recognition for top contributors
+
+#### **How to Improve Your Ranking**
+1. **Create Quality Content**: Focus on locations that get 3+ upvotes
+2. **Maintain Consistency**: Post regularly with high quality standards
+3. **Get Verified**: Aim for verified status on your best locations
+4. **Engage with Community**: Vote on other locations and help verify
+5. **Build Trust Level**: Higher trust levels get bonus points
+
+---
+
+### **🎯 Achievement System**
+
+#### **What are Achievements?**
+Achievements are long-term goals that track your progress toward becoming a recognized quality contributor. They provide clear milestones and rewards for sustained quality contributions.
+
+#### **Achievement Categories**
+- **Quality Contributor**: Create 5 locations with 3+ upvotes each
+- **Consistent Quality**: Maintain 80%+ quality ratio for 10+ locations
+- **Community Helper**: Vote on 50+ locations and help verify others
+- **Trusted Expert**: Reach verified trust level with 10+ quality locations
+- **Quality Master**: Create 20+ locations with 5+ upvotes each
+- **Consistency King**: Maintain 90%+ quality ratio for 20+ locations
+
+#### **Achievement Features**
+- **📊 Progress Tracking**: Visual progress bars for each achievement
+- **🎯 Clear Goals**: Specific targets and requirements for each achievement
+- **🏆 Completion Rewards**: Celebration when achievements are unlocked
+- **📈 Quality Ratio Display**: Special tracking for consistency achievements
+- **📋 Summary Dashboard**: Overall completion rate and statistics
+
+#### **How to Earn Achievements**
+1. **Focus on Quality**: Create locations that receive positive feedback
+2. **Build Consistency**: Maintain high quality standards over time
+3. **Engage with Community**: Vote on other locations and help verify
+4. **Reach Trust Levels**: Advance through the reputation system
+5. **Help Others**: Mentor new users and contribute to community growth
+
+---
+
+### **👤 Public Profiles**
+
+#### **What are Public Profiles?**
+Public profiles showcase your quality contributions and achievements to the community. They provide transparency and recognition for quality contributors.
+
+#### **Profile Features**
+- **📊 Quality Metrics**: Reputation score, quality ratio, trust level
+- **🏆 Achievement Display**: Show earned achievements and progress
+- **📝 Recent Activity**: Display your last 5 locations with voting history
+- **🌍 Community Impact**: Show quality locations created and consistency
+- **⭐ Quality Contributor Badge**: Special recognition for users with 5+ quality locations
+
+#### **Profile Statistics**
+- **Reputation Score**: Your total reputation points
+- **Quality Locations**: Number of locations with 3+ upvotes
+- **Quality Ratio**: Percentage of your locations that are quality
+- **Average Rating**: Overall quality of your content
+- **Weekly Rank**: Your current position on the weekly leaderboard
+
+#### **How to Access Public Profiles**
+- **Your Profile**: Visit `/profile` to see your own detailed profile
+- **Other Users**: Visit `/profile/:userId` to see any user's public profile
+- **Leaderboard Links**: Click on user names in the leaderboard to view profiles
+
+---
+
+### **🚀 How to Become a Quality Contributor**
+
+#### **Quick Start Guide**
+1. **Create Quality Content**: Focus on accurate, helpful locations with good descriptions
+2. **Engage with Community**: Vote on other locations and provide helpful feedback
+3. **Track Your Progress**: Check the Achievements page to see your progress
+4. **Aim for Verification**: Get your best locations verified by the community
+5. **Build Consistency**: Maintain high quality standards over time
+
+#### **Quality Content Tips**
+- **✅ Accurate Information**: Verify details before posting
+- **✅ Clear Descriptions**: Write helpful, informative descriptions
+- **✅ Good Photos**: Include clear, relevant photos when possible
+- **✅ Unique Content**: Avoid duplicate or similar locations
+- **✅ Community Value**: Focus on locations that help other users
+
+#### **Community Engagement**
+- **Vote Regularly**: Vote on other users' locations to build activity
+- **Help Verify**: Participate in the verification process
+- **Provide Feedback**: Leave helpful comments when appropriate
+- **Mentor New Users**: Help new users learn the system
+- **Follow Guidelines**: Respect community rules and etiquette
+
+---
+
+### **🎮 Gamification Elements**
+
+#### **What the System Rewards**
+- **Consistent Quality**: Long-term quality over short-term quantity
+- **Community Engagement**: Active participation and helpful contributions
+- **Verified Contributions**: Content trusted by the community
+- **Mentorship**: Helping new users succeed
+
+#### **Competitive Elements**
+- **Weekly Rankings**: Compete for top positions on the leaderboard
+- **Achievement Progress**: Track progress toward long-term goals
+- **Badge Collection**: Earn and display quality contributor badges
+- **Public Recognition**: Showcase achievements to the community
+
+#### **Motivation Features**
+- **Progress Tracking**: Visual progress bars and completion percentages
+- **Milestone Rewards**: Clear goals and celebration of achievements
+- **Community Recognition**: Public profiles and leaderboard visibility
+- **Trust Level Integration**: Quality contributions advance your trust level
+
+---
+
+### **📱 How to Access Quality Features**
+
+#### **Navigation**
+- **🏆 Leaderboard**: Click "Leaderboard" in the main navigation
+- **🎯 Achievements**: Click "Achievements" in the main navigation
+- **👤 Your Profile**: Click "Profile" to see your detailed stats
+- **👥 Public Profiles**: Click on user names in leaderboards
+
+#### **Key Pages**
+- **Leaderboard Page**: View weekly rankings and your current position
+- **Achievements Page**: Track progress toward quality contributor goals
+- **Profile Page**: See your detailed quality metrics and achievements
+- **Public Profile Pages**: View any user's quality contributor profile
+
+#### **Real-time Updates**
+- **Automatic Refresh**: Leaderboards update with current data
+- **Progress Tracking**: Achievement progress updates in real-time
+- **Badge Notifications**: Get notified when you earn new badges
+- **Rank Updates**: See your weekly rank change as you contribute
+
+---
+
+### **❓ Quality Contributor FAQ**
+
+#### **Q: How do I earn the Quality Contributor badge?**
+A: Create 5 locations that each receive 3 or more upvotes. Focus on accurate, helpful content with good descriptions and photos.
+
+#### **Q: What's the difference between quality and high-quality locations?**
+A: Quality locations have 3+ upvotes, while high-quality locations have 5+ upvotes. Both contribute to your reputation and achievements.
+
+#### **Q: How often do leaderboards update?**
+A: Leaderboards update in real-time as users contribute. Your rank can change throughout the week based on your activity and quality.
+
+#### **Q: Do achievements expire?**
+A: No, achievements are permanent once earned. However, some achievements require ongoing maintenance (like maintaining quality ratios).
+
+#### **Q: Can I see other users' achievements?**
+A: Yes! Visit any user's public profile to see their earned achievements and quality metrics.
+
+#### **Q: How do I improve my weekly ranking?**
+A: Focus on creating quality content, maintaining consistency, engaging with the community, and advancing your trust level.
+
+#### **Q: What's the best strategy for earning achievements?**
+A: Focus on quality over quantity, engage regularly with the community, help verify other locations, and maintain consistent high standards.
+
+#### **Q: How do public profiles help the community?**
+A: Public profiles provide transparency, showcase quality contributors, and help users identify trusted community members to follow and learn from.
+
+---
+
+### **🎯 Success Stories**
+
+#### **Quality Contributor Journey**
+1. **Week 1**: New user creates 3 quality locations, earns Quality Contributor badge
+2. **Month 1**: Builds consistency, reaches 80% quality ratio
+3. **Month 2**: Earns Consistent Quality achievement, reaches Trusted level
+4. **Month 3**: Becomes Community Helper, helps verify other locations
+5. **Month 6**: Earns Quality Master badge, becomes community mentor
+
+#### **Leaderboard Success**
+- **Week 1**: User ranks #15 on weekly leaderboard
+- **Week 2**: Improves quality ratio, moves to #8
+- **Week 3**: Creates verified location, reaches #3
+- **Week 4**: Earns Weekly Champion badge as #1 contributor
+
+#### **Community Impact**
+- **Before**: User creates 20 low-quality locations
+- **After**: User focuses on quality, creates 10 high-quality locations
+- **Result**: Earns Quality Master badge, becomes community mentor
+- **Impact**: Helps 5 new users reach Quality Contributor status
+
+---
+
 ## 🚀 **Pro Tips for Success**
 
 ### **For New Users (0-99 points)**

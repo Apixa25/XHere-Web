@@ -94,7 +94,15 @@ const Achievements = () => {
   return (
     <div className="achievements">
       <div className="achievements-header">
-        <h2>🏆 Quality Contributor Achievements</h2>
+        <div className="header-top">
+          <h2>🏆 Quality Contributor Achievements</h2>
+          <button 
+            onClick={() => window.history.back()} 
+            className="back-to-map-button"
+          >
+            ← Back to Map
+          </button>
+        </div>
         <p>Track your progress towards becoming a recognized quality contributor</p>
       </div>
 
