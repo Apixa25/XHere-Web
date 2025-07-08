@@ -161,6 +161,7 @@ const downvoteRoutes = require('./routes/downvoteRoutes');
 const moderatorRoutes = require('./routes/moderatorRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const challengeRoutes = require('./routes/challengeRoutes');
+const duplicateDetectionRoutes = require('./routes/duplicateDetectionRoutes');
 
 // Register the Stripe webhook route BEFORE body parsers (raw body needed)
 app.use('/api/credits/stripe-webhook', express.raw({ type: 'application/json' }), creditRoutes);
@@ -189,6 +190,8 @@ app.use('/api/moderator', moderatorRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 // Register challenge routes
 app.use('/api/challenges', challengeRoutes);
+// Register duplicate detection routes
+app.use('/api/duplicate-detection', duplicateDetectionRoutes);
 
 // Add this debug log
 console.log('Available routes:', app._router.stack

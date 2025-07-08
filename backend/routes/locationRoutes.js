@@ -18,6 +18,7 @@ const {
 const creditService = require('../services/creditService');
 const badgeService = require('../services/badgeService');
 const nominationService = require('../services/nominationService');
+const duplicateDetectionService = require('../services/duplicateDetectionService');
 
 // Configure multer for file uploads with better error handling
 const storage = multer.diskStorage({
@@ -319,6 +320,35 @@ router.post('/',
     console.log('🔍 Route handler - Extracted latitude:', latitude);
     console.log('🔍 Route handler - Extracted longitude:', longitude);
     console.log('🔍 Route handler - Extracted text:', text);
+
+    // 🛡️ DUPLICATE DETECTION - Check for duplicates before creating location
+    console.log('🛡️ Running duplicate detection for new location...');
+    const locationData = {
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      text: text.trim(),
+      locationType: locationType || 'general'
+    };
+    
+    const duplicateAnalysis = await duplicateDetectionService.detectDuplicates(locationData, req.user.id);
+    console.log(`🛡️ Duplicate detection result: ${duplicateAnalysis.duplicateStatus} (Risk: ${duplicateAnalysis.totalRiskScore})`);
+    
+    // Handle high-risk duplicates
+    if (duplicateAnalysis.duplicateStatus === 'high_risk') {
+      await transaction.rollback();
+      return res.status(400).json({
+        error: 'Duplicate location detected',
+        message: 'This location appears to be a duplicate of an existing location. Please review and modify your submission.',
+        analysis: duplicateAnalysis,
+        recommendations: duplicateAnalysis.recommendations
+      });
+    }
+    
+    // Flag medium-risk locations for review
+    if (duplicateAnalysis.duplicateStatus === 'medium_risk') {
+      console.log('⚠️ Medium risk duplicate detected - location will be flagged for review');
+      // Continue with creation but flag for review
+    }
 
     // Get validation info from middleware
     const postingValidation = req.postingValidation;
