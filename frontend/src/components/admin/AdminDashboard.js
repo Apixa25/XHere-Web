@@ -44,6 +44,37 @@ const AdminDashboard = () => {
   const [moderatorLoading, setModeratorLoading] = useState(false);
   const [selectedTrustLevel, setSelectedTrustLevel] = useState('all');
 
+  // Challenge management state
+  const [challenges, setChallenges] = useState([]);
+  const [challengeLoading, setChallengeLoading] = useState(false);
+  const [showCreateChallenge, setShowCreateChallenge] = useState(false);
+  const [newChallenge, setNewChallenge] = useState({
+    title: '',
+    description: '',
+    type: 'weekly',
+    status: 'draft',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    votingEndDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    criteria: {
+      locationTypes: ['restaurant', 'cafe', 'park', 'viewpoint', 'landmark', 'shop'],
+      keywords: ['hidden', 'secret', 'local', 'unique', 'amazing', 'beautiful'],
+      minUpvotes: 3,
+      maxDistance: 50
+    },
+    rewards: {
+      winners: [
+        { credits: 500, badgeId: null, description: '🏆 1st Place' },
+        { credits: 250, badgeId: null, description: '🥈 2nd Place' },
+        { credits: 100, badgeId: null, description: '🥉 3rd Place' }
+      ],
+      participation: { credits: 25, description: 'Participation reward' }
+    },
+    maxSubmissions: 100,
+    minVotesRequired: 5,
+    featured: false
+  });
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -556,13 +587,41 @@ const AdminDashboard = () => {
 
   const loadLocationsByTrustLevel = async (trustLevel) => {
     try {
+      setModeratorLoading(true);
       const token = localStorage.getItem('token');
-      const url = trustLevel === 'all' 
-        ? `${BACKEND_URL}/api/moderator/review-queue`
-        : `${BACKEND_URL}/api/moderator/locations/${trustLevel}`;
+      const response = await fetch(`${BACKEND_URL}/api/admin/locations/trust-level/${trustLevel}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations by trust level');
+      }
+
+      const data = await response.json();
+      setReviewQueue(data);
+    } catch (error) {
+      console.error('Error loading locations by trust level:', error);
+      setError('Failed to load locations by trust level');
+    } finally {
+      setModeratorLoading(false);
+    }
+  };
+
+  // Challenge management functions
+  const loadChallenges = async () => {
+    console.log('🎯 loadChallenges called');
+    
+    try {
+      setChallengeLoading(true);
+      console.log('🔄 Setting challenge loading state to true');
       
-      console.log(`🔍 Loading locations for trust level: ${trustLevel}`);
-      console.log(`🔗 URL: ${url}`);
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token retrieved:', token ? 'Token exists' : 'No token found');
+      
+      const url = `${BACKEND_URL}/api/challenges`;
+      console.log('🌐 Making GET request to:', url);
       
       const response = await fetch(url, {
         headers: {
@@ -570,29 +629,308 @@ const AdminDashboard = () => {
         }
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error('Failed to load locations by trust level');
+        const errorText = await response.text();
+        console.error('❌ Response not ok. Error text:', errorText);
+        throw new Error(`Failed to fetch challenges: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
-      console.log(`📊 ${trustLevel} trust level response:`, data);
+      console.log('✅ Challenges data received:', data);
+      console.log('📊 Number of challenges:', data.length);
       
-      // Handle both response structures: data.locations and data.pendingLocations
-      const locations = data.locations || data.pendingLocations || [];
-      console.log(`📍 ${trustLevel} locations found:`, locations.length);
-      console.log(`📍 ${trustLevel} location details:`, locations.map(loc => ({
-        id: loc.id,
-        status: loc.locationStatus,
-        requiresApproval: loc.requiresApproval,
-        creatorTrustLevel: loc.creator?.trustLevel,
-        creatorEmail: loc.creator?.email,
-        text: loc.content?.text?.substring(0, 50) + '...'
-      })));
+      if (data.length > 0) {
+        console.log('📋 Challenge details:', data.map(c => ({
+          id: c.id,
+          title: c.title,
+          status: c.status,
+          type: c.type,
+          featured: c.featured
+        })));
+      }
       
-      setReviewQueue(locations);
-    } catch (err) {
-      console.error('Error loading locations by trust level:', err);
-      setError('Failed to load locations by trust level');
+      setChallenges(data);
+      console.log('✅ Challenges loaded successfully!');
+    } catch (error) {
+      console.error('❌ Error loading challenges:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      setError(`Failed to load challenges: ${error.message}`);
+    } finally {
+      setChallengeLoading(false);
+      console.log('🔄 Setting challenge loading state to false');
+    }
+  };
+
+  const createChallenge = async (challengeData) => {
+    try {
+      setChallengeLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/challenges`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(challengeData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create challenge');
+      }
+
+      const newChallenge = await response.json();
+      setChallenges(prev => [newChallenge, ...prev]);
+      setShowCreateChallenge(false);
+      setNewChallenge({
+        title: '',
+        description: '',
+        type: 'weekly',
+        status: 'draft',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        votingEndDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        criteria: {
+          locationTypes: ['restaurant', 'cafe', 'park', 'viewpoint', 'landmark', 'shop'],
+          keywords: ['hidden', 'secret', 'local', 'unique', 'amazing', 'beautiful'],
+          minUpvotes: 3,
+          maxDistance: 50
+        },
+        rewards: {
+          winners: [
+            { credits: 500, badgeId: null, description: '🏆 1st Place' },
+            { credits: 250, badgeId: null, description: '🥈 2nd Place' },
+            { credits: 100, badgeId: null, description: '🥉 3rd Place' }
+          ],
+          participation: { credits: 25, description: 'Participation reward' }
+        },
+        maxSubmissions: 100,
+        minVotesRequired: 5,
+        featured: false
+      });
+    } catch (error) {
+      console.error('Error creating challenge:', error);
+      setError(error.message);
+    } finally {
+      setChallengeLoading(false);
+    }
+  };
+
+  const updateChallengeStatus = async (challengeId, newStatus) => {
+    console.log('🎯 updateChallengeStatus called with:', { challengeId, newStatus });
+    
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token retrieved:', token ? 'Token exists' : 'No token found');
+      
+      const url = `${BACKEND_URL}/api/challenges/${challengeId}/status`;
+      console.log('🌐 Making PATCH request to:', url);
+      
+      const requestBody = { status: newStatus };
+      console.log('📦 Request body:', requestBody);
+      
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Response not ok. Error text:', errorText);
+        throw new Error(`Failed to update challenge status: ${response.status} ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log('✅ Response data:', responseData);
+
+      // Update the challenge in the list
+      console.log('🔄 Updating challenges list...');
+      setChallenges(prev => {
+        const updated = prev.map(challenge => 
+          challenge.id === challengeId 
+            ? { ...challenge, status: newStatus }
+            : challenge
+        );
+        console.log('✅ Updated challenges list:', updated.map(c => ({ id: c.id, title: c.title, status: c.status })));
+        return updated;
+      });
+      
+      console.log('✅ Challenge status updated successfully!');
+    } catch (error) {
+      console.error('❌ Error updating challenge status:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      setError(`Failed to update challenge status: ${error.message}`);
+    }
+  };
+
+  const endChallenge = async (challengeId) => {
+    console.log('🏆 endChallenge called with challengeId:', challengeId);
+    
+    if (!window.confirm('Are you sure you want to end this challenge? This will distribute rewards and cannot be undone.')) {
+      console.log('❌ User cancelled the end challenge operation');
+      return;
+    }
+
+    console.log('✅ User confirmed ending challenge');
+    
+    try {
+      setChallengeLoading(true);
+      console.log('🔄 Setting challenge loading state to true');
+      
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token retrieved:', token ? 'Token exists' : 'No token found');
+      
+      const url = `${BACKEND_URL}/api/challenges/${challengeId}/end`;
+      console.log('🌐 Making POST request to:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Response not ok. Error data:', errorData);
+        throw new Error(errorData.error || 'Failed to end challenge');
+      }
+
+      const result = await response.json();
+      console.log('✅ End challenge result:', result);
+      
+      alert(`Challenge ended successfully! ${result.results.winnersAwarded} winners awarded.`);
+      
+      // Update the challenge status
+      console.log('🔄 Updating challenge status to completed...');
+      setChallenges(prev => {
+        const updated = prev.map(challenge => 
+          challenge.id === challengeId 
+            ? { ...challenge, status: 'completed' }
+            : challenge
+        );
+        console.log('📋 Updated challenges list:', updated.map(c => ({ id: c.id, title: c.title, status: c.status })));
+        return updated;
+      });
+      
+      console.log('✅ Challenge ended successfully!');
+    } catch (error) {
+      console.error('❌ Error ending challenge:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      setError(error.message);
+    } finally {
+      setChallengeLoading(false);
+      console.log('🔄 Setting challenge loading state to false');
+    }
+  };
+
+  const createSampleChallenge = async () => {
+    try {
+      setChallengeLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/challenges/sample/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create sample challenge');
+      }
+
+      const result = await response.json();
+      setChallenges(prev => [result.challenge, ...prev]);
+      alert('Sample challenge created successfully!');
+    } catch (error) {
+      console.error('Error creating sample challenge:', error);
+      setError('Failed to create sample challenge');
+    } finally {
+      setChallengeLoading(false);
+    }
+  };
+
+  const deleteChallenge = async (challengeId) => {
+    console.log('🗑️ deleteChallenge called with challengeId:', challengeId);
+    
+    if (!window.confirm('Are you sure you want to permanently delete this challenge? This action cannot be undone.')) {
+      console.log('❌ User cancelled the delete challenge operation');
+      return;
+    }
+
+    console.log('✅ User confirmed deleting challenge');
+    
+    try {
+      setChallengeLoading(true);
+      console.log('🔄 Setting challenge loading state to true');
+      
+      const token = localStorage.getItem('token');
+      console.log('🔑 Token retrieved:', token ? 'Token exists' : 'No token found');
+      
+      const url = `${BACKEND_URL}/api/challenges/${challengeId}`;
+      console.log('🌐 Making DELETE request to:', url);
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Response not ok. Error data:', errorData);
+        throw new Error(errorData.error || 'Failed to delete challenge');
+      }
+
+      const result = await response.json();
+      console.log('✅ Delete challenge result:', result);
+      
+      // Remove the challenge from the list
+      console.log('🔄 Removing challenge from list...');
+      setChallenges(prev => {
+        const updated = prev.filter(challenge => challenge.id !== challengeId);
+        console.log('📋 Updated challenges list:', updated.map(c => ({ id: c.id, title: c.title, status: c.status })));
+        return updated;
+      });
+      
+      alert(`Challenge deleted successfully! Removed ${result.deleted.submissions} submissions, ${result.deleted.votes} votes, and ${result.deleted.rewards} rewards.`);
+      console.log('✅ Challenge deleted successfully!');
+    } catch (error) {
+      console.error('❌ Error deleting challenge:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      setError(error.message);
+    } finally {
+      setChallengeLoading(false);
+      console.log('🔄 Setting challenge loading state to false');
     }
   };
 
@@ -646,6 +984,15 @@ const AdminDashboard = () => {
           }}
         >
           👮‍♂️ Moderator Queue
+        </button>
+        <button 
+          className={activeTab === 'challenges' ? 'active' : ''} 
+          onClick={() => {
+            setActiveTab('challenges');
+            loadChallenges();
+          }}
+        >
+          🎯 Challenges
         </button>
       </div>
 
@@ -1225,6 +1572,285 @@ const AdminDashboard = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Challenges Management Tab */}
+      {activeTab === 'challenges' && (
+        <div className="challenges-tab">
+          <div className="challenges-header">
+            <h3>🎯 Challenge Management</h3>
+            <div className="challenge-actions">
+              <button 
+                onClick={() => setShowCreateChallenge(true)}
+                className="create-challenge-btn"
+                disabled={challengeLoading}
+              >
+                ➕ Create Challenge
+              </button>
+              <button 
+                onClick={createSampleChallenge}
+                className="sample-challenge-btn"
+                disabled={challengeLoading}
+              >
+                🎲 Create Sample
+              </button>
+            </div>
+          </div>
+
+          {challengeLoading ? (
+            <div className="loading">🔄 Loading challenges...</div>
+          ) : (
+            <div className="challenges-list">
+              <h4>📋 All Challenges ({challenges.length})</h4>
+              {challenges.length === 0 ? (
+                <div className="empty-challenges">
+                  <div className="empty-icon">🎯</div>
+                  <p>No challenges created yet!</p>
+                  <p className="empty-subtitle">Create your first challenge to engage the community.</p>
+                </div>
+              ) : (
+                <div className="challenge-items">
+                  {challenges.map(challenge => (
+                    <div key={challenge.id} className="challenge-item">
+                      <div className="challenge-header">
+                        <div className="challenge-info">
+                          <h5>{challenge.title}</h5>
+                          <span className={`status-badge ${challenge.status}`}>
+                            {challenge.status === 'draft' ? '📝 Draft' :
+                             challenge.status === 'active' ? '🟢 Active' :
+                             challenge.status === 'voting' ? '🗳️ Voting' :
+                             challenge.status === 'completed' ? '🏆 Completed' :
+                             challenge.status === 'cancelled' ? '❌ Cancelled' : challenge.status}
+                          </span>
+                          {challenge.featured && <span className="featured-badge">⭐ Featured</span>}
+                        </div>
+                        <div className="challenge-dates">
+                          <span>📅 {new Date(challenge.startDate).toLocaleDateString()}</span>
+                          <span>⏰ {new Date(challenge.endDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="challenge-description">
+                        <p>{challenge.description}</p>
+                      </div>
+
+                      <div className="challenge-meta">
+                        <div className="meta-stats">
+                          <span>📊 Type: {challenge.type}</span>
+                          <span>🎯 Max Submissions: {challenge.maxSubmissions}</span>
+                          <span>🗳️ Min Votes: {challenge.minVotesRequired}</span>
+                        </div>
+                        <div className="meta-rewards">
+                          <span>🏆 1st: {challenge.rewards?.winners?.[0]?.credits || 0} credits</span>
+                          <span>🥈 2nd: {challenge.rewards?.winners?.[1]?.credits || 0} credits</span>
+                          <span>🥉 3rd: {challenge.rewards?.winners?.[2]?.credits || 0} credits</span>
+                          <span>🎁 Participation: {challenge.rewards?.participation?.credits || 0} credits</span>
+                        </div>
+                      </div>
+
+                      <div className="challenge-actions">
+                        {challenge.status === 'draft' && (
+                          <button 
+                            onClick={() => {
+                              console.log('🟢 Activate button clicked for challenge:', challenge.id);
+                              updateChallengeStatus(challenge.id, 'active');
+                            }}
+                            className="action-btn activate"
+                          >
+                            🟢 Activate
+                          </button>
+                        )}
+                        {challenge.status === 'active' && (
+                          <button 
+                            onClick={() => {
+                              console.log('🗳️ Start Voting button clicked for challenge:', challenge.id);
+                              updateChallengeStatus(challenge.id, 'voting');
+                            }}
+                            className="action-btn voting"
+                          >
+                            🗳️ Start Voting
+                          </button>
+                        )}
+                        {challenge.status === 'voting' && (
+                          <button 
+                            onClick={() => {
+                              console.log('🏆 End Challenge button clicked for challenge:', challenge.id);
+                              endChallenge(challenge.id);
+                            }}
+                            className="action-btn end"
+                          >
+                            🏆 End Challenge
+                          </button>
+                        )}
+                        {challenge.status === 'completed' && (
+                          <span className="completed-badge">✅ Completed</span>
+                        )}
+                        <button 
+                          onClick={() => {
+                            console.log('❌ Cancel button clicked for challenge:', challenge.id);
+                            if (challenge.status === 'cancelled') {
+                              console.log('🗑️ Challenge already cancelled, deleting permanently...');
+                              deleteChallenge(challenge.id);
+                            } else {
+                              console.log('🔄 Cancelling challenge...');
+                              updateChallengeStatus(challenge.id, 'cancelled');
+                            }
+                          }}
+                          className="action-btn cancel"
+                          disabled={challenge.status === 'completed'}
+                        >
+                          {challenge.status === 'cancelled' ? '🗑️ Delete' : '❌ Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Create Challenge Modal */}
+          {showCreateChallenge && (
+            <div className="modal-overlay">
+              <div className="modal-content challenge-modal">
+                <div className="modal-header">
+                  <h3>🎯 Create New Challenge</h3>
+                  <button onClick={() => setShowCreateChallenge(false)}>✕</button>
+                </div>
+                
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  createChallenge(newChallenge);
+                }}>
+                  <div className="form-group">
+                    <label>Challenge Title:</label>
+                    <input
+                      type="text"
+                      value={newChallenge.title}
+                      onChange={(e) => setNewChallenge({...newChallenge, title: e.target.value})}
+                      placeholder="Enter challenge title"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Description:</label>
+                    <textarea
+                      value={newChallenge.description}
+                      onChange={(e) => setNewChallenge({...newChallenge, description: e.target.value})}
+                      placeholder="Describe what users should find for this challenge..."
+                      rows="4"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Type:</label>
+                      <select
+                        value={newChallenge.type}
+                        onChange={(e) => setNewChallenge({...newChallenge, type: e.target.value})}
+                      >
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="special">Special Event</option>
+                      </select>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>Status:</label>
+                      <select
+                        value={newChallenge.status}
+                        onChange={(e) => setNewChallenge({...newChallenge, status: e.target.value})}
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="active">Active</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Start Date:</label>
+                      <input
+                        type="date"
+                        value={newChallenge.startDate}
+                        onChange={(e) => setNewChallenge({...newChallenge, startDate: e.target.value})}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>End Date:</label>
+                      <input
+                        type="date"
+                        value={newChallenge.endDate}
+                        onChange={(e) => setNewChallenge({...newChallenge, endDate: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Voting End Date:</label>
+                    <input
+                      type="date"
+                      value={newChallenge.votingEndDate}
+                      onChange={(e) => setNewChallenge({...newChallenge, votingEndDate: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Max Submissions:</label>
+                      <input
+                        type="number"
+                        value={newChallenge.maxSubmissions}
+                        onChange={(e) => setNewChallenge({...newChallenge, maxSubmissions: parseInt(e.target.value)})}
+                        min="1"
+                        max="1000"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>Min Votes Required:</label>
+                      <input
+                        type="number"
+                        value={newChallenge.minVotesRequired}
+                        onChange={(e) => setNewChallenge({...newChallenge, minVotesRequired: parseInt(e.target.value)})}
+                        min="1"
+                        max="50"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={newChallenge.featured}
+                        onChange={(e) => setNewChallenge({...newChallenge, featured: e.target.checked})}
+                      />
+                      Featured Challenge
+                    </label>
+                  </div>
+                  
+                  <div className="modal-actions">
+                    <button type="button" onClick={() => setShowCreateChallenge(false)}>
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={challengeLoading}>
+                      {challengeLoading ? 'Creating...' : 'Create Challenge'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

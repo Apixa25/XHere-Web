@@ -140,6 +140,58 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req, res) =>
   }
 });
 
+// Delete challenge (admin only)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🗑️ Deleting challenge:', id);
+    
+    const challenge = await challengeService.getChallengeById(id);
+    if (!challenge) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    
+    // Delete related data first (submissions, votes, rewards)
+    const { ChallengeSubmission, ChallengeVote, ChallengeReward } = require('../models');
+    
+    // Delete submissions
+    const submissionCount = await ChallengeSubmission.destroy({
+      where: { challengeId: id }
+    });
+    console.log('🗑️ Deleted submissions:', submissionCount);
+    
+    // Delete votes
+    const voteCount = await ChallengeVote.destroy({
+      where: { submissionId: null } // This will delete votes for submissions that were just deleted
+    });
+    console.log('🗑️ Deleted votes:', voteCount);
+    
+    // Delete rewards
+    const rewardCount = await ChallengeReward.destroy({
+      where: { challengeId: id }
+    });
+    console.log('🗑️ Deleted rewards:', rewardCount);
+    
+    // Delete the challenge
+    await challenge.destroy();
+    console.log('🗑️ Deleted challenge:', id);
+    
+    res.json({ 
+      success: true, 
+      message: 'Challenge deleted successfully',
+      deleted: {
+        challenge: true,
+        submissions: submissionCount,
+        votes: voteCount,
+        rewards: rewardCount
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error deleting challenge:', error);
+    res.status(500).json({ error: 'Failed to delete challenge' });
+  }
+});
+
 // Create sample challenge (admin only)
 router.post('/sample/create', authenticateToken, requireAdmin, async (req, res) => {
   try {
