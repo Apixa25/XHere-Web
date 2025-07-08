@@ -1142,7 +1142,23 @@ function AppMobile() {
       // Update user credits if they were spent
       if (response.data.creditsSpent > 0) {
         // Refresh user data to get updated credit balance
-        await fetchUser();
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            const userResponse = await fetch(`${API_URL}/api/users/me`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (userResponse.ok) {
+              const updatedUser = await userResponse.json();
+              setUser(updatedUser);
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing user data:', error);
+        }
       }
       
       setContentForm({
@@ -1624,9 +1640,10 @@ function AppMobile() {
                           ${LOCATION_TYPES[location.locationType]?.icon || '📍'}
                         </div>
                         ${getProfileImage(location) 
-                          ? `<img class="marker-profile-pic ${location.content?.isAnonymous ? 'anonymous' : ''}" 
+                          ? `<img class="marker-profile-pic" 
                                  src="${getProfileImage(location)}" 
-                                 alt="${location.content?.isAnonymous ? 'Anonymous User' : 'Profile'}" />` 
+                                 alt="${location.content?.isAnonymous ? 'Anonymous User' : 'Profile'}"
+                                 style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid ${location.content?.isAnonymous ? '#9e9e9e' : 'white'}; box-shadow: 0 1px 3px rgba(0,0,0,0.2); background-color: ${location.content?.isAnonymous ? '#f5f5f5' : 'transparent'};" />` 
                           : '<div class="marker-profile-placeholder">👤</div>'
                         }
                         <div class="marker-text">${shortText}</div>

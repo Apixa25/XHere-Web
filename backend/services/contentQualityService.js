@@ -91,8 +91,9 @@ class ContentQualityService {
       }
 
       // 3. Description quality scoring
-      if (locationData.description) {
-        const descriptionAnalysis = this.analyzeDescriptionQuality(locationData.description);
+      const descriptionText = locationData.description || locationData.text || '';
+      if (descriptionText) {
+        const descriptionAnalysis = this.analyzeDescriptionQuality(descriptionText);
         analysis.descriptionQuality = descriptionAnalysis;
         analysis.flags.push(...descriptionAnalysis.flags || []);
       }
@@ -129,6 +130,7 @@ class ContentQualityService {
     const content = [
       locationData.name || '',
       locationData.description || '',
+      locationData.text || '', // Handle frontend field name
       locationData.keywords || ''
     ].join(' ').toLowerCase();
 
@@ -379,7 +381,8 @@ class ContentQualityService {
       validation.passed = false;
     }
 
-    if (!locationData.description || locationData.description.trim().length === 0) {
+    const descriptionText = locationData.description || locationData.text || '';
+    if (!descriptionText || descriptionText.trim().length === 0) {
       validation.issues.push('Location description is required');
       validation.passed = false;
     }
@@ -390,7 +393,7 @@ class ContentQualityService {
       validation.passed = false;
     }
 
-    if (locationData.description && locationData.description.length > 1000) {
+    if (descriptionText && descriptionText.length > 1000) {
       validation.issues.push('Description too long (max 1000 characters)');
       validation.passed = false;
     }
@@ -402,7 +405,7 @@ class ContentQualityService {
     }
 
     // Check for suspicious patterns
-    if (locationData.description) {
+    if (descriptionText) {
       const suspiciousPatterns = [
         /\b[A-Z]{3,}\b/g, // ALL CAPS words
         /!{3,}/g, // Multiple exclamation marks
@@ -411,7 +414,7 @@ class ContentQualityService {
       ];
 
       suspiciousPatterns.forEach(pattern => {
-        if (pattern.test(locationData.description)) {
+        if (pattern.test(descriptionText)) {
           validation.issues.push('Suspicious text patterns detected');
           validation.flags.push('SUSPICIOUS_TEXT_PATTERNS');
         }

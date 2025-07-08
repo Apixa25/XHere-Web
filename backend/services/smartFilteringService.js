@@ -19,7 +19,7 @@ class SmartFilteringService {
       autoBlock: {
         duplicateRisk: 80,      // High-risk duplicates
         behavioralRisk: 75,     // Suspicious behavior
-        contentQuality: 20,     // Very poor content
+        contentQuality: 80,     // Very poor content (inverted: 100-80=20 quality)
         spamScore: 80          // High spam detection
       },
       
@@ -27,7 +27,7 @@ class SmartFilteringService {
       manualReview: {
         duplicateRisk: 50,      // Medium-risk duplicates
         behavioralRisk: 60,     // Concerning behavior
-        contentQuality: 40,     // Poor content
+        contentQuality: 60,     // Poor content (inverted: 100-60=40 quality)
         spamScore: 50          // Moderate spam
       },
       
@@ -35,7 +35,7 @@ class SmartFilteringService {
       flagging: {
         duplicateRisk: 30,      // Low-risk duplicates
         behavioralRisk: 40,     // Minor concerns
-        contentQuality: 60,     // Below average
+        contentQuality: 40,     // Below average (inverted: 100-40=60 quality)
         spamScore: 30          // Some spam indicators
       }
     };
