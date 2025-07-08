@@ -20,6 +20,7 @@ const badgeService = require('../services/badgeService');
 const nominationService = require('../services/nominationService');
 const duplicateDetectionService = require('../services/duplicateDetectionService');
 const behavioralAnalysisService = require('../services/behavioralAnalysisService');
+const contentQualityService = require('../services/contentQualityService');
 
 // Configure multer for file uploads with better error handling
 const storage = multer.diskStorage({
@@ -361,22 +362,67 @@ router.post('/',
       console.log('🚨 Suspicious user behavior detected - location will be flagged for review');
       // Continue with creation but flag for review and log suspicious activity
     }
+
+    // 📝 CONTENT QUALITY ANALYSIS - Analyze content for spam and quality
+    console.log('📝 Running content quality analysis...');
+    const contentData = {
+      name: text.trim(),
+      description: text.trim(),
+      keywords: parsedKeywords.join(' '),
+      images: req.files ? req.files.map(file => ({
+        filename: file.filename,
+        size: file.size,
+        mimetype: file.mimetype
+      })) : []
+    };
     
-    // Combine duplicate and behavioral analysis for comprehensive risk assessment
-    const combinedRiskScore = (duplicateAnalysis.totalRiskScore + behavioralAnalysis.riskScore) / 2;
-    const isHighRisk = duplicateAnalysis.duplicateStatus === 'high_risk' || behavioralAnalysis.isSuspicious;
+    const contentQualityAnalysis = await contentQualityService.analyzeContentQuality(contentData, {
+      userId: req.user.id,
+      trustLevel: req.user.trustLevel
+    });
+    console.log(`📝 Content quality analysis result: Score ${contentQualityAnalysis.overallScore} (Risk: ${contentQualityAnalysis.riskLevel})`);
+    
+    // Handle critical content quality issues
+    if (contentQualityAnalysis.riskLevel === 'CRITICAL' || contentQualityAnalysis.spamScore > 70) {
+      console.log('🚨 Critical content quality issues detected - location will be blocked');
+      await transaction.rollback();
+      return res.status(400).json({
+        error: 'Content quality issues detected',
+        message: 'This location has been blocked due to content quality issues. Please improve your content and try again.',
+        analysis: contentQualityAnalysis,
+        recommendations: contentQualityAnalysis.recommendations
+      });
+    }
+    
+    // Flag high-risk content for review
+    if (contentQualityAnalysis.riskLevel === 'HIGH') {
+      console.log('⚠️ High-risk content quality detected - location will be flagged for review');
+      // Continue with creation but flag for review
+    }
+    
+    // Combine all analysis results for comprehensive risk assessment
+    const combinedRiskScore = (
+      duplicateAnalysis.totalRiskScore + 
+      behavioralAnalysis.riskScore + 
+      (100 - contentQualityAnalysis.overallScore)
+    ) / 3;
+    const isHighRisk = duplicateAnalysis.duplicateStatus === 'high_risk' || 
+                       behavioralAnalysis.isSuspicious || 
+                       contentQualityAnalysis.riskLevel === 'CRITICAL';
     
     if (isHighRisk) {
       await transaction.rollback();
       return res.status(400).json({
         error: 'Location creation blocked',
-        message: 'This location has been blocked due to suspicious activity or duplicate detection.',
+        message: 'This location has been blocked due to suspicious activity, duplicate detection, or content quality issues.',
         duplicateAnalysis: duplicateAnalysis,
         behavioralAnalysis: behavioralAnalysis,
+        contentQualityAnalysis: contentQualityAnalysis,
         combinedRiskScore: combinedRiskScore,
         recommendations: [
           ...duplicateAnalysis.recommendations || [],
-          ...behavioralAnalysis.recommendations || []
+          ...behavioralAnalysis.recommendations || [],
+          ...contentQualityAnalysis.recommendations || []
         ]
       });
     }
