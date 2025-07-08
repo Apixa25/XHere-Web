@@ -114,32 +114,32 @@ const ChallengeReward = sequelize.define('ChallengeReward', {
   ]
 });
 
-// Define associations (commented out for testing)
-// ChallengeReward.associate = (models) => {
-//   ChallengeReward.belongsTo(models.Challenge, {
-//     foreignKey: 'challengeId',
-//     as: 'challenge'
-//   });
-//   
-//   ChallengeReward.belongsTo(models.ChallengeSubmission, {
-//     foreignKey: 'submissionId',
-//     as: 'submission'
-//   });
-//   
-//   ChallengeReward.belongsTo(models.User, {
-//     foreignKey: 'userId',
-//     as: 'user'
-//   });
-//   
-//   ChallengeReward.belongsTo(models.Badge, {
-//     foreignKey: 'badgeId',
-//     as: 'badge'
-//   });
-//   
-//   ChallengeReward.belongsTo(models.CreditTransaction, {
-//     foreignKey: 'transactionId',
-//     as: 'transaction'
-//   });
-// };
+// Define associations
+ChallengeReward.associate = (models) => {
+  ChallengeReward.belongsTo(models.Challenge, {
+    foreignKey: 'challengeId',
+    as: 'challenge'
+  });
+  
+  ChallengeReward.belongsTo(models.ChallengeSubmission, {
+    foreignKey: 'submissionId',
+    as: 'submission'
+  });
+  
+  ChallengeReward.belongsTo(models.User, {
+    foreignKey: 'userId',
+    as: 'user'
+  });
+  
+  ChallengeReward.belongsTo(models.Badge, {
+    foreignKey: 'badgeId',
+    as: 'badge'
+  });
+  
+  ChallengeReward.belongsTo(models.CreditTransaction, {
+    foreignKey: 'transactionId',
+    as: 'transaction'
+  });
+};
 
 module.exports = ChallengeReward; 

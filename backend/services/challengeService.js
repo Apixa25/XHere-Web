@@ -55,17 +55,28 @@ class ChallengeService {
    */
   async getChallengeById(challengeId, includeSubmissions = false) {
     try {
-      // Temporarily remove associations to debug
       const challenge = await Challenge.findByPk(challengeId);
       
       if (!challenge) {
         throw new Error('Challenge not found');
       }
       
-      // If includeSubmissions is requested, fetch them separately
+      // If includeSubmissions is requested, fetch them with associations
       if (includeSubmissions) {
         const submissions = await ChallengeSubmission.findAll({
           where: { challengeId },
+                  include: [
+          {
+            model: require('../models/User'),
+            as: 'user',
+            attributes: ['id', 'email']
+          },
+          {
+            model: require('../models/Location'),
+            as: 'location',
+            attributes: ['id', 'content', 'locationType']
+          }
+        ],
           order: [['score', 'DESC'], ['createdAt', 'ASC']]
         });
         
@@ -134,19 +145,21 @@ class ChallengeService {
    */
   async voteOnSubmission(submissionId, userId, voteType, reason = null) {
     try {
-      // Check if submission exists and challenge is in voting phase
-      const submission = await ChallengeSubmission.findByPk(submissionId, {
-        include: [{
-          model: Challenge,
-          as: 'challenge'
-        }]
-      });
+      // Check if submission exists
+      const submission = await ChallengeSubmission.findByPk(submissionId);
 
       if (!submission) {
         throw new Error('Submission not found');
       }
 
-      if (submission.challenge.status !== 'voting') {
+      // Check if challenge is in voting phase by fetching it separately
+      const challenge = await Challenge.findByPk(submission.challengeId);
+
+      if (!challenge) {
+        throw new Error('Challenge not found');
+      }
+
+      if (challenge.status !== 'voting') {
         throw new Error('Challenge is not in voting phase');
       }
 
@@ -369,17 +382,18 @@ class ChallengeService {
 
       const submissions = await ChallengeSubmission.findAll({
         where,
-        // Temporarily remove associations to debug
-        // include: [
-        //   {
-        //     model: Challenge,
-        //     as: 'challenge'
-        //   },
-        //   {
-        //     model: Location,
-        //     as: 'location'
-        //   }
-        // ],
+        include: [
+          {
+            model: require('../models/Challenge'),
+            as: 'challenge',
+            attributes: ['id', 'title', 'status']
+          },
+          {
+            model: require('../models/Location'),
+            as: 'location',
+            attributes: ['id', 'content', 'locationType']
+          }
+        ],
         order: [['createdAt', 'DESC']]
       });
 
@@ -404,12 +418,12 @@ class ChallengeService {
         },
         include: [
           {
-            model: User,
+            model: require('../models/User'),
             as: 'user',
-            attributes: ['email', 'profile']
+            attributes: ['id', 'email']
           },
           {
-            model: Location,
+            model: require('../models/Location'),
             as: 'location',
             attributes: ['id', 'content', 'locationType']
           }
