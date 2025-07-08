@@ -1,13 +1,13 @@
-const { sequelize } = require('./config/database');
+const sequelize = require('./config/database');
 const fs = require('fs');
 const path = require('path');
 
 async function runMigration() {
   try {
-    console.log('🔍 Running challenge tables migration...');
+    console.log('🔍 Running report and appeal system migration...');
     
     // Read the migration file
-    const migrationPath = path.join(__dirname, 'migrations', '20250110050013-create-challenge-tables.js');
+    const migrationPath = path.join(__dirname, 'migrations', '20250110050015-create-report-appeal-system.js');
     const migration = require(migrationPath);
     
     console.log('✅ Migration file loaded');
@@ -19,11 +19,11 @@ async function runMigration() {
     
     // Verify tables were created
     const tables = await sequelize.query(
-      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'challenge%'",
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name LIKE 'LocationReport%' OR table_name LIKE 'LocationAppeal%'",
       { type: sequelize.QueryTypes.SELECT }
     );
     
-    console.log('📋 Challenge tables found:', tables.map(t => t.table_name));
+    console.log('📋 Report and Appeal tables found:', tables.map(t => t.table_name));
     
   } catch (error) {
     console.error('❌ Migration failed:', error.message);

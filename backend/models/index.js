@@ -14,6 +14,8 @@ const Challenge = require('./Challenge');
 const ChallengeSubmission = require('./ChallengeSubmission');
 const ChallengeVote = require('./ChallengeVote');
 const ChallengeReward = require('./ChallengeReward');
+const LocationReport = require('./LocationReport');
+const LocationAppeal = require('./LocationAppeal');
 
 // Set up associations
 const models = {
@@ -32,7 +34,9 @@ const models = {
   Challenge,
   ChallengeSubmission,
   ChallengeVote,
-  ChallengeReward
+  ChallengeReward,
+  LocationReport,
+  LocationAppeal
 };
 
 // Call associate function for each model if it exists
