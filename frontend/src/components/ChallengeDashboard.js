@@ -168,11 +168,38 @@ const ChallengeDashboard = ({ user, API_URL }) => {
         throw new Error(errorData.error || 'Failed to vote');
       }
 
-      // Refresh challenge details to get updated vote counts
+      // Refresh challenge details to show updated votes
       fetchChallengeDetails(selectedChallenge.id);
     } catch (error) {
       console.error('Error voting:', error);
       setError(error.message);
+    }
+  };
+
+  const pasteLocationId = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      // Check if the text looks like a UUID (location ID format)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(text.trim())) {
+        setSubmissionData({...submissionData, locationId: text.trim()});
+        // Show success feedback
+        const button = document.getElementById('paste-id-button');
+        if (button) {
+          const originalText = button.textContent;
+          button.textContent = '✓ Pasted!';
+          button.style.backgroundColor = '#4CAF50';
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.style.backgroundColor = '#2196F3';
+          }, 1500);
+        }
+      } else {
+        setError('Clipboard content does not appear to be a valid location ID');
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+      setError('Failed to read from clipboard. Please paste the location ID manually.');
     }
   };
 
@@ -357,13 +384,44 @@ const ChallengeDashboard = ({ user, API_URL }) => {
             <form onSubmit={handleSubmitLocation}>
               <div className="form-group">
                 <label>Location ID:</label>
-                <input
-                  type="text"
-                  value={submissionData.locationId}
-                  onChange={(e) => setSubmissionData({...submissionData, locationId: e.target.value})}
-                  placeholder="Enter the location ID you want to submit"
-                  required
-                />
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button
+                    id="paste-id-button"
+                    type="button"
+                    onClick={pasteLocationId}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#2196F3',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      transition: 'background-color 0.3s ease'
+                    }}
+                    title="Paste location ID from clipboard"
+                  >
+                    📋 Paste ID Here
+                  </button>
+                  {submissionData.locationId && (
+                    <span style={{ 
+                      fontSize: '12px', 
+                      color: '#4CAF50',
+                      fontWeight: '500'
+                    }}>
+                      ✓ ID: {submissionData.locationId.substring(0, 8)}...
+                    </span>
+                  )}
+                </div>
+                <small style={{ 
+                  color: '#666', 
+                  fontSize: '12px',
+                  marginTop: '4px',
+                  display: 'block'
+                }}>
+                  💡 Click a location on the map, then click "Location ID" to copy it
+                </small>
               </div>
               
               <div className="form-group">

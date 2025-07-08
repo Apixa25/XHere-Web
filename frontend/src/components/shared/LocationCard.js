@@ -198,7 +198,32 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false, onStatusUpd
 
   const handlePurchaseError = (error) => {
     console.error('Purchase error:', error);
-    // You can add error handling logic here
+  };
+
+  const copyLocationId = async () => {
+    try {
+      await navigator.clipboard.writeText(location.id.toString());
+      // Show a brief success message
+      const button = document.getElementById(`location-id-${location.id}`);
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = '✓ Copied!';
+        button.style.backgroundColor = '#4CAF50';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = '#2196F3';
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Failed to copy location ID:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = location.id.toString();
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleOfficialControlsSuccess = (result) => {
@@ -538,6 +563,25 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false, onStatusUpd
                 }}
               >
                 Share
+              </button>
+              
+              {/* Location ID Copy Button */}
+              <button
+                id={`location-id-${location.id}`}
+                onClick={copyLocationId}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease'
+                }}
+                title="Copy Location ID to clipboard"
+              >
+                Location ID
               </button>
               
               {/* Edit/Delete buttons for creator */}
