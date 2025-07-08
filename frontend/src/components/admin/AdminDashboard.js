@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import smartFilteringService from '../../services/smartFilteringService';
 import './AdminDashboard.css';
 
 const BACKEND_URL = 'http://localhost:3000';
@@ -986,6 +987,12 @@ const AdminDashboard = () => {
           👮‍♂️ Moderator Queue
         </button>
         <button 
+          className={activeTab === 'smartFiltering' ? 'active' : ''} 
+          onClick={() => setActiveTab('smartFiltering')}
+        >
+          🛡️ Smart Filtering
+        </button>
+        <button 
           className={activeTab === 'challenges' ? 'active' : ''} 
           onClick={() => {
             setActiveTab('challenges');
@@ -995,6 +1002,11 @@ const AdminDashboard = () => {
           🎯 Challenges
         </button>
       </div>
+
+      {/* Smart Filtering Tab */}
+      {activeTab === 'smartFiltering' && (
+        <SmartFilteringDashboard />
+      )}
 
       {/* Cleanup Monitoring Tab */}
       {activeTab === 'cleanup' && (
@@ -1868,6 +1880,698 @@ const headerStyle = {
   userSelect: 'none',
   position: 'relative',
   paddingRight: '20px'
+};
+
+// Smart Filtering Dashboard Component
+const SmartFilteringDashboard = () => {
+  const [activeSubTab, setActiveSubTab] = useState('overview');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Overview state
+  const [systemHealth, setSystemHealth] = useState(null);
+  const [filteringStats, setFilteringStats] = useState(null);
+  const [thresholds, setThresholds] = useState(null);
+  
+  // Review Queue state
+  const [reviewQueue, setReviewQueue] = useState([]);
+  const [queueStats, setQueueStats] = useState(null);
+  const [selectedReviews, setSelectedReviews] = useState([]);
+  const [queueFilters, setQueueFilters] = useState({
+    status: 'all',
+    priority: 'all',
+    category: 'all'
+  });
+  
+  // Transparency state
+  const [transparencyReport, setTransparencyReport] = useState(null);
+  const [timeRange, setTimeRange] = useState('30d');
+  
+  // Test Analysis state
+  const [testLocation, setTestLocation] = useState({
+    name: '',
+    description: '',
+    category: 'restaurant',
+    coordinates: { lat: 0, lng: 0 }
+  });
+  const [testAnalysis, setTestAnalysis] = useState(null);
+
+  useEffect(() => {
+    loadOverviewData();
+  }, []);
+
+  const loadOverviewData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [health, stats, thresholdData] = await Promise.all([
+        smartFilteringService.getSystemHealth(),
+        smartFilteringService.getFilteringStats(),
+        smartFilteringService.getThresholds()
+      ]);
+      
+      setSystemHealth(health);
+      setFilteringStats(stats);
+      setThresholds(thresholdData);
+    } catch (err) {
+      console.error('Error loading overview data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadReviewQueue = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [queue, stats] = await Promise.all([
+        smartFilteringService.getReviewQueueItems(queueFilters),
+        smartFilteringService.getReviewQueueStats()
+      ]);
+      
+      setReviewQueue(queue.items || []);
+      setQueueStats(stats);
+    } catch (err) {
+      console.error('Error loading review queue:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTransparencyReport = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const report = await smartFilteringService.getTransparencyReport(timeRange);
+      setTransparencyReport(report);
+    } catch (err) {
+      console.error('Error loading transparency report:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedReviews.length === 0) {
+      alert('Please select items to process');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to ${action} ${selectedReviews.length} items?`)) {
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await smartFilteringService.bulkModerationAction(selectedReviews, action);
+      alert(`Successfully processed ${selectedReviews.length} items`);
+      setSelectedReviews([]);
+      loadReviewQueue();
+    } catch (err) {
+      console.error('Error processing bulk action:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReviewDecision = async (reviewId, decision, reason = '') => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await smartFilteringService.processReviewDecision(reviewId, decision, reason);
+      alert(`Review ${decision} successfully`);
+      loadReviewQueue();
+    } catch (err) {
+      console.error('Error processing review decision:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestAnalysis = async () => {
+    if (!testLocation.name || !testLocation.description) {
+      alert('Please provide both name and description for testing');
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const analysis = await smartFilteringService.analyzeLocation(testLocation, {
+        id: 'test-user',
+        trustLevel: 'new',
+        joinDate: new Date().toISOString()
+      });
+      
+      setTestAnalysis(analysis);
+    } catch (err) {
+      console.error('Error testing analysis:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateThresholds = async (newThresholds) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await smartFilteringService.updateThresholds(newThresholds);
+      alert('Thresholds updated successfully');
+      loadOverviewData();
+    } catch (err) {
+      console.error('Error updating thresholds:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRiskLevelColor = (level) => {
+    switch (level) {
+      case 'low': return 'success';
+      case 'medium': return 'warning';
+      case 'high': return 'danger';
+      case 'critical': return 'critical';
+      default: return 'info';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return '⏳';
+      case 'approved': return '✅';
+      case 'rejected': return '❌';
+      case 'escalated': return '🚨';
+      default: return '❓';
+    }
+  };
+
+  return (
+    <div className="smart-filtering-dashboard">
+      <div className="dashboard-header">
+        <h3>🛡️ Smart Filtering Dashboard</h3>
+        <div className="header-actions">
+          <button 
+            onClick={loadOverviewData}
+            disabled={loading}
+            className="refresh-btn"
+          >
+            {loading ? '🔄' : '🔄'} Refresh
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="error-message">
+          ❌ {error}
+        </div>
+      )}
+
+      {/* Sub-tab Navigation */}
+      <div className="sub-tab-buttons">
+        <button 
+          className={activeSubTab === 'overview' ? 'active' : ''} 
+          onClick={() => setActiveSubTab('overview')}
+        >
+          📊 Overview
+        </button>
+        <button 
+          className={activeSubTab === 'queue' ? 'active' : ''} 
+          onClick={() => {
+            setActiveSubTab('queue');
+            loadReviewQueue();
+          }}
+        >
+          📋 Review Queue
+        </button>
+        <button 
+          className={activeSubTab === 'transparency' ? 'active' : ''} 
+          onClick={() => {
+            setActiveSubTab('transparency');
+            loadTransparencyReport();
+          }}
+        >
+          📈 Transparency
+        </button>
+        <button 
+          className={activeSubTab === 'test' ? 'active' : ''} 
+          onClick={() => setActiveSubTab('test')}
+        >
+          🧪 Test Analysis
+        </button>
+      </div>
+
+      {/* Overview Tab */}
+      {activeSubTab === 'overview' && (
+        <div className="overview-section">
+          {systemHealth && (
+            <div className={`system-health-card ${systemHealth.status}`}>
+              <div className="health-header">
+                <span className="health-icon">
+                  {systemHealth.status === 'healthy' ? '✅' : 
+                   systemHealth.status === 'warning' ? '⚠️' : '🚨'}
+                </span>
+                <h4>System Health</h4>
+                <span className={`health-status ${systemHealth.status}`}>
+                  {systemHealth.status.toUpperCase()}
+                </span>
+              </div>
+              <p>{systemHealth.message}</p>
+              <div className="health-metrics">
+                <span>Detection Rate: {(systemHealth.metrics.detectionRate * 100).toFixed(1)}%</span>
+                <span>False Positives: {(systemHealth.metrics.falsePositiveRate * 100).toFixed(1)}%</span>
+                <span>Response Time: {systemHealth.metrics.avgResponseTime}ms</span>
+              </div>
+            </div>
+          )}
+
+          {filteringStats && (
+            <div className="stats-grid">
+              <div className="stat-card">
+                <h4>🔍 Total Analysis</h4>
+                <div className="stat-value">{filteringStats.totalAnalysis}</div>
+              </div>
+              <div className="stat-card">
+                <h4>🚨 Flagged Content</h4>
+                <div className="stat-value warning">{filteringStats.flaggedContent}</div>
+              </div>
+              <div className="stat-card">
+                <h4>✅ Approved</h4>
+                <div className="stat-value success">{filteringStats.approvedContent}</div>
+              </div>
+              <div className="stat-card">
+                <h4>❌ Rejected</h4>
+                <div className="stat-value danger">{filteringStats.rejectedContent}</div>
+              </div>
+              <div className="stat-card">
+                <h4>⏳ Pending Review</h4>
+                <div className="stat-value">{filteringStats.pendingReview}</div>
+              </div>
+              <div className="stat-card">
+                <h4>📊 Accuracy</h4>
+                <div className="stat-value">{(filteringStats.accuracy * 100).toFixed(1)}%</div>
+              </div>
+            </div>
+          )}
+
+          {thresholds && (
+            <div className="thresholds-section">
+              <h4>⚙️ Filtering Thresholds</h4>
+              <div className="thresholds-grid">
+                <div className="threshold-item">
+                  <label>Duplicate Detection:</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={thresholds.duplicateDetection}
+                    onChange={(e) => setThresholds({
+                      ...thresholds,
+                      duplicateDetection: parseFloat(e.target.value)
+                    })}
+                  />
+                  <span>{thresholds.duplicateDetection}</span>
+                </div>
+                <div className="threshold-item">
+                  <label>Behavioral Analysis:</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={thresholds.behavioralAnalysis}
+                    onChange={(e) => setThresholds({
+                      ...thresholds,
+                      behavioralAnalysis: parseFloat(e.target.value)
+                    })}
+                  />
+                  <span>{thresholds.behavioralAnalysis}</span>
+                </div>
+                <div className="threshold-item">
+                  <label>Content Quality:</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={thresholds.contentQuality}
+                    onChange={(e) => setThresholds({
+                      ...thresholds,
+                      contentQuality: parseFloat(e.target.value)
+                    })}
+                  />
+                  <span>{thresholds.contentQuality}</span>
+                </div>
+                <div className="threshold-item">
+                  <label>Risk Scoring:</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={thresholds.riskScoring}
+                    onChange={(e) => setThresholds({
+                      ...thresholds,
+                      riskScoring: parseFloat(e.target.value)
+                    })}
+                  />
+                  <span>{thresholds.riskScoring}</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => updateThresholds(thresholds)}
+                disabled={loading}
+                className="update-thresholds-btn"
+              >
+                {loading ? 'Updating...' : 'Update Thresholds'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Review Queue Tab */}
+      {activeSubTab === 'queue' && (
+        <div className="queue-section">
+          <div className="queue-header">
+            <h4>📋 Review Queue</h4>
+            <div className="queue-filters">
+              <select
+                value={queueFilters.status}
+                onChange={(e) => setQueueFilters({
+                  ...queueFilters,
+                  status: e.target.value
+                })}
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <select
+                value={queueFilters.priority}
+                onChange={(e) => setQueueFilters({
+                  ...queueFilters,
+                  priority: e.target.value
+                })}
+              >
+                <option value="all">All Priority</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <button onClick={loadReviewQueue}>Apply Filters</button>
+            </div>
+          </div>
+
+          {queueStats && (
+            <div className="queue-stats">
+              <span>Total: {queueStats.total}</span>
+              <span>Pending: {queueStats.pending}</span>
+              <span>High Priority: {queueStats.highPriority}</span>
+            </div>
+          )}
+
+          <div className="bulk-actions">
+            <button 
+              onClick={() => handleBulkAction('approve')}
+              disabled={selectedReviews.length === 0}
+              className="bulk-approve-btn"
+            >
+              ✅ Approve Selected ({selectedReviews.length})
+            </button>
+            <button 
+              onClick={() => handleBulkAction('reject')}
+              disabled={selectedReviews.length === 0}
+              className="bulk-reject-btn"
+            >
+              ❌ Reject Selected ({selectedReviews.length})
+            </button>
+            <button 
+              onClick={() => handleBulkAction('escalate')}
+              disabled={selectedReviews.length === 0}
+              className="bulk-escalate-btn"
+            >
+              🚨 Escalate Selected ({selectedReviews.length})
+            </button>
+          </div>
+
+          <div className="review-queue-list">
+            {reviewQueue.map((review) => (
+              <div key={review.id} className={`review-item ${review.priority}`}>
+                <div className="review-header">
+                  <input
+                    type="checkbox"
+                    checked={selectedReviews.includes(review.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedReviews([...selectedReviews, review.id]);
+                      } else {
+                        setSelectedReviews(selectedReviews.filter(id => id !== review.id));
+                      }
+                    }}
+                  />
+                  <span className={`status-icon ${review.status}`}>
+                    {getStatusIcon(review.status)}
+                  </span>
+                  <span className={`priority-badge ${review.priority}`}>
+                    {review.priority.toUpperCase()}
+                  </span>
+                  <span className="review-id">#{review.id}</span>
+                </div>
+                
+                <div className="review-content">
+                  <h5>{review.locationData.name}</h5>
+                  <p>{review.locationData.description}</p>
+                  <div className="analysis-summary">
+                    <span className={`risk-level ${getRiskLevelColor(review.analysis.riskLevel)}`}>
+                      Risk: {review.analysis.riskLevel.toUpperCase()}
+                    </span>
+                    <span className="score">Score: {review.analysis.riskScore.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="review-actions">
+                  <button 
+                    onClick={() => handleReviewDecision(review.id, 'approve')}
+                    className="approve-btn"
+                  >
+                    ✅ Approve
+                  </button>
+                  <button 
+                    onClick={() => handleReviewDecision(review.id, 'reject')}
+                    className="reject-btn"
+                  >
+                    ❌ Reject
+                  </button>
+                  <button 
+                    onClick={() => handleReviewDecision(review.id, 'escalate')}
+                    className="escalate-btn"
+                  >
+                    🚨 Escalate
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Transparency Tab */}
+      {activeSubTab === 'transparency' && (
+        <div className="transparency-section">
+          <div className="transparency-header">
+            <h4>📈 Transparency Report</h4>
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+            >
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="90d">Last 90 Days</option>
+            </select>
+            <button onClick={loadTransparencyReport}>Generate Report</button>
+          </div>
+
+          {transparencyReport && (
+            <div className="transparency-content">
+              <div className="report-summary">
+                <h5>Summary</h5>
+                <div className="summary-stats">
+                  <span>Total Actions: {transparencyReport.totalActions}</span>
+                  <span>Accuracy Rate: {(transparencyReport.accuracyRate * 100).toFixed(1)}%</span>
+                  <span>Average Response Time: {transparencyReport.avgResponseTime}ms</span>
+                </div>
+              </div>
+
+              <div className="action-breakdown">
+                <h5>Action Breakdown</h5>
+                <div className="breakdown-chart">
+                  {Object.entries(transparencyReport.actionBreakdown).map(([action, count]) => (
+                    <div key={action} className="breakdown-item">
+                      <span className="action-name">{action}</span>
+                      <div className="action-bar">
+                        <div 
+                          className="action-fill"
+                          style={{width: `${(count / transparencyReport.totalActions) * 100}%`}}
+                        ></div>
+                      </div>
+                      <span className="action-count">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="recent-actions">
+                <h5>Recent Actions</h5>
+                <div className="actions-list">
+                  {transparencyReport.recentActions.map((action) => (
+                    <div key={action.id} className="action-item">
+                      <span className="action-time">{new Date(action.timestamp).toLocaleString()}</span>
+                      <span className={`action-type ${action.type}`}>{action.type}</span>
+                      <span className="action-details">{action.details}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Test Analysis Tab */}
+      {activeSubTab === 'test' && (
+        <div className="test-section">
+          <h4>🧪 Test Smart Filtering Analysis</h4>
+          
+          <div className="test-form">
+            <div className="form-group">
+              <label>Location Name:</label>
+              <input
+                type="text"
+                value={testLocation.name}
+                onChange={(e) => setTestLocation({
+                  ...testLocation,
+                  name: e.target.value
+                })}
+                placeholder="Enter location name"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Description:</label>
+              <textarea
+                value={testLocation.description}
+                onChange={(e) => setTestLocation({
+                  ...testLocation,
+                  description: e.target.value
+                })}
+                placeholder="Enter location description"
+                rows="4"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Category:</label>
+              <select
+                value={testLocation.category}
+                onChange={(e) => setTestLocation({
+                  ...testLocation,
+                  category: e.target.value
+                })}
+              >
+                <option value="restaurant">Restaurant</option>
+                <option value="cafe">Cafe</option>
+                <option value="park">Park</option>
+                <option value="shop">Shop</option>
+                <option value="landmark">Landmark</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+            
+            <button 
+              onClick={handleTestAnalysis}
+              disabled={loading || !testLocation.name || !testLocation.description}
+              className="test-analysis-btn"
+            >
+              {loading ? 'Analyzing...' : '🧪 Test Analysis'}
+            </button>
+          </div>
+
+          {testAnalysis && (
+            <div className="test-results">
+              <h5>Analysis Results</h5>
+              
+              <div className={`risk-summary ${getRiskLevelColor(testAnalysis.riskLevel)}`}>
+                <h6>Risk Assessment</h6>
+                <div className="risk-level">Level: {testAnalysis.riskLevel.toUpperCase()}</div>
+                <div className="risk-score">Score: {testAnalysis.riskScore.toFixed(2)}</div>
+              </div>
+
+              <div className="analysis-breakdown">
+                <h6>Analysis Breakdown</h6>
+                
+                <div className="breakdown-item">
+                  <span>Duplicate Detection:</span>
+                  <span className={`score ${testAnalysis.duplicateDetection.score > 0.7 ? 'high' : 'low'}`}>
+                    {testAnalysis.duplicateDetection.score.toFixed(2)}
+                  </span>
+                  <span className="details">{testAnalysis.duplicateDetection.details}</span>
+                </div>
+                
+                <div className="breakdown-item">
+                  <span>Behavioral Analysis:</span>
+                  <span className={`score ${testAnalysis.behavioralAnalysis.score > 0.7 ? 'high' : 'low'}`}>
+                    {testAnalysis.behavioralAnalysis.score.toFixed(2)}
+                  </span>
+                  <span className="details">{testAnalysis.behavioralAnalysis.details}</span>
+                </div>
+                
+                <div className="breakdown-item">
+                  <span>Content Quality:</span>
+                  <span className={`score ${testAnalysis.contentQuality.score > 0.7 ? 'high' : 'low'}`}>
+                    {testAnalysis.contentQuality.score.toFixed(2)}
+                  </span>
+                  <span className="details">{testAnalysis.contentQuality.details}</span>
+                </div>
+              </div>
+
+              <div className="recommendations">
+                <h6>Recommendations</h6>
+                <ul>
+                  {testAnalysis.recommendations.map((rec, index) => (
+                    <li key={index}>{rec}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="action-suggestion">
+                <h6>Suggested Action</h6>
+                <div className={`suggestion ${testAnalysis.suggestedAction}`}>
+                  {testAnalysis.suggestedAction.toUpperCase()}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default AdminDashboard; 

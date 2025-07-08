@@ -320,6 +320,18 @@ button.disabled:hover {
   transform: none;
 }
 
+button.warning {
+  background-color: #ffc107;
+  color: #212529;
+  border: 2px solid #ffc107;
+}
+
+button.warning:hover:not(:disabled) {
+  background-color: #e0a800;
+  border-color: #e0a800;
+  transform: translateY(-1px);
+}
+
 /* Location type selector enhancements */
 .location-type-select {
   width: 100%;

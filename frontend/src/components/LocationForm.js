@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import '../styles/LocationForm.css';
 import LOCATION_TYPES from '../constants/locationTypes';
 import PlaceCreditsButton from './PlaceCreditsButton';
+import SmartFilteringFeedback from './SmartFilteringFeedback';
 
 const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocationUpdate }) => {
   const [text, setText] = useState('');
@@ -13,6 +14,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocatio
   const [locationType, setLocationType] = useState('general');
   const [keywords, setKeywords] = useState('');
   const [initialCredits, setInitialCredits] = useState(0);
+  const [smartFilteringAnalysis, setSmartFilteringAnalysis] = useState(null);
 
   // Calculate required credits based on location type
   const getRequiredCredits = (type) => {
@@ -67,6 +69,18 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocatio
           value={text}
           onChange={(e) => setText(e.target.value)}
           required
+        />
+        
+        {/* Smart Filtering Feedback */}
+        <SmartFilteringFeedback
+          locationData={{
+            text,
+            locationType,
+            keywords: keywords.split(',').map(k => k.trim()).filter(k => k.length > 0),
+            coordinates: { lat: position.lat, lng: position.lng }
+          }}
+          userData={user}
+          onAnalysisComplete={setSmartFilteringAnalysis}
         />
         <input
           type="file"
@@ -167,12 +181,18 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocatio
         
         <button 
           type="submit" 
-          disabled={submitting || (locationType !== 'general' && !hasEnoughCredits)}
-          className={locationType !== 'general' && !hasEnoughCredits ? 'disabled' : ''}
+          disabled={submitting || (locationType !== 'general' && !hasEnoughCredits) || 
+                   (smartFilteringAnalysis && (smartFilteringAnalysis.suggestedAction === 'reject' || smartFilteringAnalysis.action === 'reject'))}
+          className={
+            locationType !== 'general' && !hasEnoughCredits ? 'disabled' : 
+            smartFilteringAnalysis && (smartFilteringAnalysis.suggestedAction === 'reject' || smartFilteringAnalysis.action === 'reject') ? 'warning' : ''
+          }
         >
           {submitting ? 'Submitting...' : 
            locationType !== 'general' && !hasEnoughCredits ? 
-           `Need ${requiredCredits - (user?.credits || 0)} more credits` : 
+           `Need ${requiredCredits - (user?.credits || 0)} more credits` :
+           smartFilteringAnalysis && (smartFilteringAnalysis.suggestedAction === 'reject' || smartFilteringAnalysis.action === 'reject') ?
+           '⚠️ Content flagged for review' :
            'Create Location'}
         </button>
       </form>

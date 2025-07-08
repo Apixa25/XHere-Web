@@ -21,6 +21,7 @@ const nominationService = require('../services/nominationService');
 const duplicateDetectionService = require('../services/duplicateDetectionService');
 const behavioralAnalysisService = require('../services/behavioralAnalysisService');
 const contentQualityService = require('../services/contentQualityService');
+const smartFilteringService = require('../services/smartFilteringService');
 
 // Configure multer for file uploads with better error handling
 const storage = multer.diskStorage({
@@ -323,8 +324,8 @@ router.post('/',
     console.log('🔍 Route handler - Extracted longitude:', longitude);
     console.log('🔍 Route handler - Extracted text:', text);
 
-    // 🛡️ DUPLICATE DETECTION - Check for duplicates before creating location
-    console.log('🛡️ Running duplicate detection for new location...');
+    // 🛡️ SMART FILTERING SYSTEM - Comprehensive filtering analysis
+    console.log('🛡️ Starting smart filtering analysis for new location...');
     const locationData = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
@@ -332,99 +333,31 @@ router.post('/',
       locationType: locationType || 'general'
     };
     
-    const duplicateAnalysis = await duplicateDetectionService.detectDuplicates(locationData, req.user.id);
-    console.log(`🛡️ Duplicate detection result: ${duplicateAnalysis.duplicateStatus} (Risk: ${duplicateAnalysis.totalRiskScore})`);
-    
-    // Handle high-risk duplicates
-    if (duplicateAnalysis.duplicateStatus === 'high_risk') {
-      await transaction.rollback();
-      return res.status(400).json({
-        error: 'Duplicate location detected',
-        message: 'This location appears to be a duplicate of an existing location. Please review and modify your submission.',
-        analysis: duplicateAnalysis,
-        recommendations: duplicateAnalysis.recommendations
-      });
-    }
-    
-    // Flag medium-risk locations for review
-    if (duplicateAnalysis.duplicateStatus === 'medium_risk') {
-      console.log('⚠️ Medium risk duplicate detected - location will be flagged for review');
-      // Continue with creation but flag for review
-    }
-
-    // 🧠 BEHAVIORAL ANALYSIS - Analyze user behavior patterns
-    console.log('🧠 Running behavioral analysis for user:', req.user.id);
-    const behavioralAnalysis = await behavioralAnalysisService.analyzeUserBehavior(req.user.id, locationData);
-    console.log(`🧠 Behavioral analysis result: Risk Level ${behavioralAnalysis.riskLevel} (Score: ${behavioralAnalysis.riskScore})`);
-    
-    // Handle high-risk behavioral patterns
-    if (behavioralAnalysis.isSuspicious) {
-      console.log('🚨 Suspicious user behavior detected - location will be flagged for review');
-      // Continue with creation but flag for review and log suspicious activity
-    }
-
-    // 📝 CONTENT QUALITY ANALYSIS - Analyze content for spam and quality
-    console.log('📝 Running content quality analysis...');
-    const contentData = {
-      name: text.trim(),
-      description: text.trim(),
-      keywords: parsedKeywords.join(' '),
-      images: req.files ? req.files.map(file => ({
-        filename: file.filename,
-        size: file.size,
-        mimetype: file.mimetype
-      })) : []
+    const userData = {
+      userId: req.user.id,
+      trustLevel: req.user.trustLevel,
+      email: req.user.email
     };
     
-    const contentQualityAnalysis = await contentQualityService.analyzeContentQuality(contentData, {
-      userId: req.user.id,
-      trustLevel: req.user.trustLevel
-    });
-    console.log(`📝 Content quality analysis result: Score ${contentQualityAnalysis.overallScore} (Risk: ${contentQualityAnalysis.riskLevel})`);
+    // Run comprehensive smart filtering analysis
+    const filteringAnalysis = await smartFilteringService.analyzeForFiltering(locationData, userData);
+    console.log(`🛡️ Smart filtering result: ${filteringAnalysis.filteringDecision} (Risk: ${filteringAnalysis.overallRisk})`);
     
-    // Handle critical content quality issues
-    if (contentQualityAnalysis.riskLevel === 'CRITICAL' || contentQualityAnalysis.spamScore > 70) {
-      console.log('🚨 Critical content quality issues detected - location will be blocked');
+    // Handle automatic blocking
+    if (filteringAnalysis.autoBlocked) {
       await transaction.rollback();
       return res.status(400).json({
-        error: 'Content quality issues detected',
-        message: 'This location has been blocked due to content quality issues. Please improve your content and try again.',
-        analysis: contentQualityAnalysis,
-        recommendations: contentQualityAnalysis.recommendations
+        error: 'Location blocked by smart filtering',
+        message: 'This location has been automatically blocked due to filtering criteria. Please review and modify your submission.',
+        analysis: filteringAnalysis,
+        recommendations: filteringAnalysis.recommendations
       });
     }
     
-    // Flag high-risk content for review
-    if (contentQualityAnalysis.riskLevel === 'HIGH') {
-      console.log('⚠️ High-risk content quality detected - location will be flagged for review');
+    // Handle manual review requirement
+    if (filteringAnalysis.reviewRequired) {
+      console.log('⚠️ Manual review required - location will be flagged for review');
       // Continue with creation but flag for review
-    }
-    
-    // Combine all analysis results for comprehensive risk assessment
-    const combinedRiskScore = (
-      duplicateAnalysis.totalRiskScore + 
-      behavioralAnalysis.riskScore + 
-      (100 - contentQualityAnalysis.overallScore)
-    ) / 3;
-    const isHighRisk = duplicateAnalysis.duplicateStatus === 'high_risk' || 
-                       behavioralAnalysis.isSuspicious || 
-                       contentQualityAnalysis.riskLevel === 'CRITICAL';
-    
-    if (isHighRisk) {
-      await transaction.rollback();
-      return res.status(400).json({
-        error: 'Location creation blocked',
-        message: 'This location has been blocked due to suspicious activity, duplicate detection, or content quality issues.',
-        duplicateAnalysis: duplicateAnalysis,
-        behavioralAnalysis: behavioralAnalysis,
-        contentQualityAnalysis: contentQualityAnalysis,
-        combinedRiskScore: combinedRiskScore,
-        recommendations: [
-          ...duplicateAnalysis.recommendations || [],
-          ...behavioralAnalysis.recommendations || [],
-          ...contentQualityAnalysis.recommendations || []
-        ]
-      });
     }
 
     // Get validation info from middleware

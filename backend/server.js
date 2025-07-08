@@ -164,6 +164,7 @@ const challengeRoutes = require('./routes/challengeRoutes');
 const duplicateDetectionRoutes = require('./routes/duplicateDetectionRoutes');
 const behavioralAnalysisRoutes = require('./routes/behavioralAnalysisRoutes');
 const contentQualityRoutes = require('./routes/contentQualityRoutes');
+const smartFilteringRoutes = require('./routes/smartFilteringRoutes');
 
 // Register the Stripe webhook route BEFORE body parsers (raw body needed)
 app.use('/api/credits/stripe-webhook', express.raw({ type: 'application/json' }), creditRoutes);
@@ -198,6 +199,8 @@ app.use('/api/duplicate-detection', duplicateDetectionRoutes);
 app.use('/api/behavioral-analysis', behavioralAnalysisRoutes);
 // Register content quality routes
 app.use('/api/content-quality', contentQualityRoutes);
+// Register smart filtering routes
+app.use('/api/smart-filtering', smartFilteringRoutes);
 
 // Add this debug log
 console.log('Available routes:', app._router.stack
