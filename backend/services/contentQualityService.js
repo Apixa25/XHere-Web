@@ -65,6 +65,21 @@ class ContentQualityService {
    */
   async analyzeContentQuality(locationData, userData = {}) {
     try {
+      // Add null check for locationData
+      if (!locationData) {
+        console.warn('⚠️ Content quality: locationData is undefined, returning safe default');
+        return {
+          overallScore: 0,
+          spamScore: 0,
+          imageQuality: { score: 0, issues: [] },
+          descriptionQuality: { score: 0, issues: [] },
+          contentValidation: { passed: false, issues: ['NO_LOCATION_DATA'] },
+          recommendations: ['Please provide valid location data'],
+          riskLevel: 'HIGH',
+          flags: ['NO_LOCATION_DATA']
+        };
+      }
+
       console.log('🔍 Starting content quality analysis for location:', locationData.name || 'Unknown');
 
       const analysis = {
@@ -127,6 +142,16 @@ class ContentQualityService {
    * @returns {Object} Spam analysis results
    */
   detectSpamKeywords(locationData) {
+    // Add null check for locationData
+    if (!locationData) {
+      console.warn('⚠️ Content quality: locationData is undefined, returning safe default');
+      return {
+        score: 0,
+        foundKeywords: [],
+        flags: ['NO_LOCATION_DATA']
+      };
+    }
+
     const content = [
       locationData.name || '',
       locationData.description || '',
