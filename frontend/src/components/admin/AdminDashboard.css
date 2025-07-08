@@ -1887,6 +1887,7 @@ tr:hover {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 12px;
   color: white;
+  gap: 15px;
 }
 
 .moderator-header h3 {
@@ -2215,12 +2216,11 @@ tr:hover {
   color: white;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  gap: 15px;
 }
 
-.challenges-header h3 {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: 700;
+.challenges-header > * {
+  margin-right: 0 !important;
 }
 
 .challenge-actions {

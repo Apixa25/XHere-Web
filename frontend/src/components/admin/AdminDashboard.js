@@ -1580,6 +1580,12 @@ const AdminDashboard = () => {
         <div className="challenges-tab">
           <div className="challenges-header">
             <h3>🎯 Challenge Management</h3>
+            <button 
+              className="back-to-map-button"
+              onClick={() => window.history.back()}
+            >
+              ← Back to Map
+            </button>
             <div className="challenge-actions">
               <button 
                 onClick={() => setShowCreateChallenge(true)}

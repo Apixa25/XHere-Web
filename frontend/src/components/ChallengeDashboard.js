@@ -255,7 +255,7 @@ const ChallengeDashboard = ({ user, API_URL }) => {
           </div>
           <div className="header-right">
             <button 
-              className="back-to-map-btn"
+              className="back-to-map-button"
               onClick={() => window.location.href = '/'}
             >
               🗺️ Back to Map
