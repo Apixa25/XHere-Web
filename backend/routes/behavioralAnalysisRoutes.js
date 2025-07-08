@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const behavioralAnalysisService = require('../services/behavioralAnalysisService');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 /**
  * @route POST /api/behavioral-analysis/analyze
  * @desc Analyze user behavior patterns
  * @access Private
  */
-router.post('/analyze', auth, async (req, res) => {
+router.post('/analyze', authenticateToken, async (req, res) => {
   try {
     const { userId, locationData } = req.body;
     
@@ -44,7 +44,7 @@ router.post('/analyze', auth, async (req, res) => {
  * @desc Get behavioral analysis for a specific user
  * @access Private
  */
-router.get('/user/:userId', auth, async (req, res) => {
+router.get('/user/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -73,7 +73,7 @@ router.get('/user/:userId', auth, async (req, res) => {
  * @desc Get behavioral analysis statistics
  * @access Private (Admin only)
  */
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const { timeRange = '7d' } = req.query;
     
@@ -103,7 +103,7 @@ router.get('/stats', auth, async (req, res) => {
  * @desc Get list of suspicious users
  * @access Private (Admin only)
  */
-router.get('/suspicious-users', auth, async (req, res) => {
+router.get('/suspicious-users', authenticateToken, async (req, res) => {
   try {
     const { limit = 20 } = req.query;
     
@@ -133,7 +133,7 @@ router.get('/suspicious-users', auth, async (req, res) => {
  * @desc Check posting patterns for a user
  * @access Private
  */
-router.post('/check-posting-patterns', auth, async (req, res) => {
+router.post('/check-posting-patterns', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.body;
     
@@ -169,7 +169,7 @@ router.post('/check-posting-patterns', auth, async (req, res) => {
  * @desc Detect suspicious activity for a user
  * @access Private
  */
-router.post('/detect-suspicious-activity', auth, async (req, res) => {
+router.post('/detect-suspicious-activity', authenticateToken, async (req, res) => {
   try {
     const { userId, locationData } = req.body;
     
@@ -205,7 +205,7 @@ router.post('/detect-suspicious-activity', auth, async (req, res) => {
  * @desc Calculate behavior score for a user
  * @access Private
  */
-router.post('/calculate-score', auth, async (req, res) => {
+router.post('/calculate-score', authenticateToken, async (req, res) => {
   try {
     const { userId, analysis } = req.body;
     
@@ -241,7 +241,7 @@ router.post('/calculate-score', auth, async (req, res) => {
  * @desc Get detailed posting patterns for a user
  * @access Private
  */
-router.get('/user/:userId/patterns', auth, async (req, res) => {
+router.get('/user/:userId/patterns', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -270,7 +270,7 @@ router.get('/user/:userId/patterns', auth, async (req, res) => {
  * @desc Get behavioral flags for a user
  * @access Private
  */
-router.get('/user/:userId/flags', auth, async (req, res) => {
+router.get('/user/:userId/flags', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -300,7 +300,7 @@ router.get('/user/:userId/flags', auth, async (req, res) => {
  * @desc Get behavioral recommendations for a user
  * @access Private
  */
-router.get('/user/:userId/recommendations', auth, async (req, res) => {
+router.get('/user/:userId/recommendations', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -331,7 +331,7 @@ router.get('/user/:userId/recommendations', auth, async (req, res) => {
  * @desc Update behavioral analysis thresholds
  * @access Private (Admin only)
  */
-router.post('/update-thresholds', auth, async (req, res) => {
+router.post('/update-thresholds', authenticateToken, async (req, res) => {
   try {
     const { thresholds } = req.body;
     
@@ -368,7 +368,7 @@ router.post('/update-thresholds', auth, async (req, res) => {
  * @desc Get current behavioral analysis thresholds
  * @access Private (Admin only)
  */
-router.get('/thresholds', auth, async (req, res) => {
+router.get('/thresholds', authenticateToken, async (req, res) => {
   try {
     console.log('⚙️ Getting current behavioral analysis thresholds');
     
