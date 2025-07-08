@@ -1,34 +1,27 @@
 import React, { useState, useEffect, useCallback, useRef, createContext, useMemo } from 'react';
 import { 
   GoogleMap, 
-  LoadScript, 
-  Marker,
   OverlayView,
   useLoadScript 
 } from '@react-google-maps/api';
 import api from './services/api';
 import './App.css';
-import BadgeNotification from './components/BadgeNotification';
 import VoteButtons from './components/VoteButtons';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
 import { createBrowserRouter, RouterProvider, Link, Navigate } from 'react-router-dom';
 import ProfilePage from './components/ProfilePage';
 import AuthPage from './components/AuthPage';
 import CreditsPage from './components/CreditsPage';
 import CreditSystemTest from './components/CreditSystemTest';
-import backgroundImage from './images/background.jpg';
 import './styles/LocationForm.css';
 import AdminDashboard from './components/admin/AdminDashboard';
 import UserLocationsPage from './components/admin/UserLocationsPage';
 import './styles/markers.css';
-import PROFILE_TYPES from './constants/profileTypes';
 import LOCATION_TYPES from './constants/locationTypes';
 import LocationForm from './components/LocationForm';
 import CommentSection from './components/CommentSection';
 import MessageButton from './components/messaging/MessageButton';
 import KeywordsDisplay from './components/KeywordsDisplay';
-import KeywordSearch from './components/KeywordSearch';
 import KeywordSearchCompact from './components/KeywordSearchCompact';
 import LocationShareModal from './components/shared/LocationShareModal';
 import BuyLocationButton from './components/BuyLocationButton';
@@ -36,7 +29,6 @@ import OwnershipStatus from './components/OwnershipStatus';
 import PurchaseHistory from './components/PurchaseHistory';
 import UserOwnedLocations from './components/UserOwnedLocations';
 import OfficialLocationsPage from './components/OfficialLocationsPage';
-import MakeOfficialButton from './components/MakeOfficialButton';
 import OfficialLocationControls from './components/OfficialLocationControls';
 import StatusFilter from './components/StatusFilter';
 import StatusNotification from './components/StatusNotification';
@@ -45,6 +37,8 @@ import Achievements from './components/Achievements';
 import PublicProfile from './components/PublicProfile';
 import ChallengeDashboard from './components/ChallengeDashboard';
 import DuplicateDetectionAlert from './components/DuplicateDetectionAlert';
+import LocationReportModal from './components/LocationReportModal';
+import TransparencyDashboard from './components/TransparencyDashboard';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -179,6 +173,7 @@ function GoogleMapsProvider({ children }) {
 function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteUpdate, API_URL }) {
   const [showShare, setShowShare] = useState(false);
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [ownershipInfo, setOwnershipInfo] = useState(null);
   
@@ -451,6 +446,32 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
             >
               Location ID
             </button>
+            
+            {/* Report Location Button */}
+            <button
+              onClick={() => {
+                console.log('🚨 Report button clicked!');
+                console.log('Current showReportModal state:', showReportModal);
+                setShowReportModal(true);
+                console.log('Set showReportModal to true');
+              }}
+              style={{
+                padding: '4px 8px',
+                backgroundColor: '#FF5722',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '10px',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease',
+                marginRight: '8px',
+                zIndex: 1000,
+                position: 'relative'
+              }}
+              title="Report this location"
+            >
+              🚨 Report
+            </button>
             <button onClick={() => setShowShare(true)}>Share</button>
             {showShare && (
               <LocationShareModal link={`${window.location.origin}/location/${marker.id}`} onClose={() => setShowShare(false)} />
@@ -607,6 +628,19 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
           isOpen={showPurchaseHistory}
           onClose={() => setShowPurchaseHistory(false)}
         />
+      )}
+
+      {/* Report Location Modal */}
+      {showReportModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 }}>
+          <LocationReportModal
+            location={marker}
+            onClose={() => {
+              console.log('Closing report modal');
+              setShowReportModal(false);
+            }}
+          />
+        </div>
       )}
     </div>
   );
@@ -1709,6 +1743,7 @@ function App() {
             {user && <Link to="/leaderboard">🏆 Leaderboard</Link>}
             {user && <Link to="/achievements">🎯 Achievements</Link>}
             {user && <Link to="/challenges">🎯 Challenges</Link>}
+            {user && <Link to="/transparency">🛡️ Transparency</Link>}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
             {cameFromAdmin && user?.isAdmin && (
               <button 
@@ -2026,6 +2061,10 @@ function App() {
     {
       path: "/challenges",
       element: user ? <ChallengeDashboard user={user} API_URL={API_URL} /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/transparency",
+      element: user ? <TransparencyDashboard /> : <Navigate to="/auth" />,
     },
     {
       path: "/profile/:userId",

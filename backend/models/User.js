@@ -151,6 +151,30 @@ User.associate = (models) => {
     otherKey: 'badgeId',
     as: 'earnedBadges'
   });
+
+  // Location associations
+  User.hasMany(models.Location, {
+    foreignKey: 'creatorId',
+    as: 'createdLocations'
+  });
+
+  // Report and appeal associations
+  User.hasMany(models.LocationReport, {
+    foreignKey: 'reporterId',
+    as: 'reportsSubmitted'
+  });
+  User.hasMany(models.LocationReport, {
+    foreignKey: 'moderatorId',
+    as: 'reportsReviewed'
+  });
+  User.hasMany(models.LocationAppeal, {
+    foreignKey: 'appellantId',
+    as: 'appealsSubmitted'
+  });
+  User.hasMany(models.LocationAppeal, {
+    foreignKey: 'reviewerId',
+    as: 'appealsReviewed'
+  });
 };
 
 module.exports = User; 

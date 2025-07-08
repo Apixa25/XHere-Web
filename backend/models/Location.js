@@ -148,6 +148,15 @@ Location.associate = (models) => {
     foreignKey: 'officialOwnerId',
     as: 'officialOwner'
   });
+  // Add report and appeal associations
+  Location.hasMany(models.LocationReport, {
+    foreignKey: 'locationId',
+    as: 'reports'
+  });
+  Location.hasMany(models.LocationAppeal, {
+    foreignKey: 'locationId',
+    as: 'appeals'
+  });
 };
 
 module.exports = Location; 

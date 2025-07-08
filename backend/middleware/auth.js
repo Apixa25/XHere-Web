@@ -23,7 +23,8 @@ const authenticateToken = async (req, res, next) => {
     req.user = {
       id: user.id,
       email: user.email,
-      isAdmin: user.isAdmin
+      isAdmin: user.isAdmin,
+      trustLevel: user.trustLevel
     };
     console.log('🔍 Auth middleware - Setting req.user:', req.user);
     
@@ -53,7 +54,28 @@ const requireAdmin = async (req, res, next) => {
   }
 };
 
+const requireModerator = async (req, res, next) => {
+  try {
+    // First authenticate the user
+    await authenticateToken(req, res, (err) => {
+      if (err) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+    });
+
+    // Then check if user is moderator or admin
+    if (!req.user || (!req.user.isAdmin && req.user.trustLevel !== 'moderator')) {
+      return res.status(403).json({ error: 'Moderator privileges required' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(403).json({ error: 'Moderator privileges required' });
+  }
+};
+
 module.exports = {
   authenticateToken: authenticateToken,
-  requireAdmin: requireAdmin
+  requireAdmin: requireAdmin,
+  requireModerator: requireModerator
 };

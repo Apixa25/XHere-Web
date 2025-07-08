@@ -198,18 +198,65 @@ class ReportAppealService {
         offset: parseInt(offset)
       });
       
-      const totalCount = await LocationReport.count({ where: whereClause });
+      const total = await LocationReport.count({ where: whereClause });
       
       return {
         reports,
         pagination: {
+          total,
           limit: parseInt(limit),
           offset: parseInt(offset),
-          total: totalCount
+          pages: Math.ceil(total / limit)
         }
       };
     } catch (error) {
       console.error('❌ Error getting reports for review:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 📊 Get user's submitted reports
+   * @param {string} userId - User ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} User reports data
+   */
+  static async getUserReports(userId, options = {}) {
+    try {
+      const { limit = 20, offset = 0 } = options;
+      
+      const reports = await LocationReport.findAll({
+        where: { reporterId: userId },
+        include: [
+          {
+            model: Location,
+            as: 'location',
+            attributes: ['id', 'content', 'locationType', 'locationStatus']
+          },
+          {
+            model: User,
+            as: 'moderator',
+            attributes: ['id', 'email', 'profile']
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      
+      const total = await LocationReport.count({ where: { reporterId: userId } });
+      
+      return {
+        reports,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          pages: Math.ceil(total / limit)
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error getting user reports:', error);
       throw error;
     }
   }
@@ -234,7 +281,7 @@ class ReportAppealService {
           {
             model: Location,
             as: 'location',
-            attributes: ['id', 'name', 'description', 'locationType', 'locationStatus']
+            attributes: ['id', 'content', 'locationType', 'locationStatus']
           },
           {
             model: User,
@@ -261,18 +308,70 @@ class ReportAppealService {
         offset: parseInt(offset)
       });
       
-      const totalCount = await LocationAppeal.count({ where: whereClause });
+      const total = await LocationAppeal.count({ where: whereClause });
       
       return {
         appeals,
         pagination: {
+          total,
           limit: parseInt(limit),
           offset: parseInt(offset),
-          total: totalCount
+          pages: Math.ceil(total / limit)
         }
       };
     } catch (error) {
       console.error('❌ Error getting appeals for review:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ⚖️ Get user's submitted appeals
+   * @param {string} userId - User ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} User appeals data
+   */
+  static async getUserAppeals(userId, options = {}) {
+    try {
+      const { limit = 20, offset = 0 } = options;
+      
+      const appeals = await LocationAppeal.findAll({
+        where: { appellantId: userId },
+        include: [
+          {
+            model: Location,
+            as: 'location',
+            attributes: ['id', 'content', 'locationType', 'locationStatus']
+          },
+          {
+            model: User,
+            as: 'reviewer',
+            attributes: ['id', 'email', 'profile']
+          },
+          {
+            model: LocationReport,
+            as: 'originalReport',
+            attributes: ['id', 'reportType', 'reason', 'resolution']
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      });
+      
+      const total = await LocationAppeal.count({ where: { appellantId: userId } });
+      
+      return {
+        appeals,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          pages: Math.ceil(total / limit)
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error getting user appeals:', error);
       throw error;
     }
   }

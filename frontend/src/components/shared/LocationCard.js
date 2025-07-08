@@ -7,14 +7,13 @@ import PurchaseHistory from '../PurchaseHistory';
 import OfficialLocationControls from '../OfficialLocationControls';
 import React, { useState, useEffect } from "react";
 import LocationShareModal from "./LocationShareModal";
+import LocationReportModal from '../LocationReportModal';
 
 const LocationCard = ({ location, onEdit, onDelete, compact = false, onStatusUpdate }) => {
   const [showShare, setShowShare] = useState(false);
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const locationLink = `${window.location.origin}/location/${location.id}`;
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedLocation, setEditedLocation] = useState(location);
   const [statusNotification, setStatusNotification] = useState(null);
 
   // Status notification effect
@@ -279,71 +278,6 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false, onStatusUpd
     );
   };
 
-  // Status badge component
-  const StatusBadge = ({ status }) => {
-    const statusConfig = {
-      pending: { color: 'orange', icon: '⏳', text: 'Pending' },
-      verified: { color: 'green', icon: '✅', text: 'Verified' },
-      flagged: { color: 'red', icon: '🚩', text: 'Flagged' },
-      removed: { color: 'gray', icon: '🗑️', text: 'Removed' }
-    };
-
-    const config = statusConfig[status] || statusConfig.pending;
-
-    return (
-      <span 
-        style={{
-          backgroundColor: config.color,
-          color: 'white',
-          padding: '2px 8px',
-          borderRadius: '12px',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          marginLeft: '8px'
-        }}
-        title={`Status: ${config.text}`}
-      >
-        {config.icon} {config.text}
-      </span>
-    );
-  };
-
-  // Rating summary component
-  const RatingSummary = ({ location }) => {
-    const upvotes = location.upvotes || 0;
-    const downvotes = location.downvotes || 0;
-    const totalPoints = location.totalPoints || 0;
-    
-    return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        gap: '4px',
-        marginTop: '8px'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '8px', 
-          fontSize: '14px'
-        }}>
-          <span title="Upvotes">👍 {upvotes}</span>
-          <span title="Downvotes">👎 {downvotes}</span>
-          <span title="Total Points" style={{ 
-            fontWeight: 'bold',
-            color: totalPoints >= 0 ? 'green' : 'red'
-          }}>
-            {totalPoints >= 0 ? '+' : ''}{totalPoints} pts
-          </span>
-        </div>
-        {getStatusProgress()}
-      </div>
-    );
-  };
-
   return (
     <div
       key={location.id}
@@ -584,6 +518,24 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false, onStatusUpd
                 Location ID
               </button>
               
+              {/* Report Location Button */}
+              <button
+                onClick={() => setShowReportModal(true)}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#FF5722',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease'
+                }}
+                title="Report this location"
+              >
+                🚨 Report
+              </button>
+              
               {/* Edit/Delete buttons for creator */}
               {currentUserId && creatorId && currentUserId === creatorId && (
                 <>
@@ -640,6 +592,14 @@ const LocationCard = ({ location, onEdit, onDelete, compact = false, onStatusUpd
         <PurchaseHistory
           locationId={location.id}
           onClose={() => setShowPurchaseHistory(false)}
+        />
+      )}
+
+      {/* Report Location Modal */}
+      {showReportModal && (
+        <LocationReportModal
+          location={location}
+          onClose={() => setShowReportModal(false)}
         />
       )}
     </div>

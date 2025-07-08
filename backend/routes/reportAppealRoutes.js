@@ -65,10 +65,9 @@ router.get('/my-reports', authenticateToken, async (req, res) => {
   try {
     const { limit = 20, offset = 0 } = req.query;
     
-    const reports = await ReportAppealService.getReportsForReview({
+    const reports = await ReportAppealService.getUserReports(req.user.id, {
       limit: parseInt(limit),
-      offset: parseInt(offset),
-      reporterId: req.user.id
+      offset: parseInt(offset)
     });
     
     res.json({
@@ -78,77 +77,6 @@ router.get('/my-reports', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error getting user reports:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-/**
- * ⚖️ APPEAL SUBMISSION ENDPOINTS
- */
-
-/**
- * @route POST /api/appeals/submit
- * @desc Submit an appeal for a removed location
- * @access Authenticated users
- */
-router.post('/submit', authenticateToken, async (req, res) => {
-  try {
-    const { locationId, appealReason, evidence, contactEmail } = req.body;
-    
-    if (!locationId || !appealReason) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: locationId, appealReason'
-      });
-    }
-    
-    const appealData = {
-      appealReason,
-      evidence: evidence || [],
-      contactEmail
-    };
-    
-    const result = await ReportAppealService.submitAppeal(locationId, req.user.id, appealData);
-    
-    res.json({
-      success: true,
-      message: 'Appeal submitted successfully',
-      ...result
-    });
-  } catch (error) {
-    console.error('❌ Error submitting appeal:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-/**
- * @route GET /api/appeals/my-appeals
- * @desc Get user's submitted appeals
- * @access Authenticated users
- */
-router.get('/my-appeals', authenticateToken, async (req, res) => {
-  try {
-    const { limit = 20, offset = 0 } = req.query;
-    
-    const appeals = await ReportAppealService.getAppealsForReview({
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      appellantId: req.user.id
-    });
-    
-    res.json({
-      success: true,
-      appeals: appeals.appeals,
-      pagination: appeals.pagination
-    });
-  } catch (error) {
-    console.error('❌ Error getting user appeals:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -238,11 +166,81 @@ router.post('/:reportId/resolve', authenticateToken, requireModerator, async (re
 });
 
 /**
+ * ⚖️ APPEAL SUBMISSION ENDPOINTS
+ */
+
+/**
+ * @route POST /api/appeals/submit
+ * @desc Submit an appeal for a removed location
+ * @access Authenticated users
+ */
+router.post('/appeals/submit', authenticateToken, async (req, res) => {
+  try {
+    const { locationId, appealReason, evidence, contactEmail } = req.body;
+    
+    if (!locationId || !appealReason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: locationId, appealReason'
+      });
+    }
+    
+    const appealData = {
+      appealReason,
+      evidence: evidence || [],
+      contactEmail
+    };
+    
+    const result = await ReportAppealService.submitAppeal(locationId, req.user.id, appealData);
+    
+    res.json({
+      success: true,
+      message: 'Appeal submitted successfully',
+      ...result
+    });
+  } catch (error) {
+    console.error('❌ Error submitting appeal:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+/**
+ * @route GET /api/appeals/my-appeals
+ * @desc Get user's submitted appeals
+ * @access Authenticated users
+ */
+router.get('/appeals/my-appeals', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 20, offset = 0 } = req.query;
+    
+    const appeals = await ReportAppealService.getUserAppeals(req.user.id, {
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+    
+    res.json({
+      success: true,
+      appeals: appeals.appeals,
+      pagination: appeals.pagination
+    });
+  } catch (error) {
+    console.error('❌ Error getting user appeals:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+/**
  * @route GET /api/appeals/for-review
  * @desc Get appeals for review
  * @access Moderators only
  */
-router.get('/for-review', authenticateToken, requireModerator, async (req, res) => {
+router.get('/appeals/for-review', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { limit = 20, offset = 0, status, priority, isUrgent } = req.query;
     
@@ -273,7 +271,7 @@ router.get('/for-review', authenticateToken, requireModerator, async (req, res) 
  * @desc Review and decide on an appeal
  * @access Moderators only
  */
-router.post('/:appealId/review', authenticateToken, requireModerator, async (req, res) => {
+router.post('/appeals/:appealId/review', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { appealId } = req.params;
     const { decision, notes, compensationAmount } = req.body;
@@ -324,7 +322,7 @@ router.post('/:appealId/review', authenticateToken, requireModerator, async (req
  * @desc Get transparency dashboard data
  * @access Public
  */
-router.get('/dashboard', async (req, res) => {
+router.get('/transparency/dashboard', async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
@@ -348,7 +346,7 @@ router.get('/dashboard', async (req, res) => {
  * @desc Get public report statistics
  * @access Public
  */
-router.get('/reports', async (req, res) => {
+router.get('/transparency/reports', async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
@@ -377,7 +375,7 @@ router.get('/reports', async (req, res) => {
  * @desc Get public appeal statistics
  * @access Public
  */
-router.get('/appeals', async (req, res) => {
+router.get('/transparency/appeals', async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
@@ -405,7 +403,7 @@ router.get('/appeals', async (req, res) => {
  * @desc Get moderator activity statistics
  * @access Moderators only
  */
-router.get('/moderator-activity', authenticateToken, requireModerator, async (req, res) => {
+router.get('/transparency/moderator-activity', authenticateToken, requireModerator, async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
