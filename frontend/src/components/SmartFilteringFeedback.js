@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import smartFilteringService from '../services/smartFilteringService';
 import '../styles/SmartFilteringFeedback.css';
 
@@ -7,24 +7,15 @@ const SmartFilteringFeedback = ({ locationData, userData, onAnalysisComplete }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-
-  useEffect(() => {
-    if (locationData && locationData.text && locationData.text.trim()) {
-      // Debounce the analysis to avoid too many API calls
-      const timeoutId = setTimeout(() => {
-        performAnalysis();
-      }, 1000);
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setAnalysis(null);
-      setError(null);
-    }
-  }, [locationData, userData]);
+  const isAnalyzing = useRef(false);
 
   const performAnalysis = useCallback(async () => {
     if (!locationData?.text?.trim()) return;
+    
+    // Prevent multiple simultaneous analyses
+    if (isAnalyzing.current) return;
 
+    isAnalyzing.current = true;
     setLoading(true);
     setError(null);
 
@@ -41,8 +32,23 @@ const SmartFilteringFeedback = ({ locationData, userData, onAnalysisComplete }) 
       setError(err.message);
     } finally {
       setLoading(false);
+      isAnalyzing.current = false;
     }
-  }, [locationData, userData, onAnalysisComplete]);
+  }, [locationData?.text, userData?.userId, onAnalysisComplete]);
+
+  useEffect(() => {
+    if (locationData && locationData.text && locationData.text.trim()) {
+      // Debounce the analysis to avoid too many API calls
+      const timeoutId = setTimeout(() => {
+        performAnalysis();
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setAnalysis(null);
+      setError(null);
+    }
+  }, [locationData?.text, userData?.userId, performAnalysis]);
 
   const getRiskLevelColor = (level) => {
     switch (level) {

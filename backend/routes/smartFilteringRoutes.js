@@ -12,6 +12,11 @@ router.post('/analyze', authenticateToken, async (req, res) => {
   try {
     const { locationData, userData } = req.body;
     
+    console.log('🛡️ Backend: Received request body:', req.body);
+    console.log('🛡️ Backend: locationData:', locationData);
+    console.log('🛡️ Backend: userData:', userData);
+    console.log('🛡️ Backend: req.user:', req.user);
+    
     if (!locationData) {
       return res.status(400).json({
         error: 'Location data is required',
@@ -19,9 +24,17 @@ router.post('/analyze', authenticateToken, async (req, res) => {
       });
     }
 
+    // Use the authenticated user's ID from req.user
+    const authenticatedUserData = {
+      ...userData,
+      userId: req.user.id // Use the authenticated user's ID
+    };
+
     console.log('🛡️ Starting smart filtering analysis');
+    console.log('🛡️ Using authenticated user ID:', req.user.id);
+    console.log('🛡️ Authenticated user data:', authenticatedUserData);
     
-    const analysis = await smartFilteringService.analyzeForFiltering(locationData, userData);
+    const analysis = await smartFilteringService.analyzeForFiltering(locationData, authenticatedUserData);
     
     res.json({
       success: true,

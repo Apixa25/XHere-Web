@@ -1,5 +1,6 @@
-const Location = require('../models/Location');
-const User = require('../models/User');
+const models = require('../models');
+const Location = models.Location;
+const User = models.User;
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const stringSimilarity = require('string-similarity');
@@ -117,6 +118,17 @@ class DuplicateDetectionService {
   async detectClusteringPatterns(userId, timeWindowHours = 24, maxLocationsPerWindow = 5) {
     try {
       console.log(`🕵️ Checking for clustering patterns for user ${userId}`);
+      
+      // Check if userId is valid
+      if (!userId || userId === 'undefined' || userId === undefined) {
+        console.log('🕵️ No valid userId provided, skipping clustering analysis');
+        return {
+          isClustering: false,
+          locationsInWindow: 0,
+          suspiciousPatterns: [],
+          riskScore: 0
+        };
+      }
       
       const timeWindow = new Date(Date.now() - (timeWindowHours * 60 * 60 * 1000));
       
@@ -273,18 +285,62 @@ class DuplicateDetectionService {
     try {
       console.log(`🛡️ Running comprehensive duplicate detection for user ${userId}`);
       
-      const { latitude, longitude, text, locationType } = locationData;
+      // Extract coordinates - handle both formats: {lat, lng} and {latitude, longitude}
+      const latitude = locationData.latitude || locationData.coordinates?.lat;
+      const longitude = locationData.longitude || locationData.coordinates?.lng;
+      const { text, locationType } = locationData;
       
-      // Run all detection methods
-      const [
-        similarCoordinates,
-        similarText,
-        clusteringAnalysis
-      ] = await Promise.all([
-        this.detectSimilarCoordinates(latitude, longitude),
-        this.detectSimilarText(text),
-        this.detectClusteringPatterns(userId)
-      ]);
+      // Check if userId is valid for clustering analysis
+      const shouldRunClustering = userId && userId !== 'undefined' && userId !== undefined;
+      
+      if (!shouldRunClustering) {
+        console.log('🛡️ Skipping clustering analysis due to invalid userId:', userId);
+      }
+      
+      // Validate coordinates before proceeding
+      let similarCoordinates, similarText, clusteringAnalysis;
+      
+      if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
+        console.log('🛡️ Invalid coordinates provided, skipping coordinate-based duplicate detection');
+        similarCoordinates = [];
+        
+        // Run detection methods (skip coordinate detection if invalid coordinates)
+        const [
+          similarTextResult,
+          clusteringAnalysisResult
+        ] = await Promise.all([
+          this.detectSimilarText(text),
+          shouldRunClustering ? this.detectClusteringPatterns(userId) : Promise.resolve({
+            isClustering: false,
+            locationsInWindow: 0,
+            suspiciousPatterns: [],
+            riskScore: 0
+          })
+        ]);
+        
+        similarText = similarTextResult;
+        clusteringAnalysis = clusteringAnalysisResult;
+      } else {
+        // Run detection methods (skip clustering if no valid userId)
+        const [
+          similarCoordinatesResult,
+          similarTextResult,
+          clusteringAnalysisResult
+        ] = await Promise.all([
+          this.detectSimilarCoordinates(latitude, longitude),
+          this.detectSimilarText(text),
+          shouldRunClustering ? this.detectClusteringPatterns(userId) : Promise.resolve({
+            isClustering: false,
+            locationsInWindow: 0,
+            suspiciousPatterns: [],
+            riskScore: 0
+          })
+        ]);
+        
+        similarCoordinates = similarCoordinatesResult;
+        similarText = similarTextResult;
+        clusteringAnalysis = clusteringAnalysisResult;
+      }
 
       // Calculate overall risk score
       let totalRiskScore = 0;

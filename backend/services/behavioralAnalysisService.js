@@ -1,12 +1,12 @@
-const { Pool } = require('pg');
 const moment = require('moment');
+const { Op } = require('sequelize');
+const sequelize = require('../config/database');
+const models = require('../models');
+const Location = models.Location;
+const User = models.User;
 
 class BehavioralAnalysisService {
   constructor() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
     
     // Behavioral thresholds
     this.thresholds = {
@@ -33,6 +33,21 @@ class BehavioralAnalysisService {
    */
   async analyzeUserBehavior(userId, locationData = null) {
     console.log('🔍 Starting behavioral analysis for user:', userId);
+    
+    // Check if userId is valid
+    if (!userId || userId === 'undefined' || userId === undefined) {
+      console.log('🔍 No valid userId provided, returning safe default analysis');
+      return {
+        userId: userId || 'unknown',
+        timestamp: new Date(),
+        riskScore: 0,
+        riskLevel: 'low',
+        flags: [],
+        patterns: {},
+        recommendations: [],
+        isSuspicious: false
+      };
+    }
     
     try {
       const analysis = {
@@ -101,23 +116,19 @@ class BehavioralAnalysisService {
     };
 
     try {
-      // Get user's posting history
-      const query = `
-        SELECT 
-          l.id,
-          l.created_at,
-          l.location,
-          l.content,
-          l.location_type,
-          l.is_anonymous
-        FROM locations l
-        WHERE l.creator_id = $1
-        ORDER BY l.created_at DESC
-        LIMIT 100
-      `;
-      
-      const result = await this.pool.query(query, [userId]);
-      const posts = result.rows;
+      // Get user's posting history using Sequelize
+      const posts = await Location.findAll({
+        where: {
+          creatorId: userId
+        },
+        order: [['createdAt', 'DESC']],
+        limit: 100,
+        include: [{
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'email', 'profile']
+        }]
+      });
       
       if (posts.length === 0) {
         return patterns;
@@ -133,22 +144,22 @@ class BehavioralAnalysisService {
       
       // Count posts in different time periods
       patterns.postsToday = posts.filter(post => 
-        moment(post.created_at).isAfter(oneDayAgo)
+        moment(post.createdAt).isAfter(oneDayAgo)
       ).length;
       
       patterns.postsThisHour = posts.filter(post => 
-        moment(post.created_at).isAfter(oneHourAgo)
+        moment(post.createdAt).isAfter(oneHourAgo)
       ).length;
       
       patterns.postsThisWeek = posts.filter(post => 
-        moment(post.created_at).isAfter(oneWeekAgo)
+        moment(post.createdAt).isAfter(oneWeekAgo)
       ).length;
 
       // Calculate average time between posts
       if (posts.length > 1) {
         const timeDifferences = [];
         for (let i = 0; i < posts.length - 1; i++) {
-          const timeDiff = moment(posts[i].created_at).diff(moment(posts[i + 1].created_at));
+          const timeDiff = moment(posts[i].createdAt).diff(moment(posts[i + 1].createdAt));
           timeDifferences.push(timeDiff);
         }
         patterns.averageTimeBetweenPosts = timeDifferences.reduce((sum, diff) => sum + diff, 0) / timeDifferences.length;
@@ -228,16 +239,17 @@ class BehavioralAnalysisService {
     const flags = [];
     
     try {
-      const query = `
-        SELECT created_at
-        FROM locations
-        WHERE creator_id = $1
-        AND created_at > NOW() - INTERVAL '24 hours'
-        ORDER BY created_at DESC
-      `;
-      
-      const result = await this.pool.query(query, [userId]);
-      const recentPosts = result.rows;
+      // Use Sequelize instead of direct PostgreSQL queries
+      const recentPosts = await Location.findAll({
+        where: {
+          creatorId: userId,
+          createdAt: {
+            [Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+          }
+        },
+        order: [['createdAt', 'DESC']],
+        attributes: ['createdAt']
+      });
       
       if (recentPosts.length === 0) {
         return flags;
@@ -245,7 +257,7 @@ class BehavioralAnalysisService {
 
       // Check hourly posting rate
       const hourlyPosts = recentPosts.filter(post => 
-        moment(post.created_at).isAfter(moment().subtract(1, 'hour'))
+        moment(post.createdAt).isAfter(moment().subtract(1, 'hour'))
       ).length;
       
       if (hourlyPosts > this.thresholds.rapidPosting.maxPostsPerHour) {
@@ -272,7 +284,7 @@ class BehavioralAnalysisService {
 
       // Check time between posts
       for (let i = 0; i < recentPosts.length - 1; i++) {
-        const timeDiff = moment(recentPosts[i].created_at).diff(moment(recentPosts[i + 1].created_at));
+        const timeDiff = moment(recentPosts[i].createdAt).diff(moment(recentPosts[i + 1].createdAt));
         if (timeDiff < this.thresholds.rapidPosting.minTimeBetweenPosts) {
           flags.push({
             type: 'rapid_posting_timing',
@@ -299,15 +311,16 @@ class BehavioralAnalysisService {
     const flags = [];
     
     try {
-      const query = `
-        SELECT location
-        FROM locations
-        WHERE creator_id = $1
-        AND created_at > NOW() - INTERVAL '7 days'
-      `;
-      
-      const result = await this.pool.query(query, [userId]);
-      const locations = result.rows;
+      // Use Sequelize instead of direct PostgreSQL queries
+      const locations = await Location.findAll({
+        where: {
+          creatorId: userId,
+          createdAt: {
+            [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+          }
+        },
+        attributes: ['location']
+      });
       
       if (locations.length < 3) {
         return flags;
@@ -341,17 +354,18 @@ class BehavioralAnalysisService {
     const flags = [];
     
     try {
-      const query = `
-        SELECT content
-        FROM locations
-        WHERE creator_id = $1
-        AND created_at > NOW() - INTERVAL '7 days'
-        ORDER BY created_at DESC
-        LIMIT 20
-      `;
-      
-      const result = await this.pool.query(query, [userId]);
-      const contents = result.rows;
+      // Use Sequelize instead of direct PostgreSQL queries
+      const contents = await Location.findAll({
+        where: {
+          creatorId: userId,
+          createdAt: {
+            [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+          }
+        },
+        order: [['createdAt', 'DESC']],
+        limit: 20,
+        attributes: ['content']
+      });
       
       if (contents.length < 2) {
         return flags;
@@ -402,17 +416,33 @@ class BehavioralAnalysisService {
     const flags = [];
     
     try {
-      const query = `
-        SELECT 
-          COUNT(*) as total_posts,
-          COUNT(CASE WHEN is_anonymous = true THEN 1 END) as anonymous_posts
-        FROM locations
-        WHERE creator_id = $1
-        AND created_at > NOW() - INTERVAL '30 days'
-      `;
+      // Use Sequelize instead of direct PostgreSQL queries
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       
-      const result = await this.pool.query(query, [userId]);
-      const stats = result.rows[0];
+      const totalPosts = await Location.count({
+        where: {
+          creatorId: userId,
+          createdAt: {
+            [Op.gte]: thirtyDaysAgo
+          }
+        }
+      });
+      
+      // Check if isAnonymous column exists, if not, use content->>'isAnonymous'
+      const anonymousPosts = await Location.count({
+        where: {
+          creatorId: userId,
+          createdAt: {
+            [Op.gte]: thirtyDaysAgo
+          },
+          content: sequelize.literal(`content->>'isAnonymous' = 'true'`)
+        }
+      });
+      
+      const stats = {
+        total_posts: totalPosts,
+        anonymous_posts: anonymousPosts
+      };
       
       if (stats.total_posts > 0) {
         const anonymousRatio = stats.anonymous_posts / stats.total_posts;
@@ -443,30 +473,34 @@ class BehavioralAnalysisService {
     const flags = [];
     
     try {
-      const query = `
-        SELECT 
-          location_type,
-          COUNT(*) as count
-        FROM locations
-        WHERE creator_id = $1
-        AND created_at > NOW() - INTERVAL '30 days'
-        GROUP BY location_type
-        ORDER BY count DESC
-      `;
+      // Use Sequelize instead of direct PostgreSQL queries
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       
-      const result = await this.pool.query(query, [userId]);
-      const typeStats = result.rows;
+      const typeStats = await Location.findAll({
+        where: {
+          creatorId: userId,
+          createdAt: {
+            [Op.gte]: thirtyDaysAgo
+          }
+        },
+        attributes: [
+          'locationType',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['locationType'],
+        order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']]
+      });
       
       if (typeStats.length > 0) {
-        const totalPosts = typeStats.reduce((sum, stat) => sum + parseInt(stat.count), 0);
+        const totalPosts = typeStats.reduce((sum, stat) => sum + parseInt(stat.dataValues.count), 0);
         const mostCommonType = typeStats[0];
-        const typeRatio = mostCommonType.count / totalPosts;
+        const typeRatio = mostCommonType.dataValues.count / totalPosts;
         
         if (typeRatio > 0.8) { // If more than 80% of posts are the same type
           flags.push({
             type: 'location_type_monotony',
             severity: 'low',
-            description: `User posts mostly ${mostCommonType.location_type} locations (${(typeRatio * 100).toFixed(1)}%)`,
+            description: `User posts mostly ${mostCommonType.dataValues.locationType} locations (${(typeRatio * 100).toFixed(1)}%)`,
             value: typeRatio,
             threshold: 0.8
           });
@@ -488,16 +522,17 @@ class BehavioralAnalysisService {
     const flags = [];
     
     try {
-      const query = `
-        SELECT created_at
-        FROM locations
-        WHERE creator_id = $1
-        AND created_at > NOW() - INTERVAL '7 days'
-        ORDER BY created_at
-      `;
-      
-      const result = await this.pool.query(query, [userId]);
-      const posts = result.rows;
+      // Use Sequelize instead of direct PostgreSQL queries
+      const posts = await Location.findAll({
+        where: {
+          creatorId: userId,
+          createdAt: {
+            [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+          }
+        },
+        order: [['createdAt', 'ASC']],
+        attributes: ['createdAt']
+      });
       
       if (posts.length < 3) {
         return flags;
@@ -506,7 +541,7 @@ class BehavioralAnalysisService {
       // Check for regular intervals (bot-like behavior)
       const intervals = [];
       for (let i = 1; i < posts.length; i++) {
-        const interval = moment(posts[i].created_at).diff(moment(posts[i - 1].created_at));
+        const interval = moment(posts[i].createdAt).diff(moment(posts[i - 1].createdAt));
         intervals.push(interval);
       }
       
@@ -543,18 +578,25 @@ class BehavioralAnalysisService {
     const flags = [];
     
     try {
-      const query = `
-        SELECT 
-          u.created_at as account_created,
-          COUNT(l.id) as total_posts
-        FROM users u
-        LEFT JOIN locations l ON u.id = l.creator_id
-        WHERE u.id = $1
-        GROUP BY u.created_at
-      `;
+      // Use Sequelize instead of direct PostgreSQL queries
+      const user = await User.findByPk(userId, {
+        attributes: ['createdAt']
+      });
       
-      const result = await this.pool.query(query, [userId]);
-      const userStats = result.rows[0];
+      if (!user) {
+        return flags;
+      }
+      
+      const totalPosts = await Location.count({
+        where: {
+          creatorId: userId
+        }
+      });
+      
+      const userStats = {
+        account_created: user.createdAt,
+        total_posts: totalPosts
+      };
       
       if (userStats) {
         const accountAge = moment().diff(moment(userStats.account_created), 'days');
@@ -736,27 +778,14 @@ class BehavioralAnalysisService {
    */
   async logBehavioralAnalysis(analysis) {
     try {
-      const query = `
-        INSERT INTO behavioral_analysis_logs (
-          user_id,
-          risk_score,
-          risk_level,
-          flags_count,
-          is_suspicious,
-          analysis_data,
-          created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `;
-      
-      await this.pool.query(query, [
-        analysis.userId,
-        analysis.riskScore,
-        analysis.riskLevel,
-        analysis.flags.length,
-        analysis.isSuspicious,
-        JSON.stringify(analysis),
-        new Date()
-      ]);
+      // Temporarily disabled - behavioral_analysis_logs table doesn't exist yet
+      console.log('📊 Behavioral analysis logged (logging disabled):', {
+        userId: analysis.userId,
+        riskScore: analysis.riskScore,
+        riskLevel: analysis.riskLevel,
+        flagsCount: analysis.flags.length,
+        isSuspicious: analysis.isSuspicious
+      });
       
     } catch (error) {
       console.error('Error logging behavioral analysis:', error);
@@ -768,20 +797,16 @@ class BehavioralAnalysisService {
    */
   async getBehavioralStats(timeRange = '7d') {
     try {
-      const query = `
-        SELECT 
-          COUNT(*) as total_analyses,
-          AVG(risk_score) as avg_risk_score,
-          COUNT(CASE WHEN is_suspicious = true THEN 1 END) as suspicious_users,
-          COUNT(CASE WHEN risk_level = 'high' THEN 1 END) as high_risk_users,
-          COUNT(CASE WHEN risk_level = 'medium' THEN 1 END) as medium_risk_users,
-          COUNT(CASE WHEN risk_level = 'low' THEN 1 END) as low_risk_users
-        FROM behavioral_analysis_logs
-        WHERE created_at > NOW() - INTERVAL $1
-      `;
-      
-      const result = await this.pool.query(query, [timeRange]);
-      return result.rows[0];
+      // Temporarily disabled - behavioral_analysis_logs table doesn't exist yet
+      console.log('📊 Getting behavioral stats (disabled):', timeRange);
+      return {
+        total_analyses: 0,
+        avg_risk_score: 0,
+        suspicious_users: 0,
+        high_risk_users: 0,
+        medium_risk_users: 0,
+        low_risk_users: 0
+      };
       
     } catch (error) {
       console.error('Error getting behavioral stats:', error);
@@ -794,24 +819,9 @@ class BehavioralAnalysisService {
    */
   async getSuspiciousUsers(limit = 20) {
     try {
-      const query = `
-        SELECT 
-          bal.user_id,
-          u.email,
-          u.profile->>'name' as name,
-          bal.risk_score,
-          bal.risk_level,
-          bal.flags_count,
-          bal.created_at as last_analysis
-        FROM behavioral_analysis_logs bal
-        JOIN users u ON bal.user_id = u.id
-        WHERE bal.is_suspicious = true
-        ORDER BY bal.risk_score DESC, bal.created_at DESC
-        LIMIT $1
-      `;
-      
-      const result = await this.pool.query(query, [limit]);
-      return result.rows;
+      // Temporarily disabled - behavioral_analysis_logs table doesn't exist yet
+      console.log('🚨 Getting suspicious users (disabled):', limit);
+      return [];
       
     } catch (error) {
       console.error('Error getting suspicious users:', error);
@@ -835,7 +845,7 @@ class BehavioralAnalysisService {
   analyzeTimeDistribution(posts) {
     const hourCounts = {};
     posts.forEach(post => {
-      const hour = moment(post.created_at).hour();
+      const hour = moment(post.createdAt).hour();
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
     });
     return hourCounts;
@@ -844,7 +854,7 @@ class BehavioralAnalysisService {
   analyzeLocationDistribution(posts) {
     const locationCounts = {};
     posts.forEach(post => {
-      const locationType = post.location_type || 'unknown';
+      const locationType = post.locationType || 'unknown';
       locationCounts[locationType] = (locationCounts[locationType] || 0) + 1;
     });
     return locationCounts;
@@ -853,7 +863,7 @@ class BehavioralAnalysisService {
   analyzeContentPatterns(posts) {
     const patterns = {
       totalPosts: posts.length,
-      anonymousPosts: posts.filter(post => post.is_anonymous).length,
+      anonymousPosts: posts.filter(post => post.content?.isAnonymous).length,
       anonymousRatio: 0,
       averageTextLength: 0
     };

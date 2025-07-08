@@ -79,7 +79,7 @@ const LocationForm = ({ position, onSubmit, submitting, onClose, user, onLocatio
             keywords: keywords.split(',').map(k => k.trim()).filter(k => k.length > 0),
             coordinates: { lat: position.lat, lng: position.lng }
           }}
-          userData={user}
+          userData={{ userId: user?.id, ...user }}
           onAnalysisComplete={setSmartFilteringAnalysis}
         />
         <input

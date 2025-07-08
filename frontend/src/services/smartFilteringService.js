@@ -6,7 +6,7 @@ import api from './api';
  */
 class SmartFilteringService {
   constructor() {
-    this.baseUrl = '/api/smart-filtering';
+    this.baseUrl = '/smart-filtering';
   }
 
   /**
@@ -18,14 +18,34 @@ class SmartFilteringService {
   async analyzeLocation(locationData, userData = {}) {
     try {
       console.log('🛡️ Frontend: Starting smart filtering analysis');
+      console.log('🛡️ Frontend: locationData:', locationData);
+      console.log('🛡️ Frontend: userData:', userData);
+      console.log('🛡️ Frontend: userData.userId:', userData?.userId);
+      
+      console.log('🛡️ Frontend: Making API call to:', `${this.baseUrl}/analyze`);
+      console.log('🛡️ Frontend: Request payload:', { locationData, userData });
       
       const response = await api.post(`${this.baseUrl}/analyze`, {
         locationData,
         userData
       });
-
-      console.log('✅ Frontend: Smart filtering analysis completed');
-      return response.data;
+      
+      console.log('🛡️ Frontend: API call successful');
+      console.log('🛡️ Frontend: Response data:', response);
+      console.log('🛡️ Frontend: Response data type:', typeof response);
+      console.log('🛡️ Frontend: Response data keys:', Object.keys(response));
+      
+      // Handle both possible response formats
+      if (response.analysis) {
+        console.log('🛡️ Frontend: Using response.analysis');
+        return response.analysis;
+      } else if (response.overallRisk !== undefined) {
+        console.log('🛡️ Frontend: Using response directly');
+        return response;
+      } else {
+        console.error('❌ Frontend: Unexpected response format:', response);
+        throw new Error('Unexpected response format from backend');
+      }
     } catch (error) {
       console.error('❌ Frontend: Smart filtering analysis failed:', error);
       throw new Error('Smart filtering analysis failed: ' + (error.response?.data?.message || error.message));
@@ -297,13 +317,13 @@ class SmartFilteringService {
       const analysis = await this.analyzeLocation(locationData, userData);
       
       const feedback = {
-        isBlocked: analysis.analysis.autoBlocked,
-        requiresReview: analysis.analysis.reviewRequired,
-        riskScore: analysis.analysis.overallRisk,
-        flags: analysis.analysis.flags,
-        recommendations: analysis.analysis.recommendations,
-        action: analysis.analysis.filteringDecision,
-        message: this.generateFeedbackMessage(analysis.analysis)
+        isBlocked: analysis.autoBlocked,
+        requiresReview: analysis.reviewRequired,
+        riskScore: analysis.overallRisk,
+        flags: analysis.flags,
+        recommendations: analysis.recommendations,
+        action: analysis.filteringDecision,
+        message: this.generateFeedbackMessage(analysis)
       };
 
       console.log('✅ Frontend: Real-time feedback generated');

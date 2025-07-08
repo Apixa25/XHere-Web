@@ -65,8 +65,37 @@ class SmartFilteringService {
    * @returns {Object} Filtering analysis results
    */
   async analyzeForFiltering(locationData, userData = {}) {
+    // Validate userData and userId
+    if (!userData || !userData.userId) {
+      console.error('❌ Smart filtering: userData.userId is missing or undefined');
+      console.error('❌ Smart filtering: userData:', userData);
+      console.error('❌ Smart filtering: userData keys:', userData ? Object.keys(userData) : 'userData is null/undefined');
+      
+      // Return a safe default analysis instead of throwing an error
+      console.log('🛡️ Returning safe default analysis due to missing user ID');
+      return {
+        overallRisk: 0,
+        filteringDecision: 'allow',
+        reviewRequired: false,
+        autoBlocked: false,
+        flags: [],
+        categories: {
+          duplicate: { riskScore: 0, status: 'clean', details: {} },
+          behavioral: { riskScore: 0, riskLevel: 'low', isSuspicious: false, details: {} },
+          contentQuality: { riskScore: 0, qualityScore: 100, spamScore: 0, riskLevel: 'low', details: {} }
+        },
+        recommendations: [],
+        transparency: {
+          analysisTimestamp: new Date(),
+          analysisVersion: '1.0',
+          systemsUsed: ['safe_default']
+        }
+      };
+    }
+    
     try {
       console.log('🛡️ Starting comprehensive filtering analysis');
+      console.log('🛡️ Using user ID:', userData.userId);
 
       const analysis = {
         overallRisk: 0,
