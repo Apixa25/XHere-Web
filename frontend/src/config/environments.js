@@ -4,7 +4,7 @@
 
 export const ENVIRONMENTS = {
   development: {
-    API_URL: 'http://localhost:3001',
+    API_URL: 'http://localhost:3000',
     GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'your_dev_google_maps_api_key',
     GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your_dev_google_client_id',
     GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'your_dev_google_maps_map_id',

@@ -17,7 +17,7 @@ const PublicProfile = () => {
   const loadPublicProfile = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3000/api/leaderboard/profile/${userId}`);
+      const response = await fetch(`http://localhost:3001/api/leaderboard/profile/${userId}`);
 
       if (!response.ok) {
         throw new Error('Failed to load public profile');

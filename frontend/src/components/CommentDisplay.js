@@ -128,7 +128,7 @@ const CommentDisplay = ({
           <div className="comment-media">
             {comment.mediaUrls.map((url, index) => {
               const mediaType = comment.mediaTypes[index];
-              const fullUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/${url.replace(/\\/g, '/')}`;
+              const fullUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/${url.replace(/\\/g, '/')}`;
               
               if (mediaType && mediaType.startsWith('video/')) {
                 return (

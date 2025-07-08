@@ -12,7 +12,7 @@ const CommentSection = ({ locationId, user, onNewBadges }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   const fetchComments = async (pageNum = 1, append = false) => {
     if (!locationId) return;

@@ -14,7 +14,7 @@ const ReputationDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/reputation/dashboard', {
+      const response = await fetch('http://localhost:3001/api/reputation/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

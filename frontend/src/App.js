@@ -57,15 +57,15 @@ const getApiUrl = () => {
     if (window.Capacitor.getPlatform() === 'android') {
       // Replace this with your actual IP address
       const localIp = '192.168.1.1'; // Replace with your actual IP
-      return `http://${localIp}:3000`;
+      return `http://${localIp}:3001`;
     }
     // For iOS simulator
     if (window.Capacitor.getPlatform() === 'ios') {
-      return 'http://localhost:3000';
+      return 'http://localhost:3001';
     }
   }
   // For web environment
-  return process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  return process.env.REACT_APP_API_URL || 'http://localhost:3001';
 };
 
 const API_URL = getApiUrl();

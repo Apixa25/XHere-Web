@@ -266,7 +266,7 @@ const apiService = {
   },
 
   getLocationNominations: async (locationId) => {
-    return api.get(`/locations/${locationId}/nominations`);
+    return api.get(`/nominations/location/${locationId}`);
   },
 
   getUserNominations: async (userId) => {

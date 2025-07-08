@@ -45,7 +45,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
   const [showMessaging, setShowMessaging] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
   const fetchUserData = async () => {
@@ -245,7 +245,7 @@ const ProfilePage = ({ user, onLocationUpdate, isRegistering, handleAuth }) => {
         console.log('User ID:', user._id);
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`http://localhost:3000/api/locations/${locationId}`, {
+        const response = await fetch(`${API_URL}/api/locations/${locationId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -7,7 +7,7 @@ const LocationDetails = ({ location }) => {
 
   console.log('Full location object in LocationDetails:', location);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   console.log('LocationDetails - received location:', location);
   console.log('LocationDetails - media URLs:', location?.content?.mediaUrls);

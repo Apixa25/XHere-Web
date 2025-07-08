@@ -27,7 +27,7 @@ const StatusFilter = ({ onStatusChange, currentStatus = 'all' }) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/locations/status/stats`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/locations/status/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const ProfilePicture = ({ currentPicture, onUpdate }) => {
   const [loading, setLoading] = useState(false);
