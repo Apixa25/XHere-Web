@@ -44,6 +44,7 @@ import Leaderboard from './components/Leaderboard';
 import Achievements from './components/Achievements';
 import PublicProfile from './components/PublicProfile';
 import ChallengeDashboard from './components/ChallengeDashboard';
+import DuplicateDetectionAlert from './components/DuplicateDetectionAlert';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -655,6 +656,10 @@ function App() {
   const [mapType, setMapType] = useState('roadmap');
   const [locationLimitReached, setLocationLimitReached] = useState(false);
   const [statusNotification, setStatusNotification] = useState(null);
+  
+  // 🛡️ Duplicate Detection State
+  const [duplicateAnalysis, setDuplicateAnalysis] = useState(null);
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
 
   // Refs to store current filter state for viewport changes
   const currentSelectedTypeRef = useRef(selectedLocationType);
@@ -1132,7 +1137,25 @@ function App() {
       
     } catch (error) {
       console.error('Error submitting location data:', error);
-      setError('Failed to submit location');
+      
+      // 🛡️ Handle duplicate detection responses
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        
+        if (errorData.error === 'Duplicate location detected' && errorData.analysis) {
+          // Show beautiful duplicate detection alert
+          setDuplicateAnalysis(errorData.analysis);
+          setShowDuplicateAlert(true);
+          setError(null); // Clear generic error
+          console.log('🛡️ Duplicate detection alert triggered:', errorData.analysis);
+        } else {
+          // Handle other errors
+          setError(errorData.message || 'Failed to submit location');
+        }
+      } else {
+        // Handle network or other errors
+        setError('Failed to submit location');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -1861,6 +1884,26 @@ function App() {
             </div>
           )}
           
+          {/* 🛡️ Duplicate Detection Alert */}
+          <DuplicateDetectionAlert
+            analysis={duplicateAnalysis}
+            isVisible={showDuplicateAlert}
+            onDismiss={() => {
+              setShowDuplicateAlert(false);
+              setDuplicateAnalysis(null);
+            }}
+            onProceed={() => {
+              setShowDuplicateAlert(false);
+              setDuplicateAnalysis(null);
+              // User can try again with modified location
+            }}
+            onModify={() => {
+              setShowDuplicateAlert(false);
+              setDuplicateAnalysis(null);
+              // Keep the form open for modification
+            }}
+          />
+          
           {/* Status Notification */}
           <StatusNotification 
             statusUpdate={statusNotification}
@@ -1987,7 +2030,7 @@ function App() {
       path: "/profile/:userId",
       element: <PublicProfile />,
     },
-  ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount, API_URL]);
+  ]), [user, center, locationData, selectedLocation, selectedMarker, selectedLocationType, keywordSearch, handleLogout, handleMapClick, handleLocationSubmit, submitting, handleVoteUpdate, handleDeleteLocation, handleLoginSuccess, fetchLocations, getCurrentLocation, isFetchingLocations, locationLimitReached, mapType, handleMapLoad, handleMapUnmount, API_URL, duplicateAnalysis, showDuplicateAlert]);
 
   // Reduced frequency logging to prevent console spam
   useEffect(() => {

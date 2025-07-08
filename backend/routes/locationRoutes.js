@@ -19,6 +19,7 @@ const creditService = require('../services/creditService');
 const badgeService = require('../services/badgeService');
 const nominationService = require('../services/nominationService');
 const duplicateDetectionService = require('../services/duplicateDetectionService');
+const behavioralAnalysisService = require('../services/behavioralAnalysisService');
 
 // Configure multer for file uploads with better error handling
 const storage = multer.diskStorage({
@@ -348,6 +349,36 @@ router.post('/',
     if (duplicateAnalysis.duplicateStatus === 'medium_risk') {
       console.log('⚠️ Medium risk duplicate detected - location will be flagged for review');
       // Continue with creation but flag for review
+    }
+
+    // 🧠 BEHAVIORAL ANALYSIS - Analyze user behavior patterns
+    console.log('🧠 Running behavioral analysis for user:', req.user.id);
+    const behavioralAnalysis = await behavioralAnalysisService.analyzeUserBehavior(req.user.id, locationData);
+    console.log(`🧠 Behavioral analysis result: Risk Level ${behavioralAnalysis.riskLevel} (Score: ${behavioralAnalysis.riskScore})`);
+    
+    // Handle high-risk behavioral patterns
+    if (behavioralAnalysis.isSuspicious) {
+      console.log('🚨 Suspicious user behavior detected - location will be flagged for review');
+      // Continue with creation but flag for review and log suspicious activity
+    }
+    
+    // Combine duplicate and behavioral analysis for comprehensive risk assessment
+    const combinedRiskScore = (duplicateAnalysis.totalRiskScore + behavioralAnalysis.riskScore) / 2;
+    const isHighRisk = duplicateAnalysis.duplicateStatus === 'high_risk' || behavioralAnalysis.isSuspicious;
+    
+    if (isHighRisk) {
+      await transaction.rollback();
+      return res.status(400).json({
+        error: 'Location creation blocked',
+        message: 'This location has been blocked due to suspicious activity or duplicate detection.',
+        duplicateAnalysis: duplicateAnalysis,
+        behavioralAnalysis: behavioralAnalysis,
+        combinedRiskScore: combinedRiskScore,
+        recommendations: [
+          ...duplicateAnalysis.recommendations || [],
+          ...behavioralAnalysis.recommendations || []
+        ]
+      });
     }
 
     // Get validation info from middleware

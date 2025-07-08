@@ -45,6 +45,17 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
+    
+    // 🛡️ Preserve duplicate detection responses for proper handling
+    if (error.response?.data?.error === 'Duplicate location detected') {
+      console.log('🛡️ Duplicate detection response preserved:', error.response.data);
+      // Create a custom error that preserves the full response data
+      const customError = new Error(error.response.data.message || 'Duplicate location detected');
+      customError.response = error.response;
+      customError.response.data = error.response.data;
+      throw customError;
+    }
+    
     throw new Error(error.response?.data?.message || error.message || 'API request failed');
   }
 );
