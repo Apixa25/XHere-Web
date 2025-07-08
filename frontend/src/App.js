@@ -176,6 +176,8 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
   const [showReportModal, setShowReportModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [ownershipInfo, setOwnershipInfo] = useState(null);
+  const [hasReported, setHasReported] = useState(false);
+  const [checkingReport, setCheckingReport] = useState(true);
   
   // Get current user id safely
   const currentUserId = (() => {
@@ -190,8 +192,32 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
   useEffect(() => {
     if (marker?.id) {
       fetchOwnershipInfo();
+      checkExistingReport();
     }
   }, [marker?.id, refreshTrigger]);
+
+  // Check if user has already reported this location
+  const checkExistingReport = async () => {
+    if (!user || !marker?.id) return;
+    
+    setCheckingReport(true);
+    try {
+      const response = await fetch(`${API_URL}/api/reports/check-existing?locationId=${marker.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setHasReported(data.hasExistingReport);
+      }
+    } catch (error) {
+      console.error('Error checking existing report:', error);
+    } finally {
+      setCheckingReport(false);
+    }
+  };
 
   const fetchOwnershipInfo = async () => {
     try {
@@ -448,30 +474,70 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
             </button>
             
             {/* Report Location Button */}
-            <button
-              onClick={() => {
-                console.log('🚨 Report button clicked!');
-                console.log('Current showReportModal state:', showReportModal);
-                setShowReportModal(true);
-                console.log('Set showReportModal to true');
-              }}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: '#FF5722',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '10px',
-                cursor: 'pointer',
-                transition: 'background-color 0.3s ease',
-                marginRight: '8px',
-                zIndex: 1000,
-                position: 'relative'
-              }}
-              title="Report this location"
-            >
-              🚨 Report
-            </button>
+            {checkingReport ? (
+              <button
+                disabled
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#ccc',
+                  color: '#666',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  cursor: 'not-allowed',
+                  marginRight: '8px',
+                  zIndex: 1000,
+                  position: 'relative'
+                }}
+                title="Checking report status..."
+              >
+                🔍 Checking...
+              </button>
+            ) : hasReported ? (
+              <button
+                disabled
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  cursor: 'not-allowed',
+                  marginRight: '8px',
+                  zIndex: 1000,
+                  position: 'relative'
+                }}
+                title="You have already reported this location"
+              >
+                ✅ Reported
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  console.log('🚨 Report button clicked!');
+                  console.log('Current showReportModal state:', showReportModal);
+                  setShowReportModal(true);
+                  console.log('Set showReportModal to true');
+                }}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#FF5722',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease',
+                  marginRight: '8px',
+                  zIndex: 1000,
+                  position: 'relative'
+                }}
+                title="Report this location"
+              >
+                🚨 Report
+              </button>
+            )}
             <button onClick={() => setShowShare(true)}>Share</button>
             {showShare && (
               <LocationShareModal link={`${window.location.origin}/location/${marker.id}`} onClose={() => setShowShare(false)} />
@@ -638,6 +704,8 @@ function InfoBoxModal({ marker, onClose, user, handleDeleteLocation, handleVoteU
             onClose={() => {
               console.log('Closing report modal');
               setShowReportModal(false);
+              // Refresh the report status after modal closes
+              checkExistingReport();
             }}
           />
         </div>

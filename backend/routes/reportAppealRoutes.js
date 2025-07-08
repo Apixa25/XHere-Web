@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const ReportAppealService = require('../services/reportAppealService');
 const { authenticateToken, requireModerator } = require('../middleware/auth');
+const LocationReport = require('../models/LocationReport');
+const Location = require('../models/Location');
 
 /**
  * 📝 REPORT SUBMISSION ENDPOINTS
@@ -12,46 +14,85 @@ const { authenticateToken, requireModerator } = require('../middleware/auth');
  * @desc Submit a location report with evidence
  * @access Authenticated users
  */
+// Submit a new report
 router.post('/submit', authenticateToken, async (req, res) => {
   try {
     const { locationId, reportType, reason, evidence, isAnonymous, contactEmail } = req.body;
-    
+    const reporterId = req.user.id;
+
+    // Validate required fields
     if (!locationId || !reportType || !reason) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: locationId, reportType, reason'
+        message: 'Location ID, report type, and reason are required'
       });
     }
-    
-    // Validate report type
-    const validReportTypes = ['spam', 'inappropriate', 'duplicate', 'fake', 'offensive', 'other'];
-    if (!validReportTypes.includes(reportType)) {
-      return res.status(400).json({
+
+    // Check if user has already reported this location
+    const existingReport = await LocationReport.findOne({
+      where: {
+        locationId: locationId,
+        reporterId: reporterId
+      }
+    });
+
+    if (existingReport) {
+      return res.status(409).json({
         success: false,
-        message: 'Invalid report type'
+        message: 'You have already reported this location',
+        existingReport: {
+          id: existingReport.id,
+          reportType: existingReport.reportType,
+          status: existingReport.status,
+          createdAt: existingReport.createdAt
+        }
       });
     }
-    
+
+    // Validate location exists
+    const location = await Location.findByPk(locationId);
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: 'Location not found'
+      });
+    }
+
+    // Create the report
     const reportData = {
       reportType,
-      reason,
+      reason: reason.trim(),
       evidence: evidence || [],
       isAnonymous: isAnonymous || false,
-      contactEmail
+      contactEmail: contactEmail || null
     };
     
-    const result = await ReportAppealService.submitReport(locationId, req.user.id, reportData);
-    
-    res.json({
+    const result = await ReportAppealService.submitReport(locationId, reporterId, reportData);
+    const report = await LocationReport.findByPk(result.reportId);
+
+    console.log('✅ Report submitted successfully:', {
+      reportId: report.id,
+      locationId: report.locationId,
+      reporterId: report.reporterId,
+      reportType: report.reportType
+    });
+
+    res.status(201).json({
       success: true,
       message: 'Report submitted successfully',
-      ...result
+      report: {
+        id: report.id,
+        reportType: report.reportType,
+        status: report.status,
+        createdAt: report.createdAt
+      }
     });
+
   } catch (error) {
     console.error('❌ Error submitting report:', error);
-    res.status(400).json({
+    res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Failed to submit report'
     });
   }
 });
@@ -424,6 +465,64 @@ router.get('/transparency/moderator-activity', authenticateToken, requireModerat
     res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+});
+
+// Check if user has already reported a location
+router.get('/check-existing', authenticateToken, async (req, res) => {
+  try {
+    const { locationId } = req.query;
+    const userId = req.user.id;
+
+    if (!locationId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Location ID is required'
+      });
+    }
+
+    // Check if user has already reported this location
+    const existingReport = await LocationReport.findOne({
+      where: {
+        locationId: locationId,
+        reporterId: userId
+      },
+      include: [
+        {
+          model: Location,
+          as: 'location',
+          attributes: ['id', 'content']
+        }
+      ]
+    });
+
+    if (existingReport) {
+      return res.json({
+        success: true,
+        hasExistingReport: true,
+        existingReport: {
+          id: existingReport.id,
+          reportType: existingReport.reportType,
+          reason: existingReport.reason,
+          status: existingReport.status,
+          createdAt: existingReport.createdAt,
+          location: existingReport.location
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      hasExistingReport: false,
+      existingReport: null
+    });
+
+  } catch (error) {
+    console.error('Error checking existing report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check existing report'
     });
   }
 });
