@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './ChallengeDashboard.css';
 
 const ChallengeDashboard = ({ user, API_URL }) => {
+  console.log('🔍 ChallengeDashboard: Component rendered with user:', user?.id, 'API_URL:', API_URL);
+  
   const [challenges, setChallenges] = useState([]);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [userSubmissions, setUserSubmissions] = useState([]);
@@ -14,26 +16,45 @@ const ChallengeDashboard = ({ user, API_URL }) => {
   });
 
   useEffect(() => {
+    console.log('🔍 ChallengeDashboard: useEffect triggered');
+    console.log('🔍 ChallengeDashboard: API_URL =', API_URL);
+    console.log('🔍 ChallengeDashboard: user =', user?.id);
+    
+    if (!API_URL) {
+      console.error('❌ ChallengeDashboard: API_URL is undefined!');
+      return;
+    }
+    
+    console.log('🔍 ChallengeDashboard: About to call fetchActiveChallenges');
     fetchActiveChallenges();
+    console.log('🔍 ChallengeDashboard: About to call fetchUserSubmissions');
     fetchUserSubmissions();
-  }, []);
+    console.log('🔍 ChallengeDashboard: useEffect completed');
+  }, [API_URL, user?.id]);
 
   const fetchActiveChallenges = async () => {
+    console.log('🔍 ChallengeDashboard: Starting fetchActiveChallenges');
     try {
-      const response = await fetch(`${API_URL}/api/challenges`, {
+      const url = `${API_URL}/api/challenges`;
+      console.log('🔍 ChallengeDashboard: Fetching from URL:', url);
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+
+      console.log('🔍 ChallengeDashboard: Response status:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to fetch challenges');
       }
 
       const data = await response.json();
+      console.log('🔍 ChallengeDashboard: Received data:', data);
       setChallenges(data);
     } catch (error) {
-      console.error('Error fetching challenges:', error);
+      console.error('❌ ChallengeDashboard: Error fetching challenges:', error);
       setError('Failed to load challenges');
     } finally {
       setLoading(false);
@@ -41,21 +62,28 @@ const ChallengeDashboard = ({ user, API_URL }) => {
   };
 
   const fetchUserSubmissions = async () => {
+    console.log('🔍 ChallengeDashboard: Starting fetchUserSubmissions');
     try {
-      const response = await fetch(`${API_URL}/api/challenges/user/submissions`, {
+      const url = `${API_URL}/api/challenges/user/submissions`;
+      console.log('🔍 ChallengeDashboard: Fetching from URL:', url);
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+
+      console.log('🔍 ChallengeDashboard: Response status:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to fetch user submissions');
       }
 
       const data = await response.json();
+      console.log('🔍 ChallengeDashboard: Received submissions data:', data);
       setUserSubmissions(data);
     } catch (error) {
-      console.error('Error fetching user submissions:', error);
+      console.error('❌ ChallengeDashboard: Error fetching user submissions:', error);
     }
   };
 

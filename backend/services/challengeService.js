@@ -32,13 +32,14 @@ class ChallengeService {
             [Op.in]: ['active', 'voting']
           }
         },
-        include: [
-          {
-            model: User,
-            as: 'creator',
-            attributes: ['email', 'profile']
-          }
-        ],
+        // Temporarily remove associations to debug
+        // include: [
+        //   {
+        //     model: User,
+        //     as: 'creator',
+        //     attributes: ['email', 'profile']
+        //   }
+        // ],
         order: [['createdAt', 'DESC']]
       });
       
@@ -54,38 +55,22 @@ class ChallengeService {
    */
   async getChallengeById(challengeId, includeSubmissions = false) {
     try {
-      const include = [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['email', 'profile']
-        }
-      ];
-
-      if (includeSubmissions) {
-        include.push({
-          model: ChallengeSubmission,
-          as: 'submissions',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['email', 'profile']
-            },
-            {
-              model: Location,
-              as: 'location',
-              attributes: ['id', 'content', 'location', 'locationType', 'keywords']
-            }
-          ],
-          order: [['score', 'DESC'], ['createdAt', 'ASC']]
-        });
-      }
-
-      const challenge = await Challenge.findByPk(challengeId, { include });
+      // Temporarily remove associations to debug
+      const challenge = await Challenge.findByPk(challengeId);
       
       if (!challenge) {
         throw new Error('Challenge not found');
+      }
+      
+      // If includeSubmissions is requested, fetch them separately
+      if (includeSubmissions) {
+        const submissions = await ChallengeSubmission.findAll({
+          where: { challengeId },
+          order: [['score', 'DESC'], ['createdAt', 'ASC']]
+        });
+        
+        // Add submissions to the challenge object
+        challenge.dataValues.submissions = submissions;
       }
       
       return challenge;
@@ -384,16 +369,17 @@ class ChallengeService {
 
       const submissions = await ChallengeSubmission.findAll({
         where,
-        include: [
-          {
-            model: Challenge,
-            as: 'challenge'
-          },
-          {
-            model: Location,
-            as: 'location'
-          }
-        ],
+        // Temporarily remove associations to debug
+        // include: [
+        //   {
+        //     model: Challenge,
+        //     as: 'challenge'
+        //   },
+        //   {
+        //     model: Location,
+        //     as: 'location'
+        //   }
+        // ],
         order: [['createdAt', 'DESC']]
       });
 

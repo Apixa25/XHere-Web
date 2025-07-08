@@ -110,22 +110,22 @@ const Challenge = sequelize.define('Challenge', {
   ]
 });
 
-// Define associations (commented out for testing)
-// Challenge.associate = (models) => {
-//   Challenge.belongsTo(models.User, {
-//     foreignKey: 'createdBy',
-//     as: 'creator'
-//   });
-//   
-//   Challenge.hasMany(models.ChallengeSubmission, {
-//     foreignKey: 'challengeId',
-//     as: 'submissions'
-//   });
-//   
-//   Challenge.hasMany(models.ChallengeReward, {
-//     foreignKey: 'challengeId',
-//     as: 'challengeRewards'
-//   });
-// };
+// Define associations
+Challenge.associate = (models) => {
+  Challenge.belongsTo(models.User, {
+    foreignKey: 'createdBy',
+    as: 'creator'
+  });
+  
+  Challenge.hasMany(models.ChallengeSubmission, {
+    foreignKey: 'challengeId',
+    as: 'submissions'
+  });
+  
+  Challenge.hasMany(models.ChallengeReward, {
+    foreignKey: 'challengeId',
+    as: 'challengeRewards'
+  });
+};
 
 module.exports = Challenge; 
