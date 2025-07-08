@@ -221,8 +221,20 @@ const ChallengeDashboard = ({ user, API_URL }) => {
   return (
     <div className="challenge-dashboard">
       <div className="challenge-header">
-        <h1>🎯 Community Challenges</h1>
-        <p>Discover amazing locations and compete with the community!</p>
+        <div className="header-content">
+          <div className="header-left">
+            <h1>🎯 Community Challenges</h1>
+            <p>Discover amazing locations and compete with the community!</p>
+          </div>
+          <div className="header-right">
+            <button 
+              className="back-to-map-btn"
+              onClick={() => window.location.href = '/'}
+            >
+              🗺️ Back to Map
+            </button>
+          </div>
+        </div>
       </div>
 
       {error && (
