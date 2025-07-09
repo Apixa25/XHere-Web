@@ -1806,14 +1806,19 @@ function App() {
       element: (
         <div className="App">
           <nav className="main-nav">
-            {user && <Link to="/profile">Profile</Link>}
+            {/* Main Navigation - All Users */}
+            {user && <Link to="/profile">👤 Profile</Link>}
             {user && <Link to="/user-owned-locations">🏠 My Locations</Link>}
             {user && <Link to="/official-locations">🔵 Official Locations</Link>}
             {user && <Link to="/leaderboard">🏆 Leaderboard</Link>}
             {user && <Link to="/achievements">🎯 Achievements</Link>}
             {user && <Link to="/challenges">🎯 Challenges</Link>}
             {user && <Link to="/transparency">🛡️ Transparency</Link>}
-            {user && <Link to="/moderator">🛡️ Moderator</Link>}
+            
+            {/* Moderator Navigation - Moderators Only */}
+            {user?.isModerator && <Link to="/moderator">🛡️ Moderator</Link>}
+            
+            {/* Admin Navigation - Admins Only */}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
             {user?.isAdmin && <Link to="/admin-panel">⚙️ Admin Panel</Link>}
             {cameFromAdmin && user?.isAdmin && (
@@ -2139,7 +2144,7 @@ function App() {
     },
     {
       path: "/moderator",
-      element: user ? <ModeratorDashboard /> : <Navigate to="/auth" />,
+      element: (user?.isModerator || user?.isAdmin) ? <ModeratorDashboard /> : <Navigate to="/" />,
     },
     {
       path: "/admin-panel",
