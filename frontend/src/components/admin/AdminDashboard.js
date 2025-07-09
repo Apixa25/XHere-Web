@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
 import smartFilteringService from '../../services/smartFilteringService';
 import './AdminDashboard.css';
 
@@ -1925,11 +1924,16 @@ const SmartFilteringDashboard = () => {
     setError(null);
     
     try {
-      const [health, stats, thresholdData] = await Promise.all([
+      const [healthResponse, statsResponse, thresholdResponse] = await Promise.all([
         smartFilteringService.getSystemHealth(),
         smartFilteringService.getFilteringStats(),
         smartFilteringService.getThresholds()
       ]);
+      
+      // Handle the response structure correctly
+      const health = healthResponse?.health || healthResponse || {};
+      const stats = statsResponse?.stats || statsResponse || {};
+      const thresholdData = thresholdResponse?.thresholds || thresholdResponse || {};
       
       setSystemHealth(health);
       setFilteringStats(stats);
@@ -1947,16 +1951,35 @@ const SmartFilteringDashboard = () => {
     setError(null);
     
     try {
-      const [queue, stats] = await Promise.all([
+      const [queueResponse, statsResponse] = await Promise.all([
         smartFilteringService.getReviewQueueItems(queueFilters),
         smartFilteringService.getReviewQueueStats()
       ]);
       
-      setReviewQueue(queue.items || []);
-      setQueueStats(stats);
+      // Handle the response structure correctly
+      const queueItems = queueResponse?.items || queueResponse || [];
+      const queueStats = statsResponse?.stats || statsResponse || {
+        totalItems: 0,
+        pendingReview: 0,
+        approvedToday: 0,
+        rejectedToday: 0,
+        averageReviewTime: 0
+      };
+      
+      setReviewQueue(queueItems);
+      setQueueStats(queueStats);
     } catch (err) {
       console.error('Error loading review queue:', err);
       setError(err.message);
+      // Set default values on error
+      setReviewQueue([]);
+      setQueueStats({
+        totalItems: 0,
+        pendingReview: 0,
+        approvedToday: 0,
+        rejectedToday: 0,
+        averageReviewTime: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -1967,11 +1990,30 @@ const SmartFilteringDashboard = () => {
     setError(null);
     
     try {
-      const report = await smartFilteringService.getTransparencyReport(timeRange);
+      const reportResponse = await smartFilteringService.getTransparencyReport(timeRange);
+      // Handle the response structure correctly
+      const report = reportResponse?.report || reportResponse || {
+        totalFiltered: 0,
+        autoBlocked: 0,
+        manualReview: 0,
+        falsePositives: 0,
+        accuracy: 0,
+        timeRange: timeRange
+      };
+      
       setTransparencyReport(report);
     } catch (err) {
       console.error('Error loading transparency report:', err);
       setError(err.message);
+      // Set default values on error
+      setTransparencyReport({
+        totalFiltered: 0,
+        autoBlocked: 0,
+        manualReview: 0,
+        falsePositives: 0,
+        accuracy: 0,
+        timeRange: timeRange
+      });
     } finally {
       setLoading(false);
     }
@@ -1983,7 +2025,7 @@ const SmartFilteringDashboard = () => {
       return;
     }
     
-    if (!confirm(`Are you sure you want to ${action} ${selectedReviews.length} items?`)) {
+    if (!window.confirm(`Are you sure you want to ${action} ${selectedReviews.length} items?`)) {
       return;
     }
     
@@ -2029,11 +2071,14 @@ const SmartFilteringDashboard = () => {
     setError(null);
     
     try {
-      const analysis = await smartFilteringService.analyzeLocation(testLocation, {
+      const analysisResponse = await smartFilteringService.analyzeLocation(testLocation, {
         id: 'test-user',
         trustLevel: 'new',
         joinDate: new Date().toISOString()
       });
+      
+      // Handle the response structure correctly
+      const analysis = analysisResponse?.analysis || analysisResponse || {};
       
       setTestAnalysis(analysis);
     } catch (err) {
@@ -2139,22 +2184,22 @@ const SmartFilteringDashboard = () => {
       {activeSubTab === 'overview' && (
         <div className="overview-section">
           {systemHealth && (
-            <div className={`system-health-card ${systemHealth.status}`}>
+            <div className={`system-health-card ${systemHealth.status || 'unknown'}`}>
               <div className="health-header">
                 <span className="health-icon">
-                  {systemHealth.status === 'healthy' ? '✅' : 
-                   systemHealth.status === 'warning' ? '⚠️' : '🚨'}
+                  {(systemHealth.status || 'unknown') === 'healthy' ? '✅' : 
+                   (systemHealth.status || 'unknown') === 'warning' ? '⚠️' : '🚨'}
                 </span>
                 <h4>System Health</h4>
-                <span className={`health-status ${systemHealth.status}`}>
-                  {systemHealth.status.toUpperCase()}
+                <span className={`health-status ${systemHealth.status || 'unknown'}`}>
+                  {(systemHealth.status || 'unknown').toUpperCase()}
                 </span>
               </div>
-              <p>{systemHealth.message}</p>
+              <p>{systemHealth.message || 'System health information unavailable'}</p>
               <div className="health-metrics">
-                <span>Detection Rate: {(systemHealth.metrics.detectionRate * 100).toFixed(1)}%</span>
-                <span>False Positives: {(systemHealth.metrics.falsePositiveRate * 100).toFixed(1)}%</span>
-                <span>Response Time: {systemHealth.metrics.avgResponseTime}ms</span>
+                <span>Detection Rate: {((systemHealth.metrics?.detectionRate || 0) * 100).toFixed(1)}%</span>
+                <span>False Positives: {((systemHealth.metrics?.falsePositiveRate || 0) * 100).toFixed(1)}%</span>
+                <span>Response Time: {systemHealth.metrics?.avgResponseTime || 0}ms</span>
               </div>
             </div>
           )}
@@ -2163,27 +2208,27 @@ const SmartFilteringDashboard = () => {
             <div className="stats-grid">
               <div className="stat-card">
                 <h4>🔍 Total Analysis</h4>
-                <div className="stat-value">{filteringStats.totalAnalysis}</div>
+                <div className="stat-value">{filteringStats.totalAnalysis || 0}</div>
               </div>
               <div className="stat-card">
                 <h4>🚨 Flagged Content</h4>
-                <div className="stat-value warning">{filteringStats.flaggedContent}</div>
+                <div className="stat-value warning">{filteringStats.flaggedContent || 0}</div>
               </div>
               <div className="stat-card">
                 <h4>✅ Approved</h4>
-                <div className="stat-value success">{filteringStats.approvedContent}</div>
+                <div className="stat-value success">{filteringStats.approvedContent || 0}</div>
               </div>
               <div className="stat-card">
                 <h4>❌ Rejected</h4>
-                <div className="stat-value danger">{filteringStats.rejectedContent}</div>
+                <div className="stat-value danger">{filteringStats.rejectedContent || 0}</div>
               </div>
               <div className="stat-card">
                 <h4>⏳ Pending Review</h4>
-                <div className="stat-value">{filteringStats.pendingReview}</div>
+                <div className="stat-value">{filteringStats.pendingReview || 0}</div>
               </div>
               <div className="stat-card">
                 <h4>📊 Accuracy</h4>
-                <div className="stat-value">{(filteringStats.accuracy * 100).toFixed(1)}%</div>
+                <div className="stat-value">{((filteringStats.accuracy || 0) * 100).toFixed(1)}%</div>
               </div>
             </div>
           )}
@@ -2199,13 +2244,13 @@ const SmartFilteringDashboard = () => {
                     min="0"
                     max="1"
                     step="0.1"
-                    value={thresholds.duplicateDetection}
+                    value={thresholds.duplicateDetection || 0.5}
                     onChange={(e) => setThresholds({
                       ...thresholds,
                       duplicateDetection: parseFloat(e.target.value)
                     })}
                   />
-                  <span>{thresholds.duplicateDetection}</span>
+                  <span>{thresholds.duplicateDetection || 0.5}</span>
                 </div>
                 <div className="threshold-item">
                   <label>Behavioral Analysis:</label>
@@ -2214,13 +2259,13 @@ const SmartFilteringDashboard = () => {
                     min="0"
                     max="1"
                     step="0.1"
-                    value={thresholds.behavioralAnalysis}
+                    value={thresholds.behavioralAnalysis || 0.5}
                     onChange={(e) => setThresholds({
                       ...thresholds,
                       behavioralAnalysis: parseFloat(e.target.value)
                     })}
                   />
-                  <span>{thresholds.behavioralAnalysis}</span>
+                  <span>{thresholds.behavioralAnalysis || 0.5}</span>
                 </div>
                 <div className="threshold-item">
                   <label>Content Quality:</label>
@@ -2229,13 +2274,13 @@ const SmartFilteringDashboard = () => {
                     min="0"
                     max="1"
                     step="0.1"
-                    value={thresholds.contentQuality}
+                    value={thresholds.contentQuality || 0.5}
                     onChange={(e) => setThresholds({
                       ...thresholds,
                       contentQuality: parseFloat(e.target.value)
                     })}
                   />
-                  <span>{thresholds.contentQuality}</span>
+                  <span>{thresholds.contentQuality || 0.5}</span>
                 </div>
                 <div className="threshold-item">
                   <label>Risk Scoring:</label>
@@ -2244,13 +2289,13 @@ const SmartFilteringDashboard = () => {
                     min="0"
                     max="1"
                     step="0.1"
-                    value={thresholds.riskScoring}
+                    value={thresholds.riskScoring || 0.5}
                     onChange={(e) => setThresholds({
                       ...thresholds,
                       riskScoring: parseFloat(e.target.value)
                     })}
                   />
-                  <span>{thresholds.riskScoring}</span>
+                  <span>{thresholds.riskScoring || 0.5}</span>
                 </div>
               </div>
               <button 
@@ -2301,9 +2346,9 @@ const SmartFilteringDashboard = () => {
 
           {queueStats && (
             <div className="queue-stats">
-              <span>Total: {queueStats.total}</span>
-              <span>Pending: {queueStats.pending}</span>
-              <span>High Priority: {queueStats.highPriority}</span>
+              <span>Total: {queueStats.total || 0}</span>
+              <span>Pending: {queueStats.pending || 0}</span>
+              <span>High Priority: {queueStats.highPriority || 0}</span>
             </div>
           )}
 
@@ -2333,7 +2378,7 @@ const SmartFilteringDashboard = () => {
 
           <div className="review-queue-list">
             {reviewQueue.map((review) => (
-              <div key={review.id} className={`review-item ${review.priority}`}>
+              <div key={review.id} className={`review-item ${review.priority || 'medium'}`}>
                 <div className="review-header">
                   <input
                     type="checkbox"
@@ -2346,23 +2391,23 @@ const SmartFilteringDashboard = () => {
                       }
                     }}
                   />
-                  <span className={`status-icon ${review.status}`}>
-                    {getStatusIcon(review.status)}
+                  <span className={`status-icon ${review.status || 'pending'}`}>
+                    {getStatusIcon(review.status || 'pending')}
                   </span>
-                  <span className={`priority-badge ${review.priority}`}>
-                    {review.priority.toUpperCase()}
+                  <span className={`priority-badge ${review.priority || 'medium'}`}>
+                    {(review.priority || 'medium').toUpperCase()}
                   </span>
                   <span className="review-id">#{review.id}</span>
                 </div>
                 
                 <div className="review-content">
-                  <h5>{review.locationData.name}</h5>
-                  <p>{review.locationData.description}</p>
+                  <h5>{review.locationData?.name || 'Unknown Location'}</h5>
+                  <p>{review.locationData?.description || 'No description available'}</p>
                   <div className="analysis-summary">
-                    <span className={`risk-level ${getRiskLevelColor(review.analysis.riskLevel)}`}>
-                      Risk: {review.analysis.riskLevel.toUpperCase()}
+                    <span className={`risk-level ${getRiskLevelColor(review.analysis?.riskLevel || 'low')}`}>
+                      Risk: {(review.analysis?.riskLevel || 'low').toUpperCase()}
                     </span>
-                    <span className="score">Score: {review.analysis.riskScore.toFixed(2)}</span>
+                    <span className="score">Score: {(review.analysis?.riskScore || 0).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -2413,22 +2458,22 @@ const SmartFilteringDashboard = () => {
               <div className="report-summary">
                 <h5>Summary</h5>
                 <div className="summary-stats">
-                  <span>Total Actions: {transparencyReport.totalActions}</span>
-                  <span>Accuracy Rate: {(transparencyReport.accuracyRate * 100).toFixed(1)}%</span>
-                  <span>Average Response Time: {transparencyReport.avgResponseTime}ms</span>
+                  <span>Total Actions: {transparencyReport.totalActions || 0}</span>
+                  <span>Accuracy Rate: {((transparencyReport.accuracyRate || 0) * 100).toFixed(1)}%</span>
+                  <span>Average Response Time: {transparencyReport.avgResponseTime || 0}ms</span>
                 </div>
               </div>
 
               <div className="action-breakdown">
                 <h5>Action Breakdown</h5>
                 <div className="breakdown-chart">
-                  {Object.entries(transparencyReport.actionBreakdown).map(([action, count]) => (
+                  {Object.entries(transparencyReport.actionBreakdown || {}).map(([action, count]) => (
                     <div key={action} className="breakdown-item">
                       <span className="action-name">{action}</span>
                       <div className="action-bar">
                         <div 
                           className="action-fill"
-                          style={{width: `${(count / transparencyReport.totalActions) * 100}%`}}
+                          style={{width: `${(count / (transparencyReport.totalActions || 1)) * 100}%`}}
                         ></div>
                       </div>
                       <span className="action-count">{count}</span>
@@ -2440,11 +2485,11 @@ const SmartFilteringDashboard = () => {
               <div className="recent-actions">
                 <h5>Recent Actions</h5>
                 <div className="actions-list">
-                  {transparencyReport.recentActions.map((action) => (
+                  {(transparencyReport.recentActions || []).map((action) => (
                     <div key={action.id} className="action-item">
-                      <span className="action-time">{new Date(action.timestamp).toLocaleString()}</span>
-                      <span className={`action-type ${action.type}`}>{action.type}</span>
-                      <span className="action-details">{action.details}</span>
+                      <span className="action-time">{new Date(action.timestamp || Date.now()).toLocaleString()}</span>
+                      <span className={`action-type ${action.type || 'unknown'}`}>{action.type || 'Unknown'}</span>
+                      <span className="action-details">{action.details || 'No details available'}</span>
                     </div>
                   ))}
                 </div>

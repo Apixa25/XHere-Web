@@ -366,9 +366,26 @@ class SmartFilteringService {
       ]);
 
       const stats = {
-        queueStats: queueStats.stats,
-        transparencyReport: transparencyReport.report,
-        systemHealth: systemHealth.health,
+        queueStats: queueStats?.stats || {
+          totalItems: 0,
+          pendingReview: 0,
+          approvedToday: 0,
+          rejectedToday: 0,
+          averageReviewTime: 0
+        },
+        transparencyReport: transparencyReport?.report || {
+          totalFiltered: 0,
+          autoBlocked: 0,
+          manualReview: 0,
+          falsePositives: 0,
+          accuracy: 0
+        },
+        systemHealth: systemHealth?.health || {
+          status: 'unknown',
+          lastCheck: new Date(),
+          uptime: 0,
+          performance: 0
+        },
         lastUpdated: new Date()
       };
 
@@ -376,7 +393,30 @@ class SmartFilteringService {
       return stats;
     } catch (error) {
       console.error('❌ Frontend: Failed to get filtering statistics:', error);
-      throw new Error('Failed to get filtering statistics: ' + error.message);
+      // Return default stats instead of throwing error
+      return {
+        queueStats: {
+          totalItems: 0,
+          pendingReview: 0,
+          approvedToday: 0,
+          rejectedToday: 0,
+          averageReviewTime: 0
+        },
+        transparencyReport: {
+          totalFiltered: 0,
+          autoBlocked: 0,
+          manualReview: 0,
+          falsePositives: 0,
+          accuracy: 0
+        },
+        systemHealth: {
+          status: 'unknown',
+          lastCheck: new Date(),
+          uptime: 0,
+          performance: 0
+        },
+        lastUpdated: new Date()
+      };
     }
   }
 }
