@@ -20,9 +20,11 @@ const reportAppealService = {
     }
   },
 
-  getTransparencyData: async () => {
+  getTransparencyData: async (timeRange = '30d') => {
     try {
-      const response = await api.get('/transparency/dashboard');
+      const response = await api.get('/transparency/dashboard', { 
+        params: { timeRange } 
+      });
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to load transparency data');

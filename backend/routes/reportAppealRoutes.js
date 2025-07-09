@@ -47,6 +47,17 @@ router.post('/:reportId/resolve', requireModerator, async (req, res) => {
   }
 });
 
+// Transparency endpoints (must come before /:reportId route)
+router.get('/dashboard', requireAuth, async (req, res) => {
+  try {
+    const { timeRange } = req.query;
+    const data = await reportAppealService.getTransparencyDashboard(timeRange);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 router.get('/:reportId', requireModerator, async (req, res) => {
   try {
     const { reportId } = req.params;
@@ -204,17 +215,6 @@ router.get('/check/:locationId', requireAuth, async (req, res) => {
     const { locationId } = req.params;
     const result = await reportAppealService.checkUserReport(locationId, req.user.id);
     res.json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Transparency endpoints
-router.get('/transparency/dashboard', async (req, res) => {
-  try {
-    const { timeRange } = req.query;
-    const data = await reportAppealService.getTransparencyDashboard(timeRange);
-    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

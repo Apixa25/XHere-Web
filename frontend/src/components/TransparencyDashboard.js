@@ -17,7 +17,7 @@ const TransparencyDashboard = () => {
       setLoading(true);
       setError('');
       
-      const data = await reportAppealService.getTransparencyDashboard(timeRange);
+      const data = await reportAppealService.getTransparencyData(timeRange);
       setDashboardData(data);
     } catch (err) {
       setError('Failed to load transparency data: ' + err.message);

@@ -588,7 +588,7 @@ class ReportAppealService {
     try {
       const dateRange = this.calculateDateRange(timeRange);
       
-      const [totalReports, totalAppeals, reportsByType] = await Promise.all([
+      const [totalReports, totalAppeals, reportsByType, recentReports, recentAppeals] = await Promise.all([
         LocationReport.count({ where: { createdAt: { [Op.gte]: dateRange } } }),
         LocationAppeal.count({ where: { createdAt: { [Op.gte]: dateRange } } }),
         LocationReport.findAll({
@@ -598,6 +598,30 @@ class ReportAppealService {
             [fn('COUNT', col('id')), 'count']
           ],
           group: ['reportType']
+        }),
+        LocationReport.findAll({
+          where: { createdAt: { [Op.gte]: dateRange } },
+          include: [
+            {
+              model: User,
+              as: 'reporter',
+              attributes: ['id', 'email', 'profile']
+            }
+          ],
+          order: [['createdAt', 'DESC']],
+          limit: 10
+        }),
+        LocationAppeal.findAll({
+          where: { createdAt: { [Op.gte]: dateRange } },
+          include: [
+            {
+              model: User,
+              as: 'appellant',
+              attributes: ['id', 'email', 'profile']
+            }
+          ],
+          order: [['createdAt', 'DESC']],
+          limit: 10
         })
       ]);
 
@@ -610,6 +634,20 @@ class ReportAppealService {
         totalReports,
         totalAppeals,
         reportsByType: reportsByTypeMap,
+        recentReports: recentReports.map(report => ({
+          id: report.id,
+          reportType: report.reportType,
+          status: report.status,
+          createdAt: report.createdAt,
+          reporter: report.reporter
+        })),
+        recentAppeals: recentAppeals.map(appeal => ({
+          id: appeal.id,
+          status: appeal.status,
+          createdAt: appeal.createdAt,
+          appellant: appeal.appellant
+        })),
+        moderationActions: [], // Placeholder for future implementation
         timeRange
       };
     } catch (error) {
