@@ -469,6 +469,65 @@ router.get('/transparency/moderator-activity', authenticateToken, requireModerat
   }
 });
 
+// Transparency Dashboard Endpoint
+router.get('/dashboard', authenticateToken, async (req, res) => {
+  try {
+    // In a real implementation, you would aggregate real moderation/report/appeal data here
+    // For now, return mock/sample data
+    const data = {
+      totalReports: 42,
+      totalAppeals: 7,
+      reportsByType: {
+        spam: 18,
+        inappropriate: 10,
+        duplicate: 6,
+        fake: 5,
+        offensive: 3
+      },
+      recentReports: [
+        {
+          id: 'rpt-001',
+          locationId: 'loc-123',
+          reportType: 'spam',
+          status: 'pending',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          reporter: { id: 'user-1', name: 'Alice' }
+        },
+        {
+          id: 'rpt-002',
+          locationId: 'loc-456',
+          reportType: 'fake',
+          status: 'resolved',
+          createdAt: new Date(Date.now() - 43200000).toISOString(),
+          reporter: { id: 'user-2', name: 'Bob' }
+        }
+      ],
+      recentAppeals: [
+        {
+          id: 'apl-001',
+          locationId: 'loc-789',
+          status: 'under_review',
+          createdAt: new Date(Date.now() - 7200000).toISOString(),
+          appellant: { id: 'user-3', name: 'Carol' }
+        }
+      ],
+      moderationActions: [
+        {
+          id: 'act-001',
+          type: 'location_removed',
+          locationId: 'loc-456',
+          moderator: { id: 'mod-1', name: 'Moderator Mike' },
+          createdAt: new Date(Date.now() - 3600000).toISOString()
+        }
+      ]
+    };
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error in transparency dashboard endpoint:', error);
+    res.status(500).json({ success: false, message: 'Failed to load transparency dashboard' });
+  }
+});
+
 // Check if user has already reported a location
 router.get('/check-existing', authenticateToken, async (req, res) => {
   try {

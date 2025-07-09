@@ -104,10 +104,28 @@ const TransparencyDashboard = () => {
     );
   }
 
+  // Add defensive programming to handle missing data
+  const safeData = {
+    totalReports: dashboardData.totalReports || 0,
+    totalAppeals: dashboardData.totalAppeals || 0,
+    reportsByType: dashboardData.reportsByType || {},
+    recentReports: dashboardData.recentReports || [],
+    recentAppeals: dashboardData.recentAppeals || [],
+    moderationActions: dashboardData.moderationActions || []
+  };
+
   return (
     <div className="transparency-dashboard">
       <div className="dashboard-header">
-        <h1>📊 Transparency Dashboard</h1>
+        <div className="header-top">
+          <h1>📊 Transparency Dashboard</h1>
+          <button 
+            onClick={() => window.history.back()} 
+            className="back-to-map-button"
+          >
+            ← Back to Map
+          </button>
+        </div>
         <div className="time-range-selector">
           <label>Time Range:</label>
           <select 
@@ -129,7 +147,7 @@ const TransparencyDashboard = () => {
             <div className="card-icon">📝</div>
             <div className="card-content">
               <h3>Total Reports</h3>
-              <div className="card-value">{dashboardData.summary.totalReports}</div>
+              <div className="card-value">{safeData.totalReports}</div>
               <div className="card-period">{formatTimeRange(timeRange)}</div>
             </div>
           </div>
@@ -138,19 +156,19 @@ const TransparencyDashboard = () => {
             <div className="card-icon">⚖️</div>
             <div className="card-content">
               <h3>Total Appeals</h3>
-              <div className="card-value">{dashboardData.summary.totalAppeals}</div>
+              <div className="card-value">{safeData.totalAppeals}</div>
               <div className="card-period">{formatTimeRange(timeRange)}</div>
             </div>
           </div>
 
           <div className="summary-card">
-            <div className="card-icon">⏱️</div>
+            <div className="card-icon">📊</div>
             <div className="card-content">
-              <h3>Avg Resolution Time</h3>
-              <div className="card-value">
-                {formatResolutionTime(dashboardData.summary.averageResolutionTime)}
-              </div>
-              <div className="card-period">Per Report</div>
+              <h3>Reports by Type</h3>
+                              <div className="card-value">
+                  {Object.values(safeData.reportsByType).reduce((sum, count) => sum + count, 0)}
+                </div>
+              <div className="card-period">Total Reports</div>
             </div>
           </div>
 
@@ -159,10 +177,10 @@ const TransparencyDashboard = () => {
             <div className="card-content">
               <h3>Generated</h3>
               <div className="card-value">
-                {new Date(dashboardData.generatedAt).toLocaleDateString()}
+                {new Date().toLocaleDateString()}
               </div>
               <div className="card-period">
-                {new Date(dashboardData.generatedAt).toLocaleTimeString()}
+                {new Date().toLocaleTimeString()}
               </div>
             </div>
           </div>
@@ -173,61 +191,52 @@ const TransparencyDashboard = () => {
           <h2>📊 Report Statistics</h2>
           <div className="stats-grid">
             <div className="stat-card">
-              <h3>Report Types</h3>
+              <h3>Reports by Type</h3>
               <div className="stat-list">
-                {Object.entries(dashboardData.reportStats).map(([key, count]) => {
-                  const [status, type] = key.split('_');
-                  return (
-                    <div key={key} className="stat-item">
-                      <span className="stat-label">{type}</span>
-                      <span className="stat-value">{count}</span>
-                      <span 
-                        className="stat-status" 
-                        style={{ backgroundColor: getStatusColor(status) }}
-                      >
-                        {status}
-                      </span>
-                    </div>
-                  );
-                })}
+                {Object.entries(safeData.reportsByType).map(([type, count]) => (
+                  <div key={type} className="stat-item">
+                    <span className="stat-label">{type}</span>
+                    <span className="stat-value">{count}</span>
+                    <span className="stat-status">
+                      {type}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="stat-card">
-              <h3>Appeal Statistics</h3>
+              <h3>Recent Reports</h3>
               <div className="stat-list">
-                {Object.entries(dashboardData.appealStats).map(([key, count]) => {
-                  const [status, decision] = key.split('_');
-                  return (
-                    <div key={key} className="stat-item">
-                      <span className="stat-label">{decision}</span>
-                      <span className="stat-value">{count}</span>
-                      <span 
-                        className="stat-status" 
-                        style={{ backgroundColor: getStatusColor(status) }}
-                      >
-                        {status}
-                      </span>
-                    </div>
-                  );
-                })}
+                {safeData.recentReports.slice(0, 5).map((report) => (
+                  <div key={report.id} className="stat-item">
+                    <span className="stat-label">{report.reportType}</span>
+                    <span className="stat-value">{report.status}</span>
+                    <span 
+                      className="stat-status" 
+                      style={{ backgroundColor: getStatusColor(report.status) }}
+                    >
+                      {report.status}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
         {/* Moderator Activity */}
-        {dashboardData.moderatorActivity && dashboardData.moderatorActivity.length > 0 && (
+        {safeData.moderationActions.length > 0 && (
           <div className="stats-section">
-            <h2>👥 Moderator Activity</h2>
+            <h2>👥 Recent Moderation Actions</h2>
             <div className="moderator-grid">
-              {dashboardData.moderatorActivity.map((moderator, index) => (
+              {safeData.moderationActions.slice(0, 5).map((action, index) => (
                 <div key={index} className="moderator-card">
                   <div className="moderator-info">
-                    <div className="moderator-email">{moderator.moderator?.email || 'Unknown'}</div>
+                    <div className="moderator-email">{action.moderator?.name || 'Unknown'}</div>
                     <div className="moderator-stats">
                       <span className="stat-badge">
-                        📝 {moderator.reportsResolved} Reports Resolved
+                        {action.type} - {action.locationId}
                       </span>
                     </div>
                   </div>
@@ -242,36 +251,32 @@ const TransparencyDashboard = () => {
           <h2>🏥 Community Health</h2>
           <div className="health-metrics">
             <div className="metric-card">
-              <h3>Report Response Rate</h3>
+              <h3>Total Reports</h3>
               <div className="metric-value">
-                {dashboardData.summary.totalReports > 0 
-                  ? Math.round((dashboardData.summary.totalReports / dashboardData.summary.totalReports) * 100)
-                  : 0}%
+                {safeData.totalReports}
               </div>
               <div className="metric-description">
-                Percentage of reports that received a response
+                Total reports submitted in this period
               </div>
             </div>
 
             <div className="metric-card">
-              <h3>Appeal Success Rate</h3>
+              <h3>Total Appeals</h3>
               <div className="metric-value">
-                {dashboardData.summary.totalAppeals > 0 
-                  ? Math.round((dashboardData.appealStats.approved_location_restored || 0) / dashboardData.summary.totalAppeals * 100)
-                  : 0}%
+                {safeData.totalAppeals}
               </div>
               <div className="metric-description">
-                Percentage of appeals that were successful
+                Total appeals submitted in this period
               </div>
             </div>
 
             <div className="metric-card">
-              <h3>Average Resolution Time</h3>
+              <h3>Report Types</h3>
               <div className="metric-value">
-                {formatResolutionTime(dashboardData.summary.averageResolutionTime)}
+                {Object.keys(safeData.reportsByType).length}
               </div>
               <div className="metric-description">
-                Average time to resolve reports
+                Different types of reports submitted
               </div>
             </div>
           </div>
@@ -285,7 +290,7 @@ const TransparencyDashboard = () => {
               <div className="timeline-icon">📝</div>
               <div className="timeline-content">
                 <div className="timeline-title">Reports Submitted</div>
-                <div className="timeline-value">{dashboardData.summary.totalReports}</div>
+                <div className="timeline-value">{safeData.totalReports}</div>
                 <div className="timeline-period">{formatTimeRange(timeRange)}</div>
               </div>
             </div>
@@ -294,19 +299,19 @@ const TransparencyDashboard = () => {
               <div className="timeline-icon">⚖️</div>
               <div className="timeline-content">
                 <div className="timeline-title">Appeals Submitted</div>
-                <div className="timeline-value">{dashboardData.summary.totalAppeals}</div>
+                <div className="timeline-value">{safeData.totalAppeals}</div>
                 <div className="timeline-period">{formatTimeRange(timeRange)}</div>
               </div>
             </div>
 
             <div className="timeline-item">
-              <div className="timeline-icon">⏱️</div>
+              <div className="timeline-icon">📊</div>
               <div className="timeline-content">
-                <div className="timeline-title">Avg Response Time</div>
+                <div className="timeline-title">Report Types</div>
                 <div className="timeline-value">
-                  {formatResolutionTime(dashboardData.summary.averageResolutionTime)}
+                  {Object.keys(safeData.reportsByType).length}
                 </div>
-                <div className="timeline-period">Per Report</div>
+                <div className="timeline-period">Different Types</div>
               </div>
             </div>
           </div>

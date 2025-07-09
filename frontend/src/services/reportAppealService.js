@@ -193,7 +193,8 @@ class ReportAppealService {
       const response = await api.get(`/transparency/dashboard?timeRange=${timeRange}`);
       
       console.log('✅ Frontend: Transparency dashboard data retrieved');
-      return response.data;
+      // The backend returns { success: true, data: {...} }, so we need to access response.data.data
+      return response.data.data || response.data;
     } catch (error) {
       console.error('❌ Frontend: Error getting transparency dashboard:', error);
       throw new Error('Failed to get transparency dashboard: ' + (error.response?.data?.message || error.message));
