@@ -258,6 +258,26 @@
   border-color: #667eea;
 }
 
+.moderator-card.admin {
+  border-color: #9b59b6;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+}
+
+.moderator-card.moderator {
+  border-color: #3498db;
+  background: linear-gradient(135deg, #f8fbff 0%, #f0f8ff 100%);
+}
+
+.moderator-card.admin:hover {
+  border-color: #8e44ad;
+  box-shadow: 0 8px 30px rgba(155, 89, 182, 0.2);
+}
+
+.moderator-card.moderator:hover {
+  border-color: #2980b9;
+  box-shadow: 0 8px 30px rgba(52, 152, 219, 0.2);
+}
+
 .moderator-info {
   display: flex;
   align-items: center;
@@ -276,6 +296,14 @@
   justify-content: center;
   color: white;
   font-size: 1.5rem;
+}
+
+.moderator-avatar.admin {
+  background: linear-gradient(45deg, #9b59b6, #8e44ad);
+}
+
+.moderator-avatar.moderator {
+  background: linear-gradient(45deg, #3498db, #2980b9);
 }
 
 .moderator-avatar img {
@@ -298,6 +326,25 @@
   color: #2c3e50;
   font-size: 1.1rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-indicator {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.role-indicator.admin {
+  background: linear-gradient(45deg, #9b59b6, #8e44ad);
+}
+
+.role-indicator.moderator {
+  background: linear-gradient(45deg, #3498db, #2980b9);
 }
 
 .moderator-details p {
@@ -355,6 +402,15 @@
 .remove-moderator-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.remove-moderator-btn.admin {
+  background: linear-gradient(45deg, #9b59b6, #8e44ad);
+}
+
+.remove-moderator-btn.admin:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
 }
 
 /* Settings Section */

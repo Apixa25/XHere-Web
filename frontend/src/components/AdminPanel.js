@@ -52,9 +52,10 @@ const AdminPanel = () => {
       const adminStats = await reportAppealService.getAdminStats();
       setStats(adminStats);
       
-      // Load moderators list
-      const moderatorsData = await reportAppealService.getModerators();
-      setModerators(moderatorsData);
+      // Load all authority members (moderators and admins)
+      const allUsers = await fetchAllUsers();
+      const authorityMembers = allUsers.filter(user => user.isModerator || user.isAdmin);
+      setModerators(authorityMembers);
       
       // Load reports
       await loadReports();
@@ -105,9 +106,8 @@ const AdminPanel = () => {
   };
 
   // New functions for user management
-  const loadUsers = async () => {
+  const fetchAllUsers = async () => {
     try {
-      setUserModalLoading(true);
       const response = await fetch('http://localhost:3000/api/admin/users', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -120,6 +120,17 @@ const AdminPanel = () => {
       }
       
       const data = await response.json();
+      return data;
+    } catch (err) {
+      setError('Failed to load users: ' + err.message);
+      return [];
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      setUserModalLoading(true);
+      const data = await fetchAllUsers();
       setUsers(data);
     } catch (err) {
       setError('Failed to load users: ' + err.message);
@@ -274,7 +285,7 @@ const AdminPanel = () => {
         <div className="stat-card">
           <div className="stat-icon">🛡️</div>
           <div className="stat-content">
-            <h3>Active Moderators</h3>
+            <h3>Active Authority</h3>
             <div className="stat-value">{stats.activeModerators}</div>
           </div>
         </div>
@@ -300,7 +311,7 @@ const AdminPanel = () => {
             className="action-btn"
             onClick={() => setActiveTab('moderators')}
           >
-            👥 Manage Moderators
+            👥 Manage Authority
           </button>
           <button 
             className="action-btn"
@@ -322,7 +333,7 @@ const AdminPanel = () => {
   const renderModerators = () => (
     <div className="moderators-section">
       <div className="section-header">
-        <h3>🛡️ Moderator Management</h3>
+        <h3>🛡️ Authority Management</h3>
         <div className="header-actions">
           <button 
             className="add-moderator-btn"
@@ -346,46 +357,61 @@ const AdminPanel = () => {
       <div className="moderators-list">
         {moderators.length === 0 ? (
           <div className="empty-state">
-            <p>No moderators found</p>
+            <p>No authority members found</p>
           </div>
         ) : (
-          moderators.map(moderator => (
-            <div key={moderator.id} className="moderator-card">
+          moderators.map(member => (
+            <div key={member.id} className={`moderator-card ${member.isAdmin ? 'admin' : 'moderator'}`}>
               <div className="moderator-info">
-                <div className="moderator-avatar">
-                  {moderator.profile?.picture ? (
-                    <img src={moderator.profile.picture} alt="Avatar" />
+                <div className={`moderator-avatar ${member.isAdmin ? 'admin' : 'moderator'}`}>
+                  {member.profile?.picture ? (
+                    <img src={member.profile.picture} alt="Avatar" />
                   ) : (
-                    <div className="avatar-placeholder">👤</div>
+                    <div className="avatar-placeholder">
+                      {member.isAdmin ? '👑' : '🛡️'}
+                    </div>
                   )}
                 </div>
                 <div className="moderator-details">
-                  <h4>{moderator.profile?.name || moderator.email}</h4>
-                  <p>{moderator.email}</p>
+                  <h4>
+                    {member.profile?.name || member.email}
+                    {member.isAdmin && <span className="role-indicator admin">👑 Admin</span>}
+                    {member.isModerator && !member.isAdmin && <span className="role-indicator moderator">🛡️ Moderator</span>}
+                  </h4>
+                  <p>{member.email}</p>
                   <span className="moderator-status">
-                    {moderator.isActive ? '🟢 Active' : '🔴 Inactive'}
+                    🟢 Active
                   </span>
                 </div>
               </div>
               <div className="moderator-stats">
                 <div className="stat">
                   <span className="stat-label">Reports Handled:</span>
-                  <span className="stat-value">{moderator.reportsHandled || 0}</span>
+                  <span className="stat-value">{member.reportsHandled || 0}</span>
                 </div>
                 <div className="stat">
                   <span className="stat-label">Last Active:</span>
                   <span className="stat-value">
-                    {moderator.lastActive ? new Date(moderator.lastActive).toLocaleDateString() : 'Never'}
+                    {member.lastActive ? new Date(member.lastActive).toLocaleDateString() : 'Never'}
                   </span>
                 </div>
               </div>
               <div className="moderator-actions">
-                <button 
-                  className="remove-moderator-btn"
-                  onClick={() => handleRemoveModerator(moderator.id)}
-                >
-                  🗑️ Remove
-                </button>
+                {member.isAdmin ? (
+                  <button 
+                    className="remove-moderator-btn admin"
+                    onClick={() => handleDemoteUser(member.id, 'admin')}
+                  >
+                    👑 Demote Admin
+                  </button>
+                ) : (
+                  <button 
+                    className="remove-moderator-btn"
+                    onClick={() => handleRemoveModerator(member.id)}
+                  >
+                    🗑️ Remove
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -812,7 +838,7 @@ const AdminPanel = () => {
           className={`tab-btn ${activeTab === 'moderators' ? 'active' : ''}`}
           onClick={() => setActiveTab('moderators')}
         >
-          🛡️ Moderators
+          🛡️ Authority
         </button>
         <button 
           className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}

@@ -1815,8 +1815,8 @@ function App() {
             {user && <Link to="/challenges">🎯 Challenges</Link>}
             {user && <Link to="/transparency">🛡️ Transparency</Link>}
             
-            {/* Moderator Navigation - Moderators Only */}
-            {user?.isModerator && <Link to="/moderator">🛡️ Moderator</Link>}
+            {/* Moderator Navigation - Moderators and Admins */}
+            {(user?.isModerator || user?.isAdmin) && <Link to="/moderator">🛡️ Moderator</Link>}
             
             {/* Admin Navigation - Admins Only */}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
