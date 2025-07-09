@@ -23,7 +23,7 @@ router.post('/appeals/submit', requireAuth, async (req, res) => {
 });
 
 // Moderator endpoints
-router.get('/reports/for-review', requireModerator, async (req, res) => {
+router.get('/for-review', requireModerator, async (req, res) => {
   try {
     const { status, priority, reportType, timeRange, sortBy, sortOrder } = req.query;
     const filters = { status, priority, reportType, timeRange, sortBy, sortOrder };
@@ -35,7 +35,7 @@ router.get('/reports/for-review', requireModerator, async (req, res) => {
   }
 });
 
-router.post('/reports/:reportId/resolve', requireModerator, async (req, res) => {
+router.post('/:reportId/resolve', requireModerator, async (req, res) => {
   try {
     const { reportId } = req.params;
     const resolution = req.body;
@@ -47,7 +47,7 @@ router.post('/reports/:reportId/resolve', requireModerator, async (req, res) => 
   }
 });
 
-router.get('/reports/:reportId', requireModerator, async (req, res) => {
+router.get('/:reportId', requireModerator, async (req, res) => {
   try {
     const { reportId } = req.params;
     const result = await reportAppealService.getReportDetails(reportId);
@@ -152,7 +152,7 @@ router.get('/users/:userId/reports', requireModerator, async (req, res) => {
 });
 
 // Bulk operations
-router.post('/reports/bulk-resolve', requireModerator, async (req, res) => {
+router.post('/bulk-resolve', requireModerator, async (req, res) => {
   try {
     const { reportIds, resolution } = req.body;
     const result = await reportAppealService.bulkResolveReports(reportIds, resolution, req.user.id);
@@ -174,7 +174,7 @@ router.get('/admin/analytics', requireModerator, async (req, res) => {
 });
 
 // Export functionality
-router.get('/reports/export', requireModerator, async (req, res) => {
+router.get('/export', requireModerator, async (req, res) => {
   try {
     const filters = req.query;
     const exportData = await reportAppealService.exportReports(filters);
@@ -199,7 +199,7 @@ router.post('/notifications/send', requireModerator, async (req, res) => {
 });
 
 // Check if user has already reported a location
-router.get('/reports/check/:locationId', requireAuth, async (req, res) => {
+router.get('/check/:locationId', requireAuth, async (req, res) => {
   try {
     const { locationId } = req.params;
     const result = await reportAppealService.checkUserReport(locationId, req.user.id);

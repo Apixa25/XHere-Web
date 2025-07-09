@@ -133,7 +133,7 @@ class ReportAppealService {
           {
             model: Location,
             as: 'location',
-            include: [{ model: User, as: 'user' }]
+            include: [{ model: User, as: 'creator' }]
           },
           {
             model: User,
@@ -224,7 +224,7 @@ class ReportAppealService {
           {
             model: Location,
             as: 'location',
-            include: [{ model: User, as: 'user' }]
+            include: [{ model: User, as: 'creator' }]
           },
           {
             model: User,

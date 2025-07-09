@@ -22,6 +22,15 @@ const AdminPanel = () => {
     reportCooldown: 24,
     moderatorApprovalRequired: false
   });
+  const [reports, setReports] = useState([]);
+  const [reportFilters, setReportFilters] = useState({
+    status: 'all',
+    type: 'all',
+    priority: 'all',
+    timeRange: '7d'
+  });
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     loadAdminData();
@@ -40,10 +49,22 @@ const AdminPanel = () => {
       const moderatorsData = await reportAppealService.getModerators();
       setModerators(moderatorsData);
       
+      // Load reports
+      await loadReports();
+      
     } catch (err) {
       setError('Failed to load admin data: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadReports = async () => {
+    try {
+      const reportsData = await reportAppealService.getReportsForReview(reportFilters);
+      setReports(reportsData.reports || []);
+    } catch (err) {
+      console.error('Failed to load reports:', err);
     }
   };
 
@@ -73,6 +94,34 @@ const AdminPanel = () => {
       loadAdminData(); // Refresh moderators list
     } catch (err) {
       setError('Failed to remove moderator: ' + err.message);
+    }
+  };
+
+  const handleFilterChange = async (filterType, value) => {
+    const newFilters = { ...reportFilters, [filterType]: value };
+    setReportFilters(newFilters);
+    await loadReports();
+  };
+
+  const handleViewReport = async (reportId) => {
+    try {
+      const reportDetails = await reportAppealService.getReportDetails(reportId);
+      setSelectedReport(reportDetails);
+      setShowReportModal(true);
+    } catch (err) {
+      setError('Failed to load report details: ' + err.message);
+    }
+  };
+
+  const handleResolveReport = async (reportId, resolution) => {
+    try {
+      await reportAppealService.resolveReport(reportId, resolution, 'current-user-id');
+      setShowReportModal(false);
+      setSelectedReport(null);
+      await loadReports();
+      await loadAdminData(); // Refresh stats
+    } catch (err) {
+      setError('Failed to resolve report: ' + err.message);
     }
   };
 
@@ -126,16 +175,28 @@ const AdminPanel = () => {
       <div className="quick-actions">
         <h3>🚀 Quick Actions</h3>
         <div className="action-buttons">
-          <button className="action-btn">
+          <button 
+            className="action-btn"
+            onClick={() => setActiveTab('reports')}
+          >
             📋 View All Reports
           </button>
-          <button className="action-btn">
+          <button 
+            className="action-btn"
+            onClick={() => setActiveTab('moderators')}
+          >
             👥 Manage Moderators
           </button>
-          <button className="action-btn">
+          <button 
+            className="action-btn"
+            onClick={() => setActiveTab('settings')}
+          >
             ⚙️ System Settings
           </button>
-          <button className="action-btn">
+          <button 
+            className="action-btn"
+            onClick={() => setActiveTab('analytics')}
+          >
             📊 View Analytics
           </button>
         </div>
@@ -330,6 +391,217 @@ const AdminPanel = () => {
     </div>
   );
 
+  const renderReports = () => (
+    <div className="reports-section">
+      <div className="section-header">
+        <h3>📋 Reports Management</h3>
+        <div className="report-filters">
+          <select 
+            value={reportFilters.status} 
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="under_review">Under Review</option>
+            <option value="resolved">Resolved</option>
+            <option value="dismissed">Dismissed</option>
+          </select>
+          
+          <select 
+            value={reportFilters.type} 
+            onChange={(e) => handleFilterChange('type', e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Types</option>
+            <option value="spam">Spam</option>
+            <option value="inappropriate">Inappropriate</option>
+            <option value="duplicate">Duplicate</option>
+            <option value="fake">Fake</option>
+            <option value="offensive">Offensive</option>
+            <option value="other">Other</option>
+          </select>
+          
+          <select 
+            value={reportFilters.priority} 
+            onChange={(e) => handleFilterChange('priority', e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">All Priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="reports-list">
+        {reports.length === 0 ? (
+          <div className="empty-state">
+            <p>No reports found matching your filters</p>
+          </div>
+        ) : (
+          reports.map(report => (
+            <div key={report.id} className="report-card">
+              <div className="report-header">
+                <div className="report-type">
+                  <span className={`type-badge ${report.reportType}`}>
+                    {report.reportType}
+                  </span>
+                  <span className={`priority-badge ${report.priority}`}>
+                    {report.priority}
+                  </span>
+                </div>
+                <div className="report-status">
+                  <span className={`status-badge ${report.status}`}>
+                    {report.status}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="report-content">
+                <h4>Location: {report.location?.name || 'Unknown Location'}</h4>
+                <p className="report-reason">{report.reason}</p>
+                <div className="report-meta">
+                  <span>Reported by: {report.reporter?.profile?.name || report.reporter?.email || 'Anonymous'}</span>
+                  <span>Date: {new Date(report.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+              
+              <div className="report-actions">
+                <button 
+                  className="view-report-btn"
+                  onClick={() => handleViewReport(report.id)}
+                >
+                  👁️ View Details
+                </button>
+                {report.status === 'pending' && (
+                  <button 
+                    className="resolve-report-btn"
+                    onClick={() => handleViewReport(report.id)}
+                  >
+                    ⚖️ Resolve
+                  </button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Report Detail Modal */}
+      {showReportModal && selectedReport && (
+        <div className="modal-overlay">
+          <div className="report-modal">
+            <div className="modal-header">
+              <h3>📋 Report Details</h3>
+              <button 
+                onClick={() => setShowReportModal(false)}
+                className="modal-close-btn"
+                title="Close modal"
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            <div className="modal-content">
+              <div className="report-details">
+                <div className="detail-section">
+                  <h4>📍 Location Information</h4>
+                  <p><strong>Name:</strong> {selectedReport.location?.name}</p>
+                  <p><strong>Type:</strong> {selectedReport.location?.type}</p>
+                  <p><strong>Created by:</strong> {selectedReport.location?.creator?.profile?.name || selectedReport.location?.creator?.email}</p>
+                </div>
+                
+                <div className="detail-section">
+                  <h4>🚨 Report Information</h4>
+                  <p><strong>Type:</strong> {selectedReport.reportType}</p>
+                  <p><strong>Priority:</strong> {selectedReport.priority}</p>
+                  <p><strong>Reason:</strong> {selectedReport.reason}</p>
+                  <p><strong>Reporter:</strong> {selectedReport.reporter?.profile?.name || selectedReport.reporter?.email || 'Anonymous'}</p>
+                  <p><strong>Date:</strong> {new Date(selectedReport.createdAt).toLocaleString()}</p>
+                </div>
+                
+                {selectedReport.evidence && selectedReport.evidence.length > 0 && (
+                  <div className="detail-section">
+                    <h4>📎 Evidence</h4>
+                    {selectedReport.evidence.map((evidence, index) => (
+                      <div key={index} className="evidence-item">
+                        <p><strong>Type:</strong> {evidence.type}</p>
+                        <p><strong>Content:</strong> {evidence.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {selectedReport.status === 'pending' && (
+                <div className="resolution-form">
+                  <h4>⚖️ Resolution</h4>
+                  <div className="form-group">
+                    <label>Action:</label>
+                    <select id="resolution-action" className="form-control">
+                      <option value="location_removed">Remove Location</option>
+                      <option value="location_flagged">Flag Location</option>
+                      <option value="warning_issued">Issue Warning</option>
+                      <option value="no_action">No Action</option>
+                      <option value="user_suspended">Suspend User</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Notes:</label>
+                    <textarea 
+                      id="resolution-notes" 
+                      className="form-control"
+                      placeholder="Enter resolution notes..."
+                      rows="3"
+                    ></textarea>
+                  </div>
+                  <div className="form-actions">
+                    <button 
+                      className="resolve-btn"
+                      onClick={() => {
+                        const action = document.getElementById('resolution-action').value;
+                        const notes = document.getElementById('resolution-notes').value;
+                        handleResolveReport(selectedReport.id, {
+                          status: 'resolved',
+                          action: action,
+                          notes: notes
+                        });
+                      }}
+                    >
+                      ✅ Resolve Report
+                    </button>
+                    <button 
+                      className="dismiss-btn"
+                      onClick={() => {
+                        const notes = document.getElementById('resolution-notes').value;
+                        handleResolveReport(selectedReport.id, {
+                          status: 'dismissed',
+                          action: 'no_action',
+                          notes: notes
+                        });
+                      }}
+                    >
+                      ❌ Dismiss Report
+                    </button>
+                    <button 
+                      className="close-btn"
+                      onClick={() => setShowReportModal(false)}
+                    >
+                      🔒 Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="admin-panel">
@@ -401,6 +673,12 @@ const AdminPanel = () => {
           📊 Overview
         </button>
         <button 
+          className={`tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+          onClick={() => setActiveTab('reports')}
+        >
+          📋 Reports
+        </button>
+        <button 
           className={`tab-btn ${activeTab === 'moderators' ? 'active' : ''}`}
           onClick={() => setActiveTab('moderators')}
         >
@@ -423,6 +701,7 @@ const AdminPanel = () => {
       {/* Tab Content */}
       <div className="panel-content">
         {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'reports' && renderReports()}
         {activeTab === 'moderators' && renderModerators()}
         {activeTab === 'settings' && renderSettings()}
         {activeTab === 'analytics' && renderAnalytics()}
