@@ -33,6 +33,7 @@ router.get('/users', authenticateToken, adminAuth, async (req, res) => {
         'email',
         'profile',
         'isAdmin',
+        'isModerator',
         'credits',
         'createdAt',
         [
@@ -57,6 +58,88 @@ router.get('/users', authenticateToken, adminAuth, async (req, res) => {
       error: 'Error fetching users',
       details: error.message 
     });
+  }
+});
+
+// Promote user to admin
+router.post('/users/:userId/promote', authenticateToken, adminAuth, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const userToPromote = await User.findByPk(req.params.userId);
+    
+    if (!userToPromote) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent promoting yourself (redundant but safe)
+    if (userToPromote.id === req.user.id) {
+      return res.status(400).json({ error: 'Cannot modify your own admin status' });
+    }
+
+    if (role === 'admin') {
+      await userToPromote.update({ isAdmin: true });
+      console.log(`User ${userToPromote.email} promoted to admin by ${req.user.email}`);
+    } else if (role === 'moderator') {
+      await userToPromote.update({ isModerator: true });
+      console.log(`User ${userToPromote.email} promoted to moderator by ${req.user.email}`);
+    } else {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: `User successfully promoted to ${role}`,
+      user: {
+        id: userToPromote.id,
+        email: userToPromote.email,
+        isAdmin: userToPromote.isAdmin,
+        isModerator: userToPromote.isModerator
+      }
+    });
+  } catch (error) {
+    console.error('Error promoting user:', error);
+    res.status(500).json({ error: 'Error promoting user' });
+  }
+});
+
+// Demote user from admin/moderator
+router.post('/users/:userId/demote', authenticateToken, adminAuth, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const userToDemote = await User.findByPk(req.params.userId);
+    
+    if (!userToDemote) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent demoting yourself
+    if (userToDemote.id === req.user.id) {
+      return res.status(400).json({ error: 'Cannot demote your own admin account' });
+    }
+
+    if (role === 'admin') {
+      await userToDemote.update({ isAdmin: false });
+      console.log(`User ${userToDemote.email} demoted from admin by ${req.user.email}`);
+    } else if (role === 'moderator') {
+      await userToDemote.update({ isModerator: false });
+      console.log(`User ${userToDemote.email} demoted from moderator by ${req.user.email}`);
+    } else {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: `User successfully demoted from ${role}`,
+      user: {
+        id: userToDemote.id,
+        email: userToDemote.email,
+        isAdmin: userToDemote.isAdmin,
+        isModerator: userToDemote.isModerator
+      }
+    });
+  } catch (error) {
+    console.error('Error demoting user:', error);
+    res.status(500).json({ error: 'Error demoting user' });
   }
 });
 

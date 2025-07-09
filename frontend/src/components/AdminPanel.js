@@ -32,6 +32,13 @@ const AdminPanel = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
 
+  // New state for user management
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [selectedRole, setSelectedRole] = useState('moderator'); // 'moderator' or 'admin'
+  const [userModalLoading, setUserModalLoading] = useState(false);
+
   useEffect(() => {
     loadAdminData();
   }, []);
@@ -96,6 +103,114 @@ const AdminPanel = () => {
       setError('Failed to remove moderator: ' + err.message);
     }
   };
+
+  // New functions for user management
+  const loadUsers = async () => {
+    try {
+      setUserModalLoading(true);
+      const response = await fetch('http://localhost:3000/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load users');
+      }
+      
+      const data = await response.json();
+      setUsers(data);
+    } catch (err) {
+      setError('Failed to load users: ' + err.message);
+    } finally {
+      setUserModalLoading(false);
+    }
+  };
+
+  const handleOpenUserModal = (role = 'moderator') => {
+    setSelectedRole(role);
+    setShowUserModal(true);
+    loadUsers();
+  };
+
+  const handlePromoteUser = async (userId, role) => {
+    try {
+      setUserModalLoading(true);
+      
+      if (role === 'admin') {
+        // Promote to admin
+        const response = await fetch(`http://localhost:3000/api/admin/users/${userId}/promote`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ role: 'admin' })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to promote user to admin');
+        }
+      } else {
+        // Promote to moderator
+        await reportAppealService.addModerator(userId);
+      }
+      
+      // Refresh data
+      await loadAdminData();
+      await loadUsers();
+      
+      alert(`User successfully promoted to ${role}!`);
+    } catch (err) {
+      setError(`Failed to promote user to ${role}: ` + err.message);
+    } finally {
+      setUserModalLoading(false);
+    }
+  };
+
+  const handleDemoteUser = async (userId, currentRole) => {
+    try {
+      setUserModalLoading(true);
+      
+      if (currentRole === 'admin') {
+        // Demote from admin
+        const response = await fetch(`http://localhost:3000/api/admin/users/${userId}/demote`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ role: 'admin' })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to demote admin');
+        }
+      } else {
+        // Demote from moderator
+        await reportAppealService.removeModerator(userId);
+      }
+      
+      // Refresh data
+      await loadAdminData();
+      await loadUsers();
+      
+      alert(`User successfully demoted from ${currentRole}!`);
+    } catch (err) {
+      setError(`Failed to demote user from ${currentRole}: ` + err.message);
+    } finally {
+      setUserModalLoading(false);
+    }
+  };
+
+  const filteredUsers = users.filter(user => {
+    const searchLower = userSearchQuery.toLowerCase();
+    return (
+      user.email.toLowerCase().includes(searchLower) ||
+      (user.profile?.name && user.profile.name.toLowerCase().includes(searchLower))
+    );
+  });
 
   const handleFilterChange = async (filterType, value) => {
     const newFilters = { ...reportFilters, [filterType]: value };
@@ -208,9 +323,24 @@ const AdminPanel = () => {
     <div className="moderators-section">
       <div className="section-header">
         <h3>🛡️ Moderator Management</h3>
-        <button className="add-moderator-btn">
-          ➕ Add Moderator
-        </button>
+        <div className="header-actions">
+          <button 
+            className="add-moderator-btn"
+            onClick={() => handleOpenUserModal('moderator')}
+          >
+            ➕ Add Moderator
+          </button>
+          <button 
+            className="add-admin-btn"
+            onClick={() => handleOpenUserModal('admin')}
+            style={{
+              background: 'linear-gradient(45deg, #9b59b6, #8e44ad)',
+              marginLeft: '10px'
+            }}
+          >
+            👑 Add Admin
+          </button>
+        </div>
       </div>
 
       <div className="moderators-list">
@@ -706,6 +836,103 @@ const AdminPanel = () => {
         {activeTab === 'settings' && renderSettings()}
         {activeTab === 'analytics' && renderAnalytics()}
       </div>
+
+      {/* User Management Modal */}
+      {showUserModal && (
+        <div className="modal-overlay">
+          <div className="modal-content user-management-modal">
+            <div className="modal-header">
+              <h3>
+                {selectedRole === 'admin' ? '👑 Promote to Admin' : '🛡️ Promote to Moderator'}
+              </h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setShowUserModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="search-section">
+                <input
+                  type="text"
+                  placeholder="Search users by email or name..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="user-search-input"
+                />
+              </div>
+              
+              <div className="users-list">
+                {userModalLoading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading users...</p>
+                  </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No users found</p>
+                  </div>
+                ) : (
+                  filteredUsers.map(user => (
+                    <div key={user.id} className="user-card">
+                      <div className="user-info">
+                        <div className="user-avatar">
+                          {user.profile?.picture ? (
+                            <img src={user.profile.picture} alt="Avatar" />
+                          ) : (
+                            <div className="avatar-placeholder">👤</div>
+                          )}
+                        </div>
+                        <div className="user-details">
+                          <h4>{user.profile?.name || 'No Name'}</h4>
+                          <p>{user.email}</p>
+                          <div className="user-roles">
+                            {user.isAdmin && <span className="role-badge admin">👑 Admin</span>}
+                            {user.isModerator && <span className="role-badge moderator">🛡️ Moderator</span>}
+                            {!user.isAdmin && !user.isModerator && (
+                              <span className="role-badge user">👤 User</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="user-actions">
+                        {user.isAdmin ? (
+                          <button 
+                            className="demote-btn admin"
+                            onClick={() => handleDemoteUser(user.id, 'admin')}
+                            disabled={userModalLoading}
+                          >
+                            👑 Demote Admin
+                          </button>
+                        ) : user.isModerator ? (
+                          <button 
+                            className="demote-btn moderator"
+                            onClick={() => handleDemoteUser(user.id, 'moderator')}
+                            disabled={userModalLoading}
+                          >
+                            🛡️ Demote Moderator
+                          </button>
+                        ) : (
+                          <button 
+                            className={`promote-btn ${selectedRole}`}
+                            onClick={() => handlePromoteUser(user.id, selectedRole)}
+                            disabled={userModalLoading}
+                          >
+                            {selectedRole === 'admin' ? '👑 Promote to Admin' : '🛡️ Promote to Moderator'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
