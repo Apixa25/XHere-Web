@@ -1806,7 +1806,6 @@ function App() {
       element: (
         <div className="App">
           <nav className="main-nav">
-            <Link to="/">Home</Link>
             {user && <Link to="/profile">Profile</Link>}
             {user && <Link to="/user-owned-locations">🏠 My Locations</Link>}
             {user && <Link to="/official-locations">🔵 Official Locations</Link>}
