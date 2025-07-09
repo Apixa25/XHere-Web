@@ -76,6 +76,7 @@ const requireModerator = async (req, res, next) => {
 
 module.exports = {
   authenticateToken: authenticateToken,
+  requireAuth: authenticateToken,
   requireAdmin: requireAdmin,
   requireModerator: requireModerator
 };

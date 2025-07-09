@@ -2,698 +2,690 @@ const LocationReport = require('../models/LocationReport');
 const LocationAppeal = require('../models/LocationAppeal');
 const Location = require('../models/Location');
 const User = require('../models/User');
-const { Op, fn, col } = require('sequelize');
-const sequelize = require('../config/database');
+const { Op, fn, col, literal } = require('sequelize');
 
 class ReportAppealService {
   /**
-   * 📝 Submit a location report with evidence
-   * @param {string} locationId - Location ID
-   * @param {string} reporterId - User ID of reporter
-   * @param {Object} reportData - Report data
-   * @returns {Promise<Object>} Report creation result
+   * 📝 Submit a location report
    */
-  static async submitReport(locationId, reporterId, reportData) {
-    const transaction = await sequelize.transaction();
-    
+  async submitReport(reportData, reporterId) {
     try {
-      console.log(`📝 Creating report for location ${locationId} by user ${reporterId}`);
-      
+      const { locationId, reportType, reason, evidence, isAnonymous, contactEmail } = reportData;
+
+      // Check if user has already reported this location
+      const existingReport = await LocationReport.findOne({
+        where: {
+          locationId: locationId,
+          reporterId: reporterId
+        }
+      });
+
+      if (existingReport) {
+        throw new Error('You have already reported this location');
+      }
+
       // Validate location exists
       const location = await Location.findByPk(locationId);
       if (!location) {
         throw new Error('Location not found');
       }
-      
-      // Check if user has already reported this location
-      const existingReport = await LocationReport.findOne({
-        where: {
-          locationId,
-          reporterId,
-          status: { [Op.in]: ['pending', 'under_review'] }
-        }
-      });
-      
-      if (existingReport) {
-        throw new Error('You have already reported this location');
-      }
-      
-      // Determine priority based on report type and evidence
-      const priority = this.calculateReportPriority(reportData.reportType, reportData.evidence);
-      
+
       // Create the report
       const report = await LocationReport.create({
         locationId,
         reporterId,
-        reportType: reportData.reportType,
-        reason: reportData.reason,
-        evidence: reportData.evidence || [],
-        priority,
-        isAnonymous: reportData.isAnonymous || false,
-        contactEmail: reportData.contactEmail
-      }, { transaction });
-      
-      // Update location status if multiple reports exist
-      await this.updateLocationStatusForReports(locationId, transaction);
-      
-      await transaction.commit();
-      
-      console.log(`✅ Report created successfully: ${report.id}`);
-      
+        reportType,
+        reason: reason.trim(),
+        evidence: evidence || [],
+        isAnonymous: isAnonymous || false,
+        contactEmail: contactEmail || null,
+        status: 'pending',
+        priority: this.calculatePriority(reportType, reason)
+      });
+
       return {
-        success: true,
         reportId: report.id,
-        message: 'Report submitted successfully',
-        priority: report.priority
+        status: report.status,
+        createdAt: report.createdAt
       };
     } catch (error) {
-      await transaction.rollback();
-      console.error('❌ Error submitting report:', error);
-      throw error;
+      throw new Error(`Failed to submit report: ${error.message}`);
     }
   }
-  
+
   /**
    * ⚖️ Submit an appeal for a removed location
-   * @param {string} locationId - Location ID
-   * @param {string} appellantId - User ID of appellant
-   * @param {Object} appealData - Appeal data
-   * @returns {Promise<Object>} Appeal creation result
    */
-  static async submitAppeal(locationId, appellantId, appealData) {
-    const transaction = await sequelize.transaction();
-    
+  async submitAppeal(appealData, appellantId) {
     try {
-      console.log(`⚖️ Creating appeal for location ${locationId} by user ${appellantId}`);
-      
-      // Validate location exists and is removed
+      const { locationId, appealReason, evidence, contactEmail } = appealData;
+
+      // Validate location exists and was removed
       const location = await Location.findByPk(locationId);
       if (!location) {
         throw new Error('Location not found');
       }
-      
-      if (location.locationStatus !== 'removed') {
+
+      if (location.status !== 'removed') {
         throw new Error('Location is not removed and cannot be appealed');
       }
-      
-      // Check if user is the creator of the location
-      if (location.creatorId !== appellantId) {
-        throw new Error('Only the location creator can submit an appeal');
-      }
-      
-      // Check if appeal already exists
+
+      // Check if user has already appealed this location
       const existingAppeal = await LocationAppeal.findOne({
         where: {
-          locationId,
-          appellantId,
-          status: { [Op.in]: ['pending', 'under_review'] }
+          locationId: locationId,
+          appellantId: appellantId
         }
       });
-      
+
       if (existingAppeal) {
-        throw new Error('You have already submitted an appeal for this location');
+        throw new Error('You have already appealed this location');
       }
-      
-      // Find the original report that led to removal
-      const originalReport = await LocationReport.findOne({
-        where: {
-          locationId,
-          resolution: 'location_removed'
-        },
-        order: [['resolvedAt', 'DESC']]
-      });
-      
-      // Determine priority and urgency
-      const priority = this.calculateAppealPriority(appealData.evidence);
-      const isUrgent = this.determineAppealUrgency(appealData.evidence, location);
-      
+
       // Create the appeal
       const appeal = await LocationAppeal.create({
         locationId,
         appellantId,
-        originalReportId: originalReport?.id,
-        appealReason: appealData.appealReason,
-        evidence: appealData.evidence || [],
-        priority,
-        isUrgent,
-        contactEmail: appealData.contactEmail
-      }, { transaction });
-      
-      await transaction.commit();
-      
-      console.log(`✅ Appeal created successfully: ${appeal.id}`);
-      
+        appealReason: appealReason.trim(),
+        evidence: evidence || [],
+        contactEmail: contactEmail || null,
+        status: 'pending'
+      });
+
       return {
-        success: true,
         appealId: appeal.id,
-        message: 'Appeal submitted successfully',
-        priority: appeal.priority,
-        isUrgent: appeal.isUrgent
+        status: appeal.status,
+        createdAt: appeal.createdAt
       };
     } catch (error) {
-      await transaction.rollback();
-      console.error('❌ Error submitting appeal:', error);
-      throw error;
+      throw new Error(`Failed to submit appeal: ${error.message}`);
     }
   }
-  
+
   /**
-   * 📊 Get reports for moderation review
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} Reports data
+   * 🔍 Get reports for moderation review
    */
-  static async getReportsForReview(options = {}) {
+  async getReportsForReview(filters = {}) {
     try {
-      const { limit = 20, offset = 0, status, priority, reportType } = options;
-      
+      const {
+        status,
+        priority,
+        reportType,
+        timeRange = '7d',
+        sortBy = 'createdAt',
+        sortOrder = 'desc'
+      } = filters;
+
+      // Calculate date range
+      const dateRange = this.calculateDateRange(timeRange);
+
+      // Build where clause
       const whereClause = {};
-      if (status) whereClause.status = status;
-      if (priority) whereClause.priority = priority;
-      if (reportType) whereClause.reportType = reportType;
-      
+      if (status && status !== 'all') whereClause.status = status;
+      if (priority && priority !== 'all') whereClause.priority = priority;
+      if (reportType && reportType !== 'all') whereClause.reportType = reportType;
+      if (dateRange) whereClause.createdAt = { [Op.gte]: dateRange };
+
+      // Get reports with associations
       const reports = await LocationReport.findAll({
         where: whereClause,
         include: [
           {
             model: Location,
             as: 'location',
-            attributes: ['id', 'name', 'description', 'locationType', 'locationStatus']
+            include: [{ model: User, as: 'user' }]
           },
           {
             model: User,
-            as: 'reporter',
-            attributes: ['id', 'email', 'profile', 'trustLevel']
-          },
-          {
-            model: User,
-            as: 'moderator',
-            attributes: ['id', 'email', 'profile']
+            as: 'reporter'
           }
         ],
-        order: [
-          ['priority', 'DESC'],
-          ['createdAt', 'ASC']
-        ],
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        order: [[sortBy, sortOrder.toUpperCase()]],
+        limit: 50
       });
-      
-      const total = await LocationReport.count({ where: whereClause });
-      
+
+      // Get statistics
+      const stats = await this.getReportStats();
+
       return {
         reports,
+        stats,
         pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          pages: Math.ceil(total / limit)
+          total: reports.length,
+          limit: 50
         }
       };
     } catch (error) {
-      console.error('❌ Error getting reports for review:', error);
-      throw error;
+      throw new Error(`Failed to get reports for review: ${error.message}`);
     }
   }
 
   /**
-   * 📊 Get user's submitted reports
-   * @param {string} userId - User ID
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} User reports data
+   * 🔍 Resolve a report
    */
-  static async getUserReports(userId, options = {}) {
+  async resolveReport(reportId, resolution, moderatorId) {
     try {
-      const { limit = 20, offset = 0 } = options;
-      
+      const report = await LocationReport.findByPk(reportId);
+      if (!report) {
+        throw new Error('Report not found');
+      }
+
+      // Update report status
+      await report.update({
+        status: resolution.status,
+        resolvedBy: moderatorId,
+        resolvedAt: new Date(),
+        resolutionNotes: resolution.notes,
+        resolutionAction: resolution.action
+      });
+
+      // Handle location actions based on resolution
+      await this.handleLocationAction(report.locationId, resolution.action);
+
+      // Send notifications if requested
+      if (resolution.notifyReporter) {
+        await this.sendNotification(report.reporterId, {
+          type: 'report_resolved',
+          title: 'Your report has been resolved',
+          message: `Your report has been reviewed and ${resolution.action}.`,
+          data: { reportId, resolution: resolution.action }
+        });
+      }
+
+      if (resolution.notifyLocationOwner) {
+        const location = await Location.findByPk(report.locationId);
+        if (location && location.userId) {
+          await this.sendNotification(location.userId, {
+            type: 'location_action',
+            title: 'Action taken on your location',
+            message: `An action has been taken on your location: ${resolution.action}.`,
+            data: { locationId: report.locationId, action: resolution.action }
+          });
+        }
+      }
+
+      return {
+        success: true,
+        reportId: report.id,
+        status: report.status
+      };
+    } catch (error) {
+      throw new Error(`Failed to resolve report: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📊 Get report details
+   */
+  async getReportDetails(reportId) {
+    try {
+      const report = await LocationReport.findByPk(reportId, {
+        include: [
+          {
+            model: Location,
+            as: 'location',
+            include: [{ model: User, as: 'user' }]
+          },
+          {
+            model: User,
+            as: 'reporter'
+          }
+        ]
+      });
+
+      if (!report) {
+        throw new Error('Report not found');
+      }
+
+      return report;
+    } catch (error) {
+      throw new Error(`Failed to get report details: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📊 Get admin statistics
+   */
+  async getAdminStats() {
+    try {
+      const [
+        totalReports,
+        pendingReports,
+        resolvedReports,
+        totalUsers,
+        activeModerators
+      ] = await Promise.all([
+        LocationReport.count(),
+        LocationReport.count({ where: { status: 'pending' } }),
+        LocationReport.count({ where: { status: 'resolved' } }),
+        User.count(),
+        User.count({ where: { isModerator: true } })
+      ]);
+
+      return {
+        totalReports,
+        pendingReports,
+        resolvedReports,
+        totalUsers,
+        activeModerators,
+        systemHealth: 'good'
+      };
+    } catch (error) {
+      throw new Error(`Failed to get admin stats: ${error.message}`);
+    }
+  }
+
+  /**
+   * 👥 Get moderators list
+   */
+  async getModerators() {
+    try {
+      const moderators = await User.findAll({
+        where: { isModerator: true },
+        attributes: ['id', 'email', 'profile'],
+        include: [
+          {
+            model: LocationReport,
+            as: 'reportsReviewed',
+            where: { status: 'resolved' },
+            required: false,
+            attributes: []
+          }
+        ],
+        group: ['User.id']
+      });
+
+      return moderators.map(moderator => ({
+        ...moderator.toJSON(),
+        reportsHandled: moderator.reportsReviewed?.length || 0
+      }));
+    } catch (error) {
+      throw new Error(`Failed to get moderators: ${error.message}`);
+    }
+  }
+
+  /**
+   * ➕ Add moderator
+   */
+  async addModerator(userId) {
+    try {
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      await user.update({ isModerator: true });
+      return { success: true, userId };
+    } catch (error) {
+      throw new Error(`Failed to add moderator: ${error.message}`);
+    }
+  }
+
+  /**
+   * 🗑️ Remove moderator
+   */
+  async removeModerator(userId) {
+    try {
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      await user.update({ isModerator: false });
+      return { success: true, userId };
+    } catch (error) {
+      throw new Error(`Failed to remove moderator: ${error.message}`);
+    }
+  }
+
+  /**
+   * ⚙️ Update system setting
+   */
+  async updateSystemSetting(setting, value) {
+    try {
+      // In a real implementation, you would store settings in a database
+      // For now, we'll just return success
+      console.log(`Setting updated: ${setting} = ${value}`);
+      return { success: true, setting, value };
+    } catch (error) {
+      throw new Error(`Failed to update setting: ${error.message}`);
+    }
+  }
+
+  /**
+   * ⚙️ Get system settings
+   */
+  async getSystemSettings() {
+    try {
+      // Mock settings for now
+      return {
+        autoModeration: true,
+        requireEvidence: true,
+        maxReportsPerUser: 5,
+        reportCooldown: 24,
+        moderatorApprovalRequired: false
+      };
+    } catch (error) {
+      throw new Error(`Failed to get system settings: ${error.message}`);
+    }
+  }
+
+  /**
+   * ⚖️ Get appeals for review
+   */
+  async getAppealsForReview(filters = {}) {
+    try {
+      const {
+        status,
+        priority,
+        timeRange = '7d',
+        sortBy = 'createdAt',
+        sortOrder = 'desc'
+      } = filters;
+
+      const dateRange = this.calculateDateRange(timeRange);
+      const whereClause = {};
+      if (status && status !== 'all') whereClause.status = status;
+      if (dateRange) whereClause.createdAt = { [Op.gte]: dateRange };
+
+      const appeals = await LocationAppeal.findAll({
+        where: whereClause,
+        include: [
+          {
+            model: Location,
+            as: 'location'
+          },
+          {
+            model: User,
+            as: 'appellant'
+          }
+        ],
+        order: [[sortBy, sortOrder.toUpperCase()]],
+        limit: 50
+      });
+
+      return {
+        appeals,
+        pagination: {
+          total: appeals.length,
+          limit: 50
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to get appeals for review: ${error.message}`);
+    }
+  }
+
+  /**
+   * ⚖️ Resolve appeal
+   */
+  async resolveAppeal(appealId, resolution, moderatorId) {
+    try {
+      const appeal = await LocationAppeal.findByPk(appealId);
+      if (!appeal) {
+        throw new Error('Appeal not found');
+      }
+
+      await appeal.update({
+        status: resolution.status,
+        resolvedBy: moderatorId,
+        resolvedAt: new Date(),
+        resolutionNotes: resolution.notes,
+        resolutionAction: resolution.action
+      });
+
+      return {
+        success: true,
+        appealId: appeal.id,
+        status: appeal.status
+      };
+    } catch (error) {
+      throw new Error(`Failed to resolve appeal: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📊 Get user report history
+   */
+  async getUserReportHistory(userId) {
+    try {
       const reports = await LocationReport.findAll({
         where: { reporterId: userId },
         include: [
           {
             model: Location,
-            as: 'location',
-            attributes: ['id', 'content', 'locationType', 'locationStatus']
-          },
-          {
-            model: User,
-            as: 'moderator',
-            attributes: ['id', 'email', 'profile']
+            as: 'location'
           }
         ],
         order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit: 20
       });
-      
-      const total = await LocationReport.count({ where: { reporterId: userId } });
-      
-      return {
-        reports,
-        pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          pages: Math.ceil(total / limit)
-        }
-      };
+
+      return reports;
     } catch (error) {
-      console.error('❌ Error getting user reports:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * ⚖️ Get appeals for review
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} Appeals data
-   */
-  static async getAppealsForReview(options = {}) {
-    try {
-      const { limit = 20, offset = 0, status, priority, isUrgent } = options;
-      
-      const whereClause = {};
-      if (status) whereClause.status = status;
-      if (priority) whereClause.priority = priority;
-      if (isUrgent !== undefined) whereClause.isUrgent = isUrgent;
-      
-      const appeals = await LocationAppeal.findAll({
-        where: whereClause,
-        include: [
-          {
-            model: Location,
-            as: 'location',
-            attributes: ['id', 'content', 'locationType', 'locationStatus']
-          },
-          {
-            model: User,
-            as: 'appellant',
-            attributes: ['id', 'email', 'profile', 'trustLevel']
-          },
-          {
-            model: User,
-            as: 'reviewer',
-            attributes: ['id', 'email', 'profile']
-          },
-          {
-            model: LocationReport,
-            as: 'originalReport',
-            attributes: ['id', 'reportType', 'reason', 'resolution']
-          }
-        ],
-        order: [
-          ['isUrgent', 'DESC'],
-          ['priority', 'DESC'],
-          ['createdAt', 'ASC']
-        ],
-        limit: parseInt(limit),
-        offset: parseInt(offset)
-      });
-      
-      const total = await LocationAppeal.count({ where: whereClause });
-      
-      return {
-        appeals,
-        pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          pages: Math.ceil(total / limit)
-        }
-      };
-    } catch (error) {
-      console.error('❌ Error getting appeals for review:', error);
-      throw error;
+      throw new Error(`Failed to get user report history: ${error.message}`);
     }
   }
 
   /**
-   * ⚖️ Get user's submitted appeals
-   * @param {string} userId - User ID
-   * @param {Object} options - Query options
-   * @returns {Promise<Object>} User appeals data
+   * 📦 Bulk resolve reports
    */
-  static async getUserAppeals(userId, options = {}) {
+  async bulkResolveReports(reportIds, resolution, moderatorId) {
     try {
-      const { limit = 20, offset = 0 } = options;
+      const results = await Promise.all(
+        reportIds.map(reportId => this.resolveReport(reportId, resolution, moderatorId))
+      );
+
+      return {
+        success: true,
+        resolvedCount: results.length,
+        results
+      };
+    } catch (error) {
+      throw new Error(`Failed to bulk resolve reports: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📈 Get moderation analytics
+   */
+  async getModerationAnalytics(timeRange = '30d') {
+    try {
+      const dateRange = this.calculateDateRange(timeRange);
       
-      const appeals = await LocationAppeal.findAll({
-        where: { appellantId: userId },
+      const [totalReports, resolvedReports, averageResolutionTime] = await Promise.all([
+        LocationReport.count({ where: { createdAt: { [Op.gte]: dateRange } } }),
+        LocationReport.count({ 
+          where: { 
+            status: 'resolved',
+            createdAt: { [Op.gte]: dateRange }
+          }
+        }),
+        LocationReport.findOne({
+          where: { 
+            status: 'resolved',
+            createdAt: { [Op.gte]: dateRange }
+          },
+          attributes: [
+            [fn('AVG', fn('EXTRACT', 'EPOCH', literal('"resolvedAt" - "createdAt"'))), 'avgResolutionTime']
+          ]
+        })
+      ]);
+
+      return {
+        totalReports,
+        resolvedReports,
+        averageResolutionTime: averageResolutionTime?.dataValues?.avgResolutionTime || 0,
+        timeRange
+      };
+    } catch (error) {
+      throw new Error(`Failed to get moderation analytics: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📤 Export reports
+   */
+  async exportReports(filters = {}) {
+    try {
+      const reports = await this.getReportsForReview(filters);
+      return reports.reports;
+    } catch (error) {
+      throw new Error(`Failed to export reports: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📧 Send notification
+   */
+  async sendNotification(userId, notification) {
+    try {
+      // In a real implementation, you would send actual notifications
+      console.log(`Notification sent to user ${userId}:`, notification);
+      return { success: true, userId, notification };
+    } catch (error) {
+      throw new Error(`Failed to send notification: ${error.message}`);
+    }
+  }
+
+  /**
+   * 🔍 Check if user has already reported a location
+   */
+  async checkUserReport(locationId, userId) {
+    try {
+      const existingReport = await LocationReport.findOne({
+        where: {
+          locationId: locationId,
+          reporterId: userId
+        },
         include: [
           {
             model: Location,
-            as: 'location',
-            attributes: ['id', 'content', 'locationType', 'locationStatus']
-          },
-          {
-            model: User,
-            as: 'reviewer',
-            attributes: ['id', 'email', 'profile']
-          },
-          {
-            model: LocationReport,
-            as: 'originalReport',
-            attributes: ['id', 'reportType', 'reason', 'resolution']
+            as: 'location'
           }
-        ],
-        order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        ]
       });
-      
-      const total = await LocationAppeal.count({ where: { appellantId: userId } });
-      
+
       return {
-        appeals,
-        pagination: {
-          total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          pages: Math.ceil(total / limit)
-        }
+        hasExistingReport: !!existingReport,
+        existingReport: existingReport ? {
+          id: existingReport.id,
+          reportType: existingReport.reportType,
+          status: existingReport.status,
+          createdAt: existingReport.createdAt,
+          location: existingReport.location
+        } : null
       };
     } catch (error) {
-      console.error('❌ Error getting user appeals:', error);
-      throw error;
+      throw new Error(`Failed to check user report: ${error.message}`);
     }
   }
-  
-  /**
-   * 🔍 Review and resolve a report
-   * @param {string} reportId - Report ID
-   * @param {string} moderatorId - Moderator user ID
-   * @param {Object} resolutionData - Resolution data
-   * @returns {Promise<Object>} Resolution result
-   */
-  static async resolveReport(reportId, moderatorId, resolutionData) {
-    const transaction = await sequelize.transaction();
-    
-    try {
-      console.log(`🔍 Resolving report ${reportId} by moderator ${moderatorId}`);
-      
-      const report = await LocationReport.findByPk(reportId, {
-        include: [{ model: Location, as: 'location' }]
-      });
-      
-      if (!report) {
-        throw new Error('Report not found');
-      }
-      
-      if (report.status === 'resolved') {
-        throw new Error('Report has already been resolved');
-      }
-      
-      // Update report with resolution
-      await report.update({
-        status: 'resolved',
-        moderatorId,
-        moderatorNotes: resolutionData.notes,
-        resolution: resolutionData.resolution,
-        resolvedAt: new Date()
-      }, { transaction });
-      
-      // Apply resolution to location
-      await this.applyReportResolution(report.locationId, resolutionData.resolution, transaction);
-      
-      await transaction.commit();
-      
-      console.log(`✅ Report resolved successfully: ${reportId}`);
-      
-      return {
-        success: true,
-        reportId: report.id,
-        resolution: resolutionData.resolution,
-        message: 'Report resolved successfully'
-      };
-    } catch (error) {
-      await transaction.rollback();
-      console.error('❌ Error resolving report:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * ⚖️ Review and decide on an appeal
-   * @param {string} appealId - Appeal ID
-   * @param {string} reviewerId - Reviewer user ID
-   * @param {Object} decisionData - Decision data
-   * @returns {Promise<Object>} Decision result
-   */
-  static async reviewAppeal(appealId, reviewerId, decisionData) {
-    const transaction = await sequelize.transaction();
-    
-    try {
-      console.log(`⚖️ Reviewing appeal ${appealId} by reviewer ${reviewerId}`);
-      
-      const appeal = await LocationAppeal.findByPk(appealId, {
-        include: [{ model: Location, as: 'location' }]
-      });
-      
-      if (!appeal) {
-        throw new Error('Appeal not found');
-      }
-      
-      if (appeal.status === 'approved' || appeal.status === 'rejected') {
-        throw new Error('Appeal has already been reviewed');
-      }
-      
-      // Update appeal with decision
-      await appeal.update({
-        status: decisionData.decision === 'location_restored' ? 'approved' : 'rejected',
-        reviewerId,
-        reviewerNotes: decisionData.notes,
-        decision: decisionData.decision,
-        compensationAmount: decisionData.compensationAmount || 0,
-        reviewedAt: new Date()
-      }, { transaction });
-      
-      // Apply appeal decision to location
-      await this.applyAppealDecision(appeal.locationId, decisionData.decision, transaction);
-      
-      // Award compensation if applicable
-      if (decisionData.compensationAmount > 0) {
-        await this.awardCompensation(appeal.appellantId, decisionData.compensationAmount, transaction);
-      }
-      
-      await transaction.commit();
-      
-      console.log(`✅ Appeal reviewed successfully: ${appealId}`);
-      
-      return {
-        success: true,
-        appealId: appeal.id,
-        decision: decisionData.decision,
-        message: 'Appeal reviewed successfully'
-      };
-    } catch (error) {
-      await transaction.rollback();
-      console.error('❌ Error reviewing appeal:', error);
-      throw error;
-    }
-  }
-  
+
   /**
    * 📊 Get transparency dashboard data
-   * @param {string} timeRange - Time range for data
-   * @returns {Promise<Object>} Transparency data
    */
-  static async getTransparencyData(timeRange = '30d') {
+  async getTransparencyDashboard(timeRange = '30d') {
     try {
-      const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
+      const dateRange = this.calculateDateRange(timeRange);
       
-      // Get report statistics
-      const reportStats = await LocationReport.findAll({
-        attributes: [
-          'status',
-          'reportType',
-          'resolution',
-          [fn('COUNT', col('id')), 'count']
-        ],
-        where: {
-          createdAt: { [Op.gte]: startDate }
-        },
-        group: ['status', 'reportType', 'resolution'],
-        raw: true
+      const [totalReports, totalAppeals, reportsByType] = await Promise.all([
+        LocationReport.count({ where: { createdAt: { [Op.gte]: dateRange } } }),
+        LocationAppeal.count({ where: { createdAt: { [Op.gte]: dateRange } } }),
+        LocationReport.findAll({
+          where: { createdAt: { [Op.gte]: dateRange } },
+          attributes: [
+            'reportType',
+            [fn('COUNT', col('id')), 'count']
+          ],
+          group: ['reportType']
+        })
+      ]);
+
+      const reportsByTypeMap = {};
+      reportsByType.forEach(item => {
+        reportsByTypeMap[item.reportType] = parseInt(item.dataValues.count);
       });
-      
-      // Get appeal statistics
-      const appealStats = await LocationAppeal.findAll({
-        attributes: [
-          'status',
-          'decision',
-          [fn('COUNT', col('id')), 'count']
-        ],
-        where: {
-          createdAt: { [Op.gte]: startDate }
-        },
-        group: ['status', 'decision'],
-        raw: true
-      });
-      
-      // Get moderator activity
-      const moderatorActivity = await LocationReport.findAll({
-        attributes: [
-          'moderatorId',
-          [fn('COUNT', col('id')), 'reportsResolved']
-        ],
-        where: {
-          moderatorId: { [Op.ne]: null },
-          status: 'resolved',
-          createdAt: { [Op.gte]: startDate }
-        },
-        group: ['moderatorId'],
-        include: [{ model: User, as: 'moderator', attributes: ['email'] }],
-        raw: true
-      });
-      
+
       return {
-        timeRange,
-        generatedAt: new Date(),
-        reportStats: this.processReportStats(reportStats),
-        appealStats: this.processAppealStats(appealStats),
-        moderatorActivity,
-        summary: {
-          totalReports: reportStats.reduce((sum, stat) => sum + parseInt(stat.count), 0),
-          totalAppeals: appealStats.reduce((sum, stat) => sum + parseInt(stat.count), 0),
-          averageResolutionTime: await this.calculateAverageResolutionTime(startDate)
-        }
+        totalReports,
+        totalAppeals,
+        reportsByType: reportsByTypeMap,
+        timeRange
       };
     } catch (error) {
-      console.error('❌ Error getting transparency data:', error);
-      throw error;
+      throw new Error(`Failed to get transparency dashboard: ${error.message}`);
     }
   }
-  
+
   // Helper methods
-  static calculateReportPriority(reportType, evidence) {
-    let priority = 'medium';
-    
-    // High priority for certain report types
-    if (['offensive', 'fake'].includes(reportType)) {
-      priority = 'high';
-    }
-    
-    // Urgent if substantial evidence provided
-    if (evidence && evidence.length > 2) {
-      priority = 'urgent';
-    }
-    
-    return priority;
+  calculatePriority(reportType, reason) {
+    const urgentKeywords = ['urgent', 'emergency', 'dangerous', 'illegal'];
+    const hasUrgentKeywords = urgentKeywords.some(keyword => 
+      reason.toLowerCase().includes(keyword)
+    );
+
+    if (hasUrgentKeywords || reportType === 'inappropriate') return 'urgent';
+    if (reportType === 'spam') return 'high';
+    if (reportType === 'duplicate') return 'medium';
+    return 'low';
   }
-  
-  static calculateAppealPriority(evidence) {
-    let priority = 'medium';
-    
-    // High priority if substantial evidence provided
-    if (evidence && evidence.length > 3) {
-      priority = 'high';
-    }
-    
-    return priority;
-  }
-  
-  static determineAppealUrgency(evidence, location) {
-    // Urgent if location was highly rated or had significant community value
-    if (location.totalPoints > 50 || evidence.length > 5) {
-      return true;
-    }
-    return false;
-  }
-  
-  static async updateLocationStatusForReports(locationId, transaction) {
-    const reportCount = await LocationReport.count({
-      where: {
-        locationId,
-        status: { [Op.in]: ['pending', 'under_review'] }
-      },
-      transaction
-    });
-    
-    // Flag location if multiple reports exist
-    if (reportCount >= 3) {
-      await Location.update(
-        { locationStatus: 'flagged' },
-        { where: { id: locationId }, transaction }
-      );
-    }
-  }
-  
-  static async applyReportResolution(locationId, resolution, transaction) {
-    const location = await Location.findByPk(locationId, { transaction });
-    
-    switch (resolution) {
-      case 'location_removed':
-        await location.update({ locationStatus: 'removed' }, { transaction });
-        break;
-      case 'location_flagged':
-        await location.update({ locationStatus: 'flagged' }, { transaction });
-        break;
-      case 'user_suspended':
-        // Handle user suspension logic
-        break;
+
+  calculateDateRange(timeRange) {
+    const now = new Date();
+    switch (timeRange) {
+      case '1d':
+        return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      case '7d':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case '30d':
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      case '90d':
+        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
       default:
-        // No action needed
-        break;
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
   }
-  
-  static async applyAppealDecision(locationId, decision, transaction) {
-    const location = await Location.findByPk(locationId, { transaction });
-    
-    switch (decision) {
-      case 'location_restored':
-        await location.update({ locationStatus: 'verified' }, { transaction });
-        break;
-      case 'partial_restoration':
-        await location.update({ locationStatus: 'pending' }, { transaction });
-        break;
-      default:
-        // Location remains removed
-        break;
+
+  async getReportStats() {
+    try {
+      const [pending, underReview, resolved, total] = await Promise.all([
+        LocationReport.count({ where: { status: 'pending' } }),
+        LocationReport.count({ where: { status: 'under_review' } }),
+        LocationReport.count({ where: { status: 'resolved' } }),
+        LocationReport.count()
+      ]);
+
+      return { pending, underReview, resolved, total };
+    } catch (error) {
+      console.error('Error getting report stats:', error);
+      return { pending: 0, underReview: 0, resolved: 0, total: 0 };
     }
   }
-  
-  static async awardCompensation(userId, amount, transaction) {
-    const user = await User.findByPk(userId, { transaction });
-    if (user) {
-      await user.update({
-        credits: user.credits + amount
-      }, { transaction });
+
+  async handleLocationAction(locationId, action) {
+    try {
+      const location = await Location.findByPk(locationId);
+      if (!location) return;
+
+      switch (action) {
+        case 'remove_location':
+          await location.update({ status: 'removed' });
+          break;
+        case 'flag_for_review':
+          await location.update({ status: 'flagged' });
+          break;
+        case 'warn_location_owner':
+          // Just log the warning, no location status change
+          console.log(`Warning issued for location ${locationId}`);
+          break;
+        default:
+          // No action needed
+          break;
+      }
+    } catch (error) {
+      console.error('Error handling location action:', error);
     }
-  }
-  
-  static processReportStats(stats) {
-    const processed = {};
-    stats.forEach(stat => {
-      const key = `${stat.status}_${stat.reportType}`;
-      processed[key] = parseInt(stat.count);
-    });
-    return processed;
-  }
-  
-  static processAppealStats(stats) {
-    const processed = {};
-    stats.forEach(stat => {
-      const key = `${stat.status}_${stat.decision}`;
-      processed[key] = parseInt(stat.count);
-    });
-    return processed;
-  }
-  
-  static async calculateAverageResolutionTime(startDate) {
-    const resolvedReports = await LocationReport.findAll({
-      where: {
-        status: 'resolved',
-        resolvedAt: { [Op.gte]: startDate }
-      },
-      attributes: [
-        [fn('AVG', fn('EXTRACT', 'EPOCH', fn('AGE', col('resolvedAt'), col('createdAt')))), 'avgSeconds']
-      ],
-      raw: true
-    });
-    
-    return resolvedReports[0]?.avgSeconds || 0;
   }
 }
 
-module.exports = ReportAppealService; 
+module.exports = new ReportAppealService(); 

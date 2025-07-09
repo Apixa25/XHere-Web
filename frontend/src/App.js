@@ -39,6 +39,8 @@ import ChallengeDashboard from './components/ChallengeDashboard';
 import DuplicateDetectionAlert from './components/DuplicateDetectionAlert';
 import LocationReportModal from './components/LocationReportModal';
 import TransparencyDashboard from './components/TransparencyDashboard';
+import ModeratorDashboard from './components/ModeratorDashboard';
+import AdminPanel from './components/AdminPanel';
 
 const LIBRARIES = ['places', 'marker'];
 
@@ -1812,7 +1814,9 @@ function App() {
             {user && <Link to="/achievements">🎯 Achievements</Link>}
             {user && <Link to="/challenges">🎯 Challenges</Link>}
             {user && <Link to="/transparency">🛡️ Transparency</Link>}
+            {user && <Link to="/moderator">🛡️ Moderator</Link>}
             {user?.isAdmin && <Link to="/admin">Admin</Link>}
+            {user?.isAdmin && <Link to="/admin-panel">⚙️ Admin Panel</Link>}
             {cameFromAdmin && user?.isAdmin && (
               <button 
                 onClick={() => {
@@ -2133,6 +2137,14 @@ function App() {
     {
       path: "/transparency",
       element: user ? <TransparencyDashboard /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/moderator",
+      element: user ? <ModeratorDashboard /> : <Navigate to="/auth" />,
+    },
+    {
+      path: "/admin-panel",
+      element: user?.isAdmin ? <AdminPanel /> : <Navigate to="/" />,
     },
     {
       path: "/profile/:userId",

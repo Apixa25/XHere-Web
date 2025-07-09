@@ -1,588 +1,222 @@
 const express = require('express');
 const router = express.Router();
-const ReportAppealService = require('../services/reportAppealService');
-const { authenticateToken, requireModerator } = require('../middleware/auth');
-const LocationReport = require('../models/LocationReport');
-const Location = require('../models/Location');
+const { requireAuth, requireModerator } = require('../middleware/auth');
+const reportAppealService = require('../services/reportAppealService');
 
-/**
- * 📝 REPORT SUBMISSION ENDPOINTS
- */
-
-/**
- * @route POST /api/reports/submit
- * @desc Submit a location report with evidence
- * @access Authenticated users
- */
-// Submit a new report
-router.post('/submit', authenticateToken, async (req, res) => {
+// User endpoints
+router.post('/reports/submit', requireAuth, async (req, res) => {
   try {
-    const { locationId, reportType, reason, evidence, isAnonymous, contactEmail } = req.body;
-    const reporterId = req.user.id;
-
-    // Validate required fields
-    if (!locationId || !reportType || !reason) {
-      return res.status(400).json({
-        success: false,
-        message: 'Location ID, report type, and reason are required'
-      });
-    }
-
-    // Check if user has already reported this location
-    const existingReport = await LocationReport.findOne({
-      where: {
-        locationId: locationId,
-        reporterId: reporterId
-      }
-    });
-
-    if (existingReport) {
-      return res.status(409).json({
-        success: false,
-        message: 'You have already reported this location',
-        existingReport: {
-          id: existingReport.id,
-          reportType: existingReport.reportType,
-          status: existingReport.status,
-          createdAt: existingReport.createdAt
-        }
-      });
-    }
-
-    // Validate location exists
-    const location = await Location.findByPk(locationId);
-    if (!location) {
-      return res.status(404).json({
-        success: false,
-        message: 'Location not found'
-      });
-    }
-
-    // Create the report
-    const reportData = {
-      reportType,
-      reason: reason.trim(),
-      evidence: evidence || [],
-      isAnonymous: isAnonymous || false,
-      contactEmail: contactEmail || null
-    };
-    
-    const result = await ReportAppealService.submitReport(locationId, reporterId, reportData);
-    const report = await LocationReport.findByPk(result.reportId);
-
-    console.log('✅ Report submitted successfully:', {
-      reportId: report.id,
-      locationId: report.locationId,
-      reporterId: report.reporterId,
-      reportType: report.reportType
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Report submitted successfully',
-      report: {
-        id: report.id,
-        reportType: report.reportType,
-        status: report.status,
-        createdAt: report.createdAt
-      }
-    });
-
+    const result = await reportAppealService.submitReport(req.body, req.user.id);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error submitting report:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to submit report'
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route GET /api/reports/my-reports
- * @desc Get user's submitted reports
- * @access Authenticated users
- */
-router.get('/my-reports', authenticateToken, async (req, res) => {
+router.post('/appeals/submit', requireAuth, async (req, res) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
-    
-    const reports = await ReportAppealService.getUserReports(req.user.id, {
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
-    
-    res.json({
-      success: true,
-      reports: reports.reports,
-      pagination: reports.pagination
-    });
+    const result = await reportAppealService.submitAppeal(req.body, req.user.id);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error getting user reports:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
-/**
- * 🔍 MODERATION ENDPOINTS
- */
-
-/**
- * @route GET /api/reports/for-review
- * @desc Get reports for moderation review
- * @access Moderators only
- */
-router.get('/for-review', authenticateToken, requireModerator, async (req, res) => {
+// Moderator endpoints
+router.get('/reports/for-review', requireModerator, async (req, res) => {
   try {
-    const { limit = 20, offset = 0, status, priority, reportType } = req.query;
+    const { status, priority, reportType, timeRange, sortBy, sortOrder } = req.query;
+    const filters = { status, priority, reportType, timeRange, sortBy, sortOrder };
     
-    const result = await ReportAppealService.getReportsForReview({
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      status,
-      priority,
-      reportType
-    });
-    
-    res.json({
-      success: true,
-      reports: result.reports,
-      pagination: result.pagination
-    });
+    const result = await reportAppealService.getReportsForReview(filters);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error getting reports for review:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route POST /api/reports/:reportId/resolve
- * @desc Resolve a report
- * @access Moderators only
- */
-router.post('/:reportId/resolve', authenticateToken, requireModerator, async (req, res) => {
+router.post('/reports/:reportId/resolve', requireModerator, async (req, res) => {
   try {
     const { reportId } = req.params;
-    const { resolution, notes } = req.body;
+    const resolution = req.body;
     
-    if (!resolution) {
-      return res.status(400).json({
-        success: false,
-        message: 'Resolution is required'
-      });
-    }
-    
-    const validResolutions = ['location_removed', 'location_flagged', 'warning_issued', 'no_action', 'user_suspended'];
-    if (!validResolutions.includes(resolution)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid resolution type'
-      });
-    }
-    
-    const resolutionData = {
-      resolution,
-      notes: notes || ''
-    };
-    
-    const result = await ReportAppealService.resolveReport(reportId, req.user.id, resolutionData);
-    
-    res.json({
-      success: true,
-      message: 'Report resolved successfully',
-      ...result
-    });
+    const result = await reportAppealService.resolveReport(reportId, resolution, req.user.id);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error resolving report:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
-/**
- * ⚖️ APPEAL SUBMISSION ENDPOINTS
- */
-
-/**
- * @route POST /api/appeals/submit
- * @desc Submit an appeal for a removed location
- * @access Authenticated users
- */
-router.post('/appeals/submit', authenticateToken, async (req, res) => {
+router.get('/reports/:reportId', requireModerator, async (req, res) => {
   try {
-    const { locationId, appealReason, evidence, contactEmail } = req.body;
-    
-    if (!locationId || !appealReason) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: locationId, appealReason'
-      });
-    }
-    
-    const appealData = {
-      appealReason,
-      evidence: evidence || [],
-      contactEmail
-    };
-    
-    const result = await ReportAppealService.submitAppeal(locationId, req.user.id, appealData);
-    
-    res.json({
-      success: true,
-      message: 'Appeal submitted successfully',
-      ...result
-    });
+    const { reportId } = req.params;
+    const result = await reportAppealService.getReportDetails(reportId);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error submitting appeal:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    res.status(404).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route GET /api/appeals/my-appeals
- * @desc Get user's submitted appeals
- * @access Authenticated users
- */
-router.get('/appeals/my-appeals', authenticateToken, async (req, res) => {
+// Admin endpoints
+router.get('/admin/stats', requireModerator, async (req, res) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
-    
-    const appeals = await ReportAppealService.getUserAppeals(req.user.id, {
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
-    
-    res.json({
-      success: true,
-      appeals: appeals.appeals,
-      pagination: appeals.pagination
-    });
+    const stats = await reportAppealService.getAdminStats();
+    res.json({ success: true, data: stats });
   } catch (error) {
-    console.error('❌ Error getting user appeals:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route GET /api/appeals/for-review
- * @desc Get appeals for review
- * @access Moderators only
- */
-router.get('/appeals/for-review', authenticateToken, requireModerator, async (req, res) => {
+router.get('/admin/moderators', requireModerator, async (req, res) => {
   try {
-    const { limit = 20, offset = 0, status, priority, isUrgent } = req.query;
-    
-    const result = await ReportAppealService.getAppealsForReview({
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      status,
-      priority,
-      isUrgent: isUrgent === 'true'
-    });
-    
-    res.json({
-      success: true,
-      appeals: result.appeals,
-      pagination: result.pagination
-    });
+    const moderators = await reportAppealService.getModerators();
+    res.json({ success: true, data: moderators });
   } catch (error) {
-    console.error('❌ Error getting appeals for review:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route POST /api/appeals/:appealId/review
- * @desc Review and decide on an appeal
- * @access Moderators only
- */
-router.post('/appeals/:appealId/review', authenticateToken, requireModerator, async (req, res) => {
+router.post('/admin/moderators', requireModerator, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const result = await reportAppealService.addModerator(userId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.delete('/admin/moderators/:userId', requireModerator, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await reportAppealService.removeModerator(userId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.put('/admin/settings', requireModerator, async (req, res) => {
+  try {
+    const { setting, value } = req.body;
+    const result = await reportAppealService.updateSystemSetting(setting, value);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/admin/settings', requireModerator, async (req, res) => {
+  try {
+    const settings = await reportAppealService.getSystemSettings();
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Appeal endpoints
+router.get('/appeals/for-review', requireModerator, async (req, res) => {
+  try {
+    const { status, priority, timeRange, sortBy, sortOrder } = req.query;
+    const filters = { status, priority, timeRange, sortBy, sortOrder };
+    
+    const result = await reportAppealService.getAppealsForReview(filters);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/appeals/:appealId/resolve', requireModerator, async (req, res) => {
   try {
     const { appealId } = req.params;
-    const { decision, notes, compensationAmount } = req.body;
+    const resolution = req.body;
     
-    if (!decision) {
-      return res.status(400).json({
-        success: false,
-        message: 'Decision is required'
-      });
-    }
-    
-    const validDecisions = ['location_restored', 'location_remains_removed', 'partial_restoration', 'compensation_granted'];
-    if (!validDecisions.includes(decision)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid decision type'
-      });
-    }
-    
-    const decisionData = {
-      decision,
-      notes: notes || '',
-      compensationAmount: compensationAmount || 0
-    };
-    
-    const result = await ReportAppealService.reviewAppeal(appealId, req.user.id, decisionData);
-    
-    res.json({
-      success: true,
-      message: 'Appeal reviewed successfully',
-      ...result
-    });
+    const result = await reportAppealService.resolveAppeal(appealId, resolution, req.user.id);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error reviewing appeal:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
-/**
- * 📊 TRANSPARENCY ENDPOINTS
- */
-
-/**
- * @route GET /api/transparency/dashboard
- * @desc Get transparency dashboard data
- * @access Public
- */
-router.get('/transparency/dashboard', async (req, res) => {
+// User report history
+router.get('/users/:userId/reports', requireModerator, async (req, res) => {
   try {
-    const { timeRange = '30d' } = req.query;
-    
-    const transparencyData = await ReportAppealService.getTransparencyData(timeRange);
-    
-    res.json({
-      success: true,
-      ...transparencyData
-    });
+    const { userId } = req.params;
+    const result = await reportAppealService.getUserReportHistory(userId);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error getting transparency data:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route GET /api/transparency/reports
- * @desc Get public report statistics
- * @access Public
- */
-router.get('/transparency/reports', async (req, res) => {
+// Bulk operations
+router.post('/reports/bulk-resolve', requireModerator, async (req, res) => {
   try {
-    const { timeRange = '30d' } = req.query;
-    
-    const transparencyData = await ReportAppealService.getTransparencyData(timeRange);
-    
-    res.json({
-      success: true,
-      timeRange: transparencyData.timeRange,
-      reportStats: transparencyData.reportStats,
-      summary: {
-        totalReports: transparencyData.summary.totalReports,
-        averageResolutionTime: transparencyData.summary.averageResolutionTime
-      }
-    });
+    const { reportIds, resolution } = req.body;
+    const result = await reportAppealService.bulkResolveReports(reportIds, resolution, req.user.id);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error getting report statistics:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route GET /api/transparency/appeals
- * @desc Get public appeal statistics
- * @access Public
- */
-router.get('/transparency/appeals', async (req, res) => {
+// Analytics
+router.get('/admin/analytics', requireModerator, async (req, res) => {
   try {
-    const { timeRange = '30d' } = req.query;
-    
-    const transparencyData = await ReportAppealService.getTransparencyData(timeRange);
-    
-    res.json({
-      success: true,
-      timeRange: transparencyData.timeRange,
-      appealStats: transparencyData.appealStats,
-      summary: {
-        totalAppeals: transparencyData.summary.totalAppeals
-      }
-    });
+    const { timeRange } = req.query;
+    const analytics = await reportAppealService.getModerationAnalytics(timeRange);
+    res.json({ success: true, data: analytics });
   } catch (error) {
-    console.error('❌ Error getting appeal statistics:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-/**
- * @route GET /api/transparency/moderator-activity
- * @desc Get moderator activity statistics
- * @access Moderators only
- */
-router.get('/transparency/moderator-activity', authenticateToken, requireModerator, async (req, res) => {
+// Export functionality
+router.get('/reports/export', requireModerator, async (req, res) => {
   try {
-    const { timeRange = '30d' } = req.query;
+    const filters = req.query;
+    const exportData = await reportAppealService.exportReports(filters);
     
-    const transparencyData = await ReportAppealService.getTransparencyData(timeRange);
-    
-    res.json({
-      success: true,
-      timeRange: transparencyData.timeRange,
-      moderatorActivity: transparencyData.moderatorActivity,
-      summary: {
-        totalReports: transparencyData.summary.totalReports,
-        totalAppeals: transparencyData.summary.totalAppeals,
-        averageResolutionTime: transparencyData.summary.averageResolutionTime
-      }
-    });
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=reports-export.json');
+    res.json(exportData);
   } catch (error) {
-    console.error('❌ Error getting moderator activity:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Transparency Dashboard Endpoint
-router.get('/dashboard', authenticateToken, async (req, res) => {
+// Notifications
+router.post('/notifications/send', requireModerator, async (req, res) => {
   try {
-    // In a real implementation, you would aggregate real moderation/report/appeal data here
-    // For now, return mock/sample data
-    const data = {
-      totalReports: 42,
-      totalAppeals: 7,
-      reportsByType: {
-        spam: 18,
-        inappropriate: 10,
-        duplicate: 6,
-        fake: 5,
-        offensive: 3
-      },
-      recentReports: [
-        {
-          id: 'rpt-001',
-          locationId: 'loc-123',
-          reportType: 'spam',
-          status: 'pending',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          reporter: { id: 'user-1', name: 'Alice' }
-        },
-        {
-          id: 'rpt-002',
-          locationId: 'loc-456',
-          reportType: 'fake',
-          status: 'resolved',
-          createdAt: new Date(Date.now() - 43200000).toISOString(),
-          reporter: { id: 'user-2', name: 'Bob' }
-        }
-      ],
-      recentAppeals: [
-        {
-          id: 'apl-001',
-          locationId: 'loc-789',
-          status: 'under_review',
-          createdAt: new Date(Date.now() - 7200000).toISOString(),
-          appellant: { id: 'user-3', name: 'Carol' }
-        }
-      ],
-      moderationActions: [
-        {
-          id: 'act-001',
-          type: 'location_removed',
-          locationId: 'loc-456',
-          moderator: { id: 'mod-1', name: 'Moderator Mike' },
-          createdAt: new Date(Date.now() - 3600000).toISOString()
-        }
-      ]
-    };
-    res.json({ success: true, data });
+    const { userId, notification } = req.body;
+    const result = await reportAppealService.sendNotification(userId, notification);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('Error in transparency dashboard endpoint:', error);
-    res.status(500).json({ success: false, message: 'Failed to load transparency dashboard' });
+    res.status(400).json({ success: false, message: error.message });
   }
 });
 
 // Check if user has already reported a location
-router.get('/check-existing', authenticateToken, async (req, res) => {
+router.get('/reports/check/:locationId', requireAuth, async (req, res) => {
   try {
-    const { locationId } = req.query;
-    const userId = req.user.id;
-
-    if (!locationId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Location ID is required'
-      });
-    }
-
-    // Check if user has already reported this location
-    const existingReport = await LocationReport.findOne({
-      where: {
-        locationId: locationId,
-        reporterId: userId
-      },
-      include: [
-        {
-          model: Location,
-          as: 'location',
-          attributes: ['id', 'content']
-        }
-      ]
-    });
-
-    if (existingReport) {
-      return res.json({
-        success: true,
-        hasExistingReport: true,
-        existingReport: {
-          id: existingReport.id,
-          reportType: existingReport.reportType,
-          reason: existingReport.reason,
-          status: existingReport.status,
-          createdAt: existingReport.createdAt,
-          location: existingReport.location
-        }
-      });
-    }
-
-    return res.json({
-      success: true,
-      hasExistingReport: false,
-      existingReport: null
-    });
-
+    const { locationId } = req.params;
+    const result = await reportAppealService.checkUserReport(locationId, req.user.id);
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('Error checking existing report:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check existing report'
-    });
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Transparency endpoints
+router.get('/transparency/dashboard', async (req, res) => {
+  try {
+    const { timeRange } = req.query;
+    const data = await reportAppealService.getTransparencyDashboard(timeRange);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

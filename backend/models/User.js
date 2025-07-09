@@ -121,7 +121,12 @@ const User = sequelize.define('User', {
     defaultValue: [],
     allowNull: false,
     comment: 'History of downvote events and penalties'
-  }
+  },
+  isModerator: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
 }, {
   timestamps: true
 });
