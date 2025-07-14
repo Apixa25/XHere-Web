@@ -118,6 +118,8 @@ label {
   font-size: var(--font-size-sm);
   border-radius: 0;
   transition: background-color 0.2s, color 0.2s;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .nav-button.active {
@@ -127,6 +129,47 @@ label {
 
 .nav-button.logout {
   color: var(--danger-color);
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+
+.nav-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/* ===== Mobile App Container Enhancements ===== */
+.mobile-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 60px; /* Space for bottom nav */
+}
+
+.mobile-offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--warning-color);
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  z-index: 1001;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 /* ===== 4. Mobile-optimized authentication forms ===== */

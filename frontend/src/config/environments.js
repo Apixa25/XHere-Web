@@ -4,7 +4,21 @@
 
 export const ENVIRONMENTS = {
   development: {
-    API_URL: 'http://localhost:3000',
+    API_URL: (() => {
+      // Check if we're running in Capacitor (mobile)
+      if (typeof window !== 'undefined' && window.Capacitor) {
+        // For Android emulator, use 10.0.2.2 which maps to host's localhost
+        if (window.Capacitor.getPlatform() === 'android') {
+          return 'http://10.0.2.2:3000';
+        }
+        // For iOS simulator
+        if (window.Capacitor.getPlatform() === 'ios') {
+          return 'http://localhost:3000';
+        }
+      }
+      // For web development
+      return 'http://localhost:3000';
+    })(),
     GOOGLE_MAPS_API_KEY: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || 'your_dev_google_maps_api_key',
     GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your_dev_google_client_id',
     GOOGLE_MAPS_MAP_ID: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'your_dev_google_maps_map_id',
@@ -38,6 +52,11 @@ export const getCurrentEnvironment = () => {
   // Check for explicit environment override
   if (process.env.REACT_APP_ENVIRONMENT) {
     return process.env.REACT_APP_ENVIRONMENT;
+  }
+  
+  // Check if we're running in Capacitor (mobile)
+  if (typeof window !== 'undefined' && window.Capacitor) {
+    return 'development';
   }
   
   // Auto-detect based on hostname

@@ -36,7 +36,16 @@
     "android:build": "npm run build && npx cap copy android",
     "android:sync": "npx cap sync android",
     "android:run": "npx cap run android",
-    "android:open": "npx cap open android"
+    "android:open": "npx cap open android",
+    "mobile:dev": "npm run build && npx cap copy android && npx cap run android -l --host=10.0.2.2",
+    "mobile:live": "npx cap run android -l --host=10.0.2.2",
+    "mobile:build": "npm run build && npx cap copy android && npx cap sync android",
+    "mobile:clean": "npx cap clean android && npm run mobile:build",
+    "mobile:emulator": "npx cap run android -l --host=10.0.2.2 --target=Pixel_7_API_34",
+    "mobile:device": "npx cap run android -l --host=10.0.2.2 --target=physical",
+    "mobile:smart": "node scripts/mobile-dev.js dev",
+    "mobile:smart-emulator": "node scripts/mobile-dev.js emulator",
+    "mobile:smart-device": "node scripts/mobile-dev.js device"
   },
   "eslintConfig": {
     "extends": [

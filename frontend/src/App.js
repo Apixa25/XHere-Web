@@ -41,31 +41,21 @@ import LocationReportModal from './components/LocationReportModal';
 import TransparencyDashboard from './components/TransparencyDashboard';
 import ModeratorDashboard from './components/ModeratorDashboard';
 import AdminPanel from './components/AdminPanel';
+import { getEnvironmentConfig } from './config/environments.js';
 
 const LIBRARIES = ['places', 'marker'];
 
 // Create a context for Google Maps
 const GoogleMapsContext = createContext(null);
 
-const getApiUrl = () => {
-  // Check if we're running in a mobile environment
-  if (window.Capacitor) {
-    // For Android emulator
-    if (window.Capacitor.getPlatform() === 'android') {
-      // Replace this with your actual IP address
-      const localIp = '192.168.1.1'; // Replace with your actual IP
-      return `http://${localIp}:3001`;
-    }
-    // For iOS simulator
-    if (window.Capacitor.getPlatform() === 'ios') {
-      return 'http://localhost:3001';
-    }
-  }
-  // For web environment
-  return process.env.REACT_APP_API_URL || 'http://localhost:3001';
-};
+// Use the centralized environment configuration
+const config = getEnvironmentConfig();
+const API_URL = config.API_URL;
 
-const API_URL = getApiUrl();
+console.log('🚀 App.js - Environment Configuration:');
+console.log('   Environment:', process.env.NODE_ENV);
+console.log('   API_URL:', API_URL);
+console.log('   Config:', config);
 
 // Add a fetch wrapper with retry logic and better error handling
 const fetchWithRetry = async (url, options = {}, maxRetries = 3) => {
