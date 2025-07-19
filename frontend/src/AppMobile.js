@@ -63,9 +63,9 @@ function GoogleMapsProvider({ children }) {
   const [bypassMaps, setBypassMaps] = useState(false);
   
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: 'AIzaSyAXSHsEACD-ztTfU2Gmx1D-MOG6tdHiVQ0',
     libraries: LIBRARIES,
-    mapIds: ['51948ac5ec373e9c']
+    mapIds: ['d90da36315b1554f']
   });
 
   // Add timeout mechanism
@@ -1612,7 +1612,7 @@ function AppMobile() {
                 mapTypeControl: false,
                 fullscreenControl: false,
                 streetViewControl: false,
-                mapId: '51948ac5ec373e9c',
+                mapId: 'd90da36315b1554f',
                 useAdvancedMarkers: true,
                 useStaticMap: false,
                 gestureHandling: 'greedy',

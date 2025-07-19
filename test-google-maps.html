@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Maps API Test</title>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Google Maps API Test</h1>
+    <div id="map"></div>
+    
+    <script>
+        function initMap() {
+            const map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 41.7555, lng: -124.2025 },
+                zoom: 13,
+                mapId: 'd90da36315b1554f'
+            });
+            
+            console.log('Map loaded successfully!');
+        }
+    </script>
+    
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAXSHsEACD-ztTfU2Gmx1D-MOG6tdHiVQ0&callback=initMap">
+    </script>
+</body>
+</html> 

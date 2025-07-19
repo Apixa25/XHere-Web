@@ -57,6 +57,14 @@ console.log('   Environment:', process.env.NODE_ENV);
 console.log('   API_URL:', API_URL);
 console.log('   Config:', config);
 
+// Debug environment variables
+console.log('🔍 Environment Debug Info:');
+console.log('   REACT_APP_GOOGLE_MAPS_API_KEY:', process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? 'Present' : 'Missing');
+console.log('   REACT_APP_GOOGLE_MAPS_MAP_ID:', process.env.REACT_APP_GOOGLE_MAPS_MAP_ID ? 'Present' : 'Missing');
+console.log('   REACT_APP_ENVIRONMENT:', process.env.REACT_APP_ENVIRONMENT);
+console.log('   Config GOOGLE_MAPS_API_KEY:', config.GOOGLE_MAPS_API_KEY);
+console.log('   Config GOOGLE_MAPS_MAP_ID:', config.GOOGLE_MAPS_MAP_ID);
+
 // Add a fetch wrapper with retry logic and better error handling
 const fetchWithRetry = async (url, options = {}, maxRetries = 3) => {
   let lastError = null;
@@ -145,9 +153,9 @@ const getUserFromStorage = () => {
 
 function GoogleMapsProvider({ children }) {
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: 'AIzaSyAXSHsEACD-ztTfU2Gmx1D-MOG6tdHiVQ0',
     libraries: LIBRARIES,
-    mapIds: ['51948ac5ec373e9c']
+    mapIds: ['d90da36315b1554f']
   });
 
   if (loadError) {
@@ -2039,7 +2047,7 @@ function App() {
               onLoad={handleMapLoad}
               onUnmount={handleMapUnmount}
               options={{
-                mapId: MAPS_ID,
+                mapId: 'd90da36315b1554f',
                 disableDefaultUI: true,
                 clickableIcons: false,
                 gestureHandling: 'greedy',
