@@ -1450,7 +1450,7 @@ function AppMobile() {
       const hasAdvancedMarkers = window.google?.maps?.marker?.AdvancedMarkerElement;
       console.log('Advanced Markers Check:', {
         available: !!hasAdvancedMarkers,
-        mapId: process.env.REACT_APP_GOOGLE_MAPS_MAP_ID,
+        mapId: 'd90da36315b1554f',
         googleMaps: !!window.google?.maps,
         marker: !!window.google?.maps?.marker
       });
