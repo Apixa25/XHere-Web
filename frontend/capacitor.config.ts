@@ -6,18 +6,14 @@ const config: CapacitorConfig = {
   /* React builds into the `build` folder, point Capacitor there so the
    * native wrapper serves the correct assets. */
   webDir: 'build',
+  server: {
+    hostname: 'localhost',
+    androidScheme: 'http'
+  },
 
   /* Android-specific native configuration. */
   android: {
-    /* Permissions required by the application.  Capacitor will merge these
-     * into AndroidManifest.xml when the platform is added / updated. */
-    permissions: [
-      'android.permission.ACCESS_FINE_LOCATION',
-      'android.permission.ACCESS_COARSE_LOCATION',
-      'android.permission.CAMERA',
-      'android.permission.READ_EXTERNAL_STORAGE',
-      'android.permission.WRITE_EXTERNAL_STORAGE'
-    ]
+    // Permissions should be managed in AndroidManifest.xml
   },
 
   /* Plugin-level configuration */
