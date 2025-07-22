@@ -7,15 +7,6 @@ const config: CapacitorConfig = {
    * native wrapper serves the correct assets. */
   webDir: 'build',
 
-  /* Server configuration used while running `npx cap run android -l --host`
-   * or the Capacitor Dev App.  Update `url` so it points at your dev
-   * machine – `10.0.2.2` works for Android emulators talking to
-   * localhost on the host computer. */
-  server: {
-    url: 'http://10.0.2.2:3000',
-    cleartext: true
-  },
-
   /* Android-specific native configuration. */
   android: {
     /* Permissions required by the application.  Capacitor will merge these
