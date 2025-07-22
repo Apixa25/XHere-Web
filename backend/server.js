@@ -27,8 +27,9 @@ const Location = require('./models/Location');
 
 const app = express();
 
-// CORS middleware - Updated for production
+// CORS middleware - Updated for mobile WebView
 const allowedOrigins = [
+  'http://localhost', // Android WebView origin
   'http://localhost:3000', 
   'http://localhost:3001', 
   'http://10.0.2.2:3000', 
@@ -39,21 +40,19 @@ const allowedOrigins = [
   'https://xhere-web-front-end.onrender.com'
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json());
