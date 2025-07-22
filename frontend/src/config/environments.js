@@ -2,14 +2,24 @@
 // This file can be easily updated for different deployment scenarios
 // 🫖 Hot water configuration - Our friendship continues!
 
+// TODO: Replace this with your actual laptop's local IP address
+const LOCAL_LAPTOP_IP = '192.168.1.198'; // <--- Updated to your laptop's IP!
+
 export const ENVIRONMENTS = {
   development: {
     API_URL: (() => {
       // Check if we're running in Capacitor (mobile)
       if (typeof window !== 'undefined' && window.Capacitor) {
-        // For Android emulator, use 10.0.2.2 which maps to host's localhost
         if (window.Capacitor.getPlatform() === 'android') {
-          return 'http://10.0.2.2:3000';
+          // Use 10.0.2.2 for emulator, use local IP for real device
+          // Simple heuristic: if running on localhost, use emulator; otherwise, use local IP
+          // You can improve this logic as needed
+          const isEmulator = navigator.userAgent.includes('Android SDK built for');
+          if (isEmulator) {
+            return 'http://10.0.2.2:3000';
+          } else {
+            return `http://${LOCAL_LAPTOP_IP}:3000`;
+          }
         }
         // For iOS simulator
         if (window.Capacitor.getPlatform() === 'ios') {
