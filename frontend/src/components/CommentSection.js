@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CommentForm from './CommentForm';
 import CommentDisplay from './CommentDisplay';
 import '../styles/CommentSection.css';
+import { getEnvironmentConfig } from '../config/environments';
 
 const CommentSection = ({ locationId, user, onNewBadges }) => {
   const [comments, setComments] = useState([]);
@@ -12,7 +13,7 @@ const CommentSection = ({ locationId, user, onNewBadges }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  const API_URL = getEnvironmentConfig().API_URL;
 
   const fetchComments = async (pageNum = 1, append = false) => {
     if (!locationId) return;

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import '../styles/CommentDisplay.css';
+import { getEnvironmentConfig } from '../config/environments';
+
+const API_URL = getEnvironmentConfig().API_URL;
 
 const CommentDisplay = ({ 
   comment, 
@@ -128,7 +131,7 @@ const CommentDisplay = ({
           <div className="comment-media">
             {comment.mediaUrls.map((url, index) => {
               const mediaType = comment.mediaTypes[index];
-              const fullUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/${url.replace(/\\/g, '/')}`;
+              const fullUrl = `${API_URL}/${url.replace(/\\/g, '/')}`;
               
               if (mediaType && mediaType.startsWith('video/')) {
                 return (
